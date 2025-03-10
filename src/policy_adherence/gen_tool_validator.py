@@ -1,8 +1,9 @@
 import copy
 import json
+import os
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
-from typing import Dict, List, Optional, Literal
+from typing import Dict, List, Optional, Literal, Tuple
 
 import yaml
 
@@ -16,24 +17,25 @@ from policy_adherence.oas.OAS import OpenAPI, Operation, PathItem, Schema
 
 load_dotenv()
 
-Code = str
-class ToolInfo(BaseModel):
-    tool_name: str = Field(..., description="Tool name")
-    tool_description: str = Field(..., description="Tool description")
-    tool_input_schema: Schema = Field(..., description="Tool Input schema")
-    tool_output_schema: Schema = Field(..., description="Tool output schema")
+class Code(BaseModel):
+    file_name: str
+    content: str
+
 
 class ToolPolicyItem(BaseModel):
     policy: str = Field(..., description="Policy item")
     compliance_examples: Optional[List[str]] = Field(..., description="Case example that complies with the policy")
     violation_examples: Optional[List[str]] = Field(..., description="Case example that violates the policy")
-
-class ToolPolicy(BaseModel):
-    tool: ToolInfo
+class ToolInfo(BaseModel):
+    tool_name: str = Field(..., description="Tool name")
+    tool_description: str = Field(..., description="Tool description")
     policy_items: List[ToolPolicyItem]
+    # tool_input_schema: Schema = Field(..., description="Tool Input schema")
+    # tool_output_schema: Schema = Field(..., description="Tool output schema")
 
-def fn_is_ok(fn_code, test_cases):
-    pass
+
+def fn_is_ok(fn_code: Code, domain: Code, test_cases:Code, llm: LLM_model):
+    return True
     # compilation
     # lint
     # hallucinations
@@ -41,7 +43,7 @@ def fn_is_ok(fn_code, test_cases):
     # llm code that is not described in policy?
     # testcases
 
-def extract_code_from_response(resp:str)->Code:
+def extract_code_from_response(resp:str)->str:
     start_code_token = "```python\n"
     end_code_token = "```\n\n"
     start = resp.find(start_code_token) + len(start_code_token)
@@ -56,18 +58,94 @@ For each operation, create astub function, named by the operationId, with the fu
 """
     msgs = [{"role":"system", "content": prompt}]
     res = llm.chat_json(msgs)
-    code = res.choices[0].message.content
-    return extract_code_from_response(code)
+    res_content = res.choices[0].message.content
+    code = Code(
+        file_name="domain.py",
+        content=extract_code_from_response(res_content)
+    )
+    return code
 
-def generate_validation_fn_code(signatures: Code, policy:ToolPolicy, llm: LLM_model)->Code:
-    # test_cases = generate_test_cases(signature, tool_policy.policy_items, llm)
-    # try_idx=0, max_try= 5
-    valid_fn_code = ""
-    # while not fn_is_ok(fn_code, llm) and try_idx< max_try:
-    #     valid_fn_code = _generate_validation_fn_code(signature, tool_policy, llm)
-    #     try_idx += 1
 
-    return valid_fn_code
+def policy_statements(tool: ToolInfo):
+    s = ""
+    for item in tool.policy_items:
+        s+= f"## {item.policy}\n"
+        if item.compliance_examples:
+            s+="### Positive examples\n"
+            for pos_ex in item.compliance_examples:
+                s+=f"* {pos_ex}\n"
+        if item.violation_examples:
+            s+="### Negative examples\n"
+            for neg_ex in item.violation_examples:
+                s+=f"* {neg_ex}\n"
+        s+="\n"
+    return s
+
+def generate_test_cases(signatures:Code, tool: ToolInfo, llm: LLM_model)-> Code:
+    prompt = f"""You are given a domain definitions in Python.
+You need to generate test cases for the function under test: {tool.tool_name}(). 
+
+You are also given with policy statement that and the function under test should comply with.
+For each statement, you are given with positive and negative test case examples,    
+For negative cases check that the funtion under test raise an exception. 
+For positive cases check that no exception raised.
+
+# Domain defintion
+# in `{signatures.file_name}` file.
+{signatures.content}
+
+# Policy statements
+    {policy_statements(tool)}
+"""
+    msgs = [{"role":"system", "content": prompt}]
+    res = llm.chat_json(msgs)
+    res_content = res.choices[0].message.content
+    code = Code(
+        file_name=f"test_check_{tool.tool_name}.py",
+        content=extract_code_from_response(res_content)
+    )
+    return code
+
+def _generate_validation_fn_code(domain: Code, tool_info:ToolInfo, llm: LLM_model)->Code:
+    prompt = f"""You are given domain with data classes and functions.
+You are also given with a list of policy items. Policy items have a list of positive and negative examples. 
+You need to implement a function `check_{tool_info.tool_name}()` with signature identical to {tool_info.tool_name}()`.
+The function implementation should check that all the policy items are holds. 
+Running the code on the positive examples should pass normally. 
+Running the code on the negative examples should rais an exception.
+
+# Domain definition (in `{domain.file_name}`):
+```
+{domain.content}
+```
+
+# Policy Items:
+{policy_statements(tool_info)}
+"""
+    msgs = [{"role":"system", "content": prompt}]
+    res = llm.chat_json(msgs)
+    res_content = res.choices[0].message.content
+    return Code(
+        file_name=f"check_{tool_info.tool_name}.py", 
+        content=extract_code_from_response(res_content)
+    )
+
+def generate_validation_fn_code(domain: Code, tool_info:ToolInfo, llm: LLM_model)->Tuple[Code, Code]:
+    test_cases = generate_test_cases(domain, tool_info, llm)
+    try_idx, max_try = 0, 1
+    valid_fn_code = _generate_validation_fn_code(domain, tool_info, llm)
+    while not fn_is_ok(valid_fn_code, domain, test_cases, llm) and try_idx< max_try:
+        valid_fn_code = _generate_validation_fn_code(domain, tool_info, llm)
+        try_idx += 1
+
+    return valid_fn_code, test_cases
+
+def save_codes(folder:str, codes: List[Code]):
+    os.makedirs(folder, exist_ok=True)
+    for code in codes:
+        file_path = os.path.join(folder, code.file_name)
+        with open(file_path, "w") as file:
+            file.write(code.content)
 
 def read_oas(file_path:str)->OpenAPI:
     with open(file_path, "r") as file:
@@ -75,9 +153,10 @@ def read_oas(file_path:str)->OpenAPI:
     oas = OpenAPI.model_validate(d)
     return oas
 
-def load_policy(file_path:str):
+def load_policy(file_path:str)->List[ToolPolicyItem]:
     with open(file_path, "r") as file:
         d = json.load(file)
+    
     policies = d.get("policies", [])
     policy_items = []
     for i, p in enumerate(policies):
@@ -124,7 +203,8 @@ def main():
     oas = read_oas(oas_path)
     llm = AzureLitellm(model)
 
-    signatures = generate_signatures(oas, llm)
+    domain = generate_signatures(oas, llm)
+    save_codes("tau_airline/output", [domain])
     for tool_name, tool_poilcy_items in zip(tool_names, policies):
         if len(tool_poilcy_items) == 0: continue
         op_oas = op_only_oas(oas, tool_name)
@@ -133,16 +213,13 @@ def main():
         tool_info = ToolInfo(
             tool_name=tool_name, 
             tool_description=op.description,
-            tool_input_schema=op.requestBody.content_json.schema_,
-            tool_output_schema=op.responses.get("200").content_json.schema_
-        )
-        tool_policy = ToolPolicy(
-            tool=tool_info, 
             policy_items=tool_poilcy_items
+            # tool_input_schema=op.requestBody.content_json.schema_,
+            # tool_output_schema=op.responses.get("200").content_json.schema_
         )
 
-        code = generate_validation_fn_code(signatures, tool_policy, llm)
-        print(code)
+        code, tests = generate_validation_fn_code(domain, tool_info, llm)
+        save_codes("tau_airline/output", [code, tests])
 
 if __name__ == '__main__':
     main()
