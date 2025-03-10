@@ -16,6 +16,7 @@ from policy_check_generation.oas.OAS import OpenAPI, Operation, PathItem, Schema
 
 load_dotenv()
 
+Code = str
 class ToolInfo(BaseModel):
     tool_name: str = Field(..., description="Tool name")
     tool_description: str = Field(..., description="Tool description")
@@ -40,32 +41,33 @@ def fn_is_ok(fn_code, test_cases):
     # llm code that is not described in policy?
     # testcases
 
-def generate_tool_signature(oas: OpenAPI, llm: LLM_model):
+def extract_code_from_response(resp:str)->Code:
+    start_code_token = "```python\n"
+    end_code_token = "```\n\n"
+    start = resp.find(start_code_token) + len(start_code_token)
+    end = resp.find(end_code_token)
+    return resp[start:end]
+
+def generate_signatures(oas: OpenAPI, llm: LLM_model)->Code:
     prompt = f"""Given an OpenAPI Spec, generate Python code that include all the data types as pydantic classes. 
-For each operation, create an empty def, named by the operationId, with the correct description, inputs and outputs.
+For each operation, create astub function, named by the operationId, with the function description, inputs and outputs.
 
 {oas.model_dump_json(indent=2)}
 """
     msgs = [{"role":"system", "content": prompt}]
     res = llm.chat_json(msgs)
     code = res.choices[0].message.content
-    
-    start_code_token = "```python\n"
-    end_code_token = "```\n\n"
-    start = code.find(start_code_token) + len(start_code_token)
-    end = code.find(end_code_token)
-    return code[start:end]
+    return extract_code_from_response(code)
 
-
-def generate_validation_fn_code(oas: OpenAPI, llm: LLM_model):
-    signature = generate_tool_signature(oas, llm)
+def generate_validation_fn_code(signatures: Code, policy:ToolPolicy, llm: LLM_model)->Code:
     # test_cases = generate_test_cases(signature, tool_policy.policy_items, llm)
     # try_idx=0, max_try= 5
+    valid_fn_code = ""
     # while not fn_is_ok(fn_code, llm) and try_idx< max_try:
     #     valid_fn_code = _generate_validation_fn_code(signature, tool_policy, llm)
     #     try_idx += 1
 
-    return signature
+    return valid_fn_code
 
 def read_oas(file_path:str)->OpenAPI:
     with open(file_path, "r") as file:
@@ -116,10 +118,13 @@ def main():
     oas_path = "tau_airline/input/openapi.yml"
     tool_names = ["book_reservation"]
     policy_paths = ["tau_airline/input/BookReservation_fix_5.json"]
+    model = "gpt-4o-2024-08-06"
+
     policies = [load_policy(path) for path in policy_paths]
     oas = read_oas(oas_path)
-    llm = AzureLitellm("gpt-4o-2024-08-06")
+    llm = AzureLitellm(model)
 
+    signatures = generate_signatures(oas, llm)
     for tool_name, tool_poilcy_items in zip(tool_names, policies):
         if len(tool_poilcy_items) == 0: continue
         op_oas = op_only_oas(oas, tool_name)
@@ -136,7 +141,7 @@ def main():
             policy_items=tool_poilcy_items
         )
 
-        code = generate_validation_fn_code(op_oas, llm)
+        code = generate_validation_fn_code(signatures, tool_policy, llm)
         print(code)
 
 if __name__ == '__main__':
