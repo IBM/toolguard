@@ -1,2 +1,4 @@
 pydantic
 litellm
+pytest
+pytest-json-report

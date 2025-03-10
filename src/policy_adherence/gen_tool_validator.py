@@ -1,26 +1,21 @@
+import ast
 import copy
+from datetime import datetime
 import json
 import os
+import yaml
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
-from typing import Dict, List, Optional, Literal, Tuple
-
-import yaml
+from typing import Dict, List, Optional, Tuple
 
 from policy_adherence.common.dict import substitute_refs
-from policy_adherence.llm.azure_wrapper import AzureLitellm, AzureWrepper
+from policy_adherence.llm.azure_wrapper import AzureLitellm
 from policy_adherence.llm.llm_model import LLM_model
-# from policy_adherence.jschema.json_schema import JSONSchemaModel
-from policy_adherence.oas.OAS import OpenAPI, Operation, PathItem, Schema
-# from policy_adherence.oas.oas_dom import OASModel
-# from policy_adherence.oas.remove_orphan_comps import remove_orphan_components
-
-load_dotenv()
+from policy_adherence.oas import OpenAPI, Operation, PathItem
 
 class Code(BaseModel):
     file_name: str
     content: str
-
 
 class ToolPolicyItem(BaseModel):
     policy: str = Field(..., description="Policy item")
@@ -45,14 +40,14 @@ def fn_is_ok(fn_code: Code, domain: Code, test_cases:Code, llm: LLM_model):
 
 def extract_code_from_response(resp:str)->str:
     start_code_token = "```python\n"
-    end_code_token = "```\n\n"
+    end_code_token = "```"
     start = resp.find(start_code_token) + len(start_code_token)
-    end = resp.find(end_code_token)
+    end = resp.rfind(end_code_token)
     return resp[start:end]
 
-def generate_signatures(oas: OpenAPI, llm: LLM_model)->Code:
+def generate_domain(oas: OpenAPI, llm: LLM_model)->Code:
     prompt = f"""Given an OpenAPI Spec, generate Python code that include all the data types as pydantic classes. 
-For each operation, create astub function, named by the operationId, with the function description, inputs and outputs.
+For each operation, create astub function, named by the operationId, with the function description, argument types and return type.
 
 {oas.model_dump_json(indent=2)}
 """
@@ -65,11 +60,11 @@ For each operation, create astub function, named by the operationId, with the fu
     )
     return code
 
-
 def policy_statements(tool: ToolInfo):
     s = ""
-    for item in tool.policy_items:
-        s+= f"## {item.policy}\n"
+    for i, item in enumerate(tool.policy_items):
+        s+= f"## Policy item {i+1}"
+        s+=f"{item.policy}\n"
         if item.compliance_examples:
             s+="### Positive examples\n"
             for pos_ex in item.compliance_examples:
@@ -81,21 +76,37 @@ def policy_statements(tool: ToolInfo):
         s+="\n"
     return s
 
-def generate_test_cases(signatures:Code, tool: ToolInfo, llm: LLM_model)-> Code:
-    prompt = f"""You are given a domain definitions in Python.
-You need to generate test cases for the function under test: {tool.tool_name}(). 
+def check_tool_function_stub(code:str, fn_name:str, new_fn_name:str)->Optional[str]:
+    tree = ast.parse(code)
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef) and node.name == fn_name:
+            node.name = new_fn_name
+            node.returns = ast.Constant(value=None)
+            node.body = [ast.Pass()]
+            return ast.unparse(node)
+
+def generate_test_cases(domain:Code, tool: ToolInfo, llm: LLM_model)-> Code:
+    tool_name = tool.tool_name
+    fn_under_test = check_tool_function_stub(domain.content, tool_name, f"check_{tool_name}")
+    prompt = f"""Given the below function in Python:
+```
+### check_{tool_name}.py
+{fn_under_test}
+```
+You are given a domain definitions in Python.
+```
+### {domain.file_name}
+{domain.content}
+```
 
 You are also given with policy statement that and the function under test should comply with.
 For each statement, you are given with positive and negative test case examples,    
 For negative cases check that the funtion under test raise an exception. 
 For positive cases check that no exception raised.
 
-# Domain defintion
-# in `{signatures.file_name}` file.
-{signatures.content}
+{policy_statements(tool)}
 
-# Policy statements
-    {policy_statements(tool)}
+Generate test cases for the function under test. 
 """
     msgs = [{"role":"system", "content": prompt}]
     res = llm.chat_json(msgs)
@@ -198,28 +209,29 @@ def main():
     tool_names = ["book_reservation"]
     policy_paths = ["tau_airline/input/BookReservation_fix_5.json"]
     model = "gpt-4o-2024-08-06"
+    now = datetime.now()
+    output_path = f"tau_airline/output/{now.strftime("%Y-%m-%d %H:%M:%S")}"
 
     policies = [load_policy(path) for path in policy_paths]
     oas = read_oas(oas_path)
     llm = AzureLitellm(model)
 
-    domain = generate_signatures(oas, llm)
-    save_codes("tau_airline/output", [domain])
+    domain = generate_domain(oas, llm)
+    save_codes(output_path, [domain])
     for tool_name, tool_poilcy_items in zip(tool_names, policies):
         if len(tool_poilcy_items) == 0: continue
-        op_oas = op_only_oas(oas, tool_name)
-        op = op_oas.get_operation_by_operationId(tool_name)
+        # op_oas = op_only_oas(oas, tool_name)
+        op = oas.get_operation_by_operationId(tool_name)
         assert op
         tool_info = ToolInfo(
             tool_name=tool_name, 
             tool_description=op.description,
             policy_items=tool_poilcy_items
-            # tool_input_schema=op.requestBody.content_json.schema_,
-            # tool_output_schema=op.responses.get("200").content_json.schema_
         )
 
         code, tests = generate_validation_fn_code(domain, tool_info, llm)
-        save_codes("tau_airline/output", [code, tests])
+        save_codes(output_path, [code, tests])
 
 if __name__ == '__main__':
+    load_dotenv()
     main()
