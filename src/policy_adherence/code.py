@@ -7,7 +7,6 @@ class Code(BaseModel):
     content: str
 
     def save(self, folder:str):
-        os.makedirs(folder, exist_ok=True)
         file_path = os.path.join(folder, self.file_name)
         with open(file_path, "w") as file:
             file.write(self.content)

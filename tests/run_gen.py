@@ -10,7 +10,8 @@ from loguru import logger
 
 from policy_adherence.code import Code
 from policy_adherence.common.dict import substitute_refs
-from policy_adherence.code_generator import ToolPolicyItem, PolicyAdherenceCodeGenerator
+from policy_adherence.oas_to_stub import OpenAPICodeGenerator
+from policy_adherence.policy_check_generator import ToolPolicyItem, PolicyAdherenceCodeGenerator
 from policy_adherence.llm.azure_wrapper import AzureLitellm
 from policy_adherence.oas import OpenAPI, Operation, PathItem
     
@@ -43,29 +44,29 @@ def load_domain(file_path:str)->Code:
         content=content
     )
 
-def op_only_oas(oas: OpenAPI, operationId: str)-> OpenAPI:
-    new_oas = OpenAPI(
-        openapi=oas.openapi, 
-        info=oas.info,
-        components=oas.components
-    )
-    for path, path_item in oas.paths.items():
-        for mtd, op in path_item.operations.items():
-            if op.operationId == operationId:
-                if new_oas.paths.get(path) is None:
-                    new_oas.paths[path] = PathItem(
-                        summary=path_item.summary,
-                        description=path_item.description,
-                        servers=path_item.servers,
-                        parameters=path_item.parameters,
-                    ) # type: ignore
-                setattr(
-                    new_oas.paths.get(path), 
-                    mtd.lower(), 
-                    copy.deepcopy(op)
-                )
-                op = Operation(**(substitute_refs(op.model_dump())))
-    return new_oas
+# def op_only_oas(oas: OpenAPI, operationId: str)-> OpenAPI:
+#     new_oas = OpenAPI(
+#         openapi=oas.openapi, 
+#         info=oas.info,
+#         components=oas.components
+#     )
+#     for path, path_item in oas.paths.items():
+#         for mtd, op in path_item.operations.items():
+#             if op.operationId == operationId:
+#                 if new_oas.paths.get(path) is None:
+#                     new_oas.paths[path] = PathItem(
+#                         summary=path_item.summary,
+#                         description=path_item.description,
+#                         servers=path_item.servers,
+#                         parameters=path_item.parameters,
+#                     ) # type: ignore
+#                 setattr(
+#                     new_oas.paths.get(path), 
+#                     mtd.lower(), 
+#                     copy.deepcopy(op)
+#                 )
+#                 op = Operation(**(substitute_refs(op.model_dump())))
+#     return new_oas
     
 def symlink_force(target, link_name):
     try:
@@ -75,23 +76,26 @@ def symlink_force(target, link_name):
         os.symlink(target, link_name)
 
 def main():
-    oas_path = "tau_airline/input/openapi.yml"
+    oas_path = "tau_airline/input/openapi.yaml"
     tool_names = ["book_reservation"]
     policy_paths = ["tau_airline/input/BookReservation_fix_5.json"]
     model = "gpt-4o-2024-08-06"
     output_dir = "tau_airline/output"
     now = datetime.now()
-    output_path = os.path.join(output_dir, now.strftime("%Y-%m-%d %H:%M:%S"))
+    cwd = os.path.join(output_dir, now.strftime("%Y-%m-%d %H:%M:%S"))
+    os.makedirs(cwd, exist_ok=True)
 
     policies = {tool_name:load_policy(path) 
         for tool_name, path 
         in zip(tool_names, policy_paths)}
-    oas = read_oas(oas_path)
     llm = AzureLitellm(model)
-    generator = PolicyAdherenceCodeGenerator(llm, output_path)
+    generator = PolicyAdherenceCodeGenerator(llm, cwd)
     domain = None
+    OpenAPICodeGenerator().generate_domain(
+        oas_path, 
+        os.path.join(cwd, "domain.py"))
     # domain = load_domain(f"tau_airline/input/domain.py")
-    result = generator.generate_tools_check_fns(oas, policies, domain)
+    result = generator.generate_tools_check_fns(oas_path, policies, domain)
     print(f"Domain: {result.domain_file}")
     for tool_name, tool in result.tools.items():
         print(f"\t{tool_name}\t{tool.check_file_name}\t{tool.tests_file_name}")

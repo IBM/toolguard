@@ -1,4 +1,6 @@
 import ast
+import json
+import os
 import astor
 from pydantic import BaseModel, Field
 from typing import Dict, List, Optional, Tuple
@@ -8,6 +10,7 @@ from policy_adherence.llm.llm_model import LLM_model
 from policy_adherence.oas import OpenAPI
 # from policy_adherence.pylint import run_pylint
 
+from policy_adherence.oas_to_stub import OpenAPICodeGenerator
 from policy_adherence.pyright import run_pyright
 from policy_adherence.pytest import TestOutcome, run_unittests
 
@@ -33,24 +36,24 @@ class ToolChecksCodeGenerationResult(BaseModel):
 
 class PolicyAdherenceCodeGenerator():
     llm: LLM_model
-    output_path: str
+    cwd: str
 
-    def __init__(self, llm:LLM_model, output_path:str) -> None:
+    def __init__(self, llm:LLM_model, cwd:str) -> None:
         self.llm = llm
-        self.output_path = output_path
+        self.cwd = cwd
 
-    def generate_tools_check_fns(self, oas: OpenAPI, tool_policies: ToolsPolicies, domain:Optional[Code] = None, retries=2)->ToolChecksCodeGenerationResult:
-        logger.debug(f"Starting... will save into {self.output_path}")
-        if not domain:
-            domain = self.generate_domain(oas)
-        domain.save(self.output_path)
-        logger.debug(f"domain created")
+    def generate_tools_check_fns(self, oas_path: str, tool_policies: ToolsPolicies, domain:Optional[Code] = None, retries=2)->ToolChecksCodeGenerationResult:
+        logger.debug(f"Starting... will save into {self.cwd}")
+        # if not domain:
+        #     domain = self.generate_domain(oas_path)
+        # domain.save(self.cwd)
+        # logger.debug(f"domain created")
         tools_result: Dict[str, ToolChecksCodeResult] = {}
         for tool_name, tool_poilcies in tool_policies.items():
             if len(tool_poilcies) == 0: continue
             logger.debug(f"Tool {tool_name}")
             
-            tool_check_fn, tool_check_tests = self.generate_tool_check_fn(domain, tool_name, tool_poilcies, self.output_path)
+            tool_check_fn, tool_check_tests = self.generate_tool_check_fn(domain, tool_name, tool_poilcies, self.cwd)
             tools_result[tool_name] = ToolChecksCodeResult(
                 tool_name=tool_name,
                 check_file_name=tool_check_fn.file_name, 
@@ -59,12 +62,12 @@ class PolicyAdherenceCodeGenerator():
             )
         
         return ToolChecksCodeGenerationResult(
-            output_path=self.output_path,
+            output_path=self.cwd,
             domain_file=domain.file_name,
             tools=tools_result
         )
 
-    def generate_domain(self, oas: OpenAPI, retries=2)->Code:
+    def generate_domain_old(self, oas: OpenAPI, retries=2)->Code:
         logger.debug(f"Generating domain... (retry = {retries})")
         prompt = f"""Given an OpenAPI Spec, generate Python code that include all the data-types as Pydantic data-classes. 
 For data-classes fields, make all fields optional with default `None`.
@@ -81,8 +84,8 @@ Add the operation description as the function documentation.
         res_content = self._call_llm(prompt)
         body = self._extract_code_from_response(res_content)
         domain = Code(file_name="domain.py", content=body)
-        domain.save(self.output_path)
-        lint_report = run_pyright(self.output_path, domain.file_name)
+        domain.save(self.cwd)
+        lint_report = run_pyright(self.cwd, domain.file_name)
         if lint_report.list_errors():
             logger.warning(f"Generated domain have Python errors.")
             if retries>1:
@@ -152,8 +155,8 @@ Indicate test failures using a meaningful message that also contain the policy s
         body = self._extract_code_from_response(res_content)
         
         tests = Code(file_name=f"test_check_{tool_name}.py", content=body)
-        tests.save(self.output_path)
-        lint_report = run_pyright(self.output_path, tests.file_name)
+        tests.save(self.cwd)
+        lint_report = run_pyright(self.cwd, tests.file_name)
         if lint_report.list_errors():
             logger.warning(f"Generated tests with Python errors.")
             if retries>0:
@@ -163,7 +166,7 @@ Indicate test failures using a meaningful message that also contain the policy s
         #syntax ok, try to run it...
         logger.debug(f"Generated Tests... (retries={retries})")
         #still running against a stub. the tests should fail, but the collector should not fail.
-        test_report = run_unittests(self.output_path)
+        test_report = run_unittests(self.cwd)
         if not test_report.all_tests_collected_successfully():
             logger.debug(f"Tool {tool_name} unit tests error")
             return self.generate_tool_tests(checker_fn, tool_name, policies, retries=retries-1)
@@ -212,8 +215,8 @@ The code must be simple and well documented.
         res_content = self._call_llm(prompt)
         body = self._extract_code_from_response(res_content)
         check_fn = Code(file_name=f"{check_fn_name}.py", content=body)
-        check_fn.save(self.output_path)
-        lint_report = run_pyright(self.output_path, check_fn.file_name)
+        check_fn.save(self.cwd)
+        lint_report = run_pyright(self.cwd, check_fn.file_name)
         if lint_report.list_errors():
             logger.warning(f"Generated function with Python errors.")
             if retries>0:

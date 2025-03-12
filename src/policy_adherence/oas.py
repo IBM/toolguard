@@ -24,7 +24,7 @@ class Schema(BaseModel):
     default: Optional[Any] = None
     description: Optional[str] = None
     example: Optional[Any] = None
-
+    ref: Optional[str] = Field(None, alias="$ref")
 
 class Contact(BaseModel):
     name: Optional[str] = None
@@ -96,17 +96,7 @@ class Response(BaseModel):
     def content_json(self):
         if self.content:
             return self.content.get(MEDIA_TYPE_APP_JSON)
-
-class Operation(BaseModel):
-    summary: Optional[str] = None
-    description: Optional[str] = None
-    operationId: Optional[str] = None
-    tags: Optional[List[str]] = None
-    requestBody: Optional[RequestBody] = None
-    responses: Optional[Dict[str, Response]] = None
-    security: Optional[Dict[str, List[str]]] = None
-
-
+        
 class ParameterIn(StrEnum):
     query = "query"
     header = "header"
@@ -118,9 +108,19 @@ class Parameter(BaseModel):
     name: str
     description: Optional[str] = None
     in_: ParameterIn = Field(ParameterIn.query, alias="in")
-    required: bool
+    required: Optional[bool] = None
     schema_: Optional[Schema] = Field(None, alias="schema")
 
+
+class Operation(BaseModel):
+    summary: Optional[str] = None
+    description: Optional[str] = None
+    operationId: Optional[str] = None
+    tags: Optional[List[str]] = None
+    parameters: Optional[List[Parameter]] = None
+    requestBody: Optional[RequestBody] = None
+    responses: Optional[Dict[str, Response]] = None
+    security: Optional[Dict[str, List[str]]] = None
 
 class PathItem(BaseModel):
     ref: Optional[str] = Field(None, alias="$ref")
