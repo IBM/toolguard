@@ -1,9 +1,15 @@
 
+from enum import StrEnum
 import json
 import os
 import subprocess
-from typing import List, Dict, Optional
+from typing import List, Dict, Literal, Optional
 from pydantic import BaseModel
+
+
+class TestOutcome(StrEnum):
+    passed = "passed"
+    failed = "failed"
 
 class TracebackEntry(BaseModel):
     path: str
@@ -17,19 +23,19 @@ class CrashInfo(BaseModel):
 
 class CallInfo(BaseModel):
     duration: float
-    outcome: str
+    outcome: TestOutcome
     crash: Optional[CrashInfo] = None
     traceback: Optional[List[TracebackEntry]] = None
     longrepr: Optional[str] = None
 
 class TestPhase(BaseModel):
     duration: float
-    outcome: str
+    outcome: TestOutcome
 
 class TestResult(BaseModel):
     nodeid: str
     lineno: int
-    outcome: str
+    outcome: TestOutcome
     keywords: List[str]
     setup: TestPhase
     call: CallInfo
@@ -42,7 +48,7 @@ class ResultEntry(BaseModel):
 
 class Collector(BaseModel):
     nodeid: str
-    outcome: str
+    outcome: TestOutcome
     result: List[ResultEntry]
 
 class Summary(BaseModel):
@@ -71,6 +77,6 @@ def run_unittests(folder:str)->TestReport:
 
     with open(os.path.join(folder, report_file), "r") as file:
         data = json.load(file)
-    return TestReport(**data)
+    return TestReport.model_validate_json(data, strict=False)
     
     
