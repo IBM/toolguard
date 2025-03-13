@@ -1,26 +1,24 @@
-import copy
 from datetime import datetime
 import json
 import os
 import sys
 import yaml
-from typing import Dict, List, Optional, Tuple
+from typing import List
 from dotenv import load_dotenv
 from loguru import logger
 
-from policy_adherence.code import Code
-from policy_adherence.common.dict import substitute_refs
-from policy_adherence.oas_to_stub import OpenAPICodeGenerator
-from policy_adherence.policy_check_generator import ToolPolicyItem, PolicyAdherenceCodeGenerator
+from policy_adherence.types import Code, ToolPolicy, ToolPolicyItem
+from policy_adherence.gen_domain import OpenAPICodeGenerator
+from policy_adherence.gen_tool_policy_check import PolicyAdherenceCodeGenerator
 from policy_adherence.llm.azure_wrapper import AzureLitellm
-from policy_adherence.oas import OpenAPI, Operation, PathItem
+from policy_adherence.common.open_api import OpenAPI
     
 def read_oas(file_path:str)->OpenAPI:
     with open(file_path, "r") as file:
         d = yaml.safe_load(file)
     return OpenAPI.model_validate(d)
 
-def load_policy(file_path:str)->List[ToolPolicyItem]:
+def load_policy(file_path:str, tool_name:str)->ToolPolicy:
     with open(file_path, "r") as file:
         d = json.load(file)
     
@@ -34,7 +32,7 @@ def load_policy(file_path:str)->List[ToolPolicyItem]:
                 violation_examples = p.get(f"Violating Examples {i+1}")
             )
         )
-    return policy_items
+    return ToolPolicy(name=tool_name, policy_items=policy_items)
 
 def load_domain(file_path:str)->Code:
     with open(file_path, "r", encoding="utf-8") as file:
@@ -85,17 +83,18 @@ def main():
     cwd = os.path.join(output_dir, now.strftime("%Y-%m-%d %H:%M:%S"))
     os.makedirs(cwd, exist_ok=True)
 
-    policies = {tool_name:load_policy(path) 
+    tool_policies = [load_policy(path,tool_name) 
         for tool_name, path 
-        in zip(tool_names, policy_paths)}
+        in zip(tool_names, policy_paths)]
     llm = AzureLitellm(model)
-    generator = PolicyAdherenceCodeGenerator(llm, cwd)
-    domain = None
+    
+    domain_file = os.path.join(cwd, "domain.py")
     OpenAPICodeGenerator().generate_domain(
-        oas_path, 
-        os.path.join(cwd, "domain.py"))
-    # domain = load_domain(f"tau_airline/input/domain.py")
-    result = generator.generate_tools_check_fns(oas_path, policies, domain)
+        oas_path, domain_file)
+    domain = load_domain(domain_file)
+
+    generator = PolicyAdherenceCodeGenerator(llm, cwd)
+    result = generator.generate_tools_check_fns(tool_policies, domain)
     print(f"Domain: {result.domain_file}")
     for tool_name, tool in result.tools.items():
         print(f"\t{tool_name}\t{tool.check_file_name}\t{tool.tests_file_name}")

@@ -1,0 +1,152 @@
+import ast
+import astor
+from pydantic import BaseModel
+from typing import Dict, List, Tuple
+from loguru import logger
+from policy_adherence.types import Code, ToolPolicy
+from policy_adherence.gen_tool_policy_tests import ToolPolicyTestsGenerator
+from policy_adherence.llm.llm_model import LLM_model
+# from policy_adherence.pylint import run_pylint
+
+from policy_adherence.tools.pyright import run_pyright
+from policy_adherence.tools.pytest import run_unittests
+from policy_adherence.utils import call_llm, extract_code_from_llm_response, to_md_bulltets
+
+MAX_TOOL_IMPROVEMENTS = 3
+
+class ToolChecksCodeResult(BaseModel):
+    tool: ToolPolicy
+    check_file_name: str
+    tests_file_name: str
+
+class ToolChecksCodeGenerationResult(BaseModel):
+    output_path: str
+    domain_file: str
+    tools: Dict[str, ToolChecksCodeResult]
+
+class PolicyAdherenceCodeGenerator():
+    llm: LLM_model
+    cwd: str
+
+    def __init__(self, llm:LLM_model, cwd:str) -> None:
+        self.llm = llm
+        self.cwd = cwd
+
+    def generate_tools_check_fns(self, tool_policies: List[ToolPolicy], domain:Code, retries=2)->ToolChecksCodeGenerationResult:
+        logger.debug(f"Starting... will save into {self.cwd}")
+        tools_result: Dict[str, ToolChecksCodeResult] = {}
+        for tool in tool_policies:
+            if len(tool.policy_items) == 0: continue
+            logger.debug(f"Tool {tool.name}")
+            
+            tool_check_fn, tool_check_tests = self.generate_tool_check_fn(domain, tool, self.cwd)
+            tools_result[tool.name] = ToolChecksCodeResult(
+                tool = tool,
+                check_file_name=tool_check_fn.file_name, 
+                tests_file_name=tool_check_tests.file_name,
+            )
+        
+        return ToolChecksCodeGenerationResult(
+            output_path=self.cwd,
+            domain_file=domain.file_name,
+            tools=tools_result
+        )
+
+    def _copy_check_fn_stub(self, domain:Code, fn_name:str, new_fn_name:str)->Code:
+        tree = ast.parse(domain.content)
+        new_body = []
+        new_body.append(ast.ImportFrom(
+            module=domain.file_name[:-3],# The module name (without ./)
+            names=[ast.alias(name="*", asname=None)],  # Import Type
+            level=0            # 0 = absolute import, 1 = relative import (.)
+        ))
+        for node in tree.body:
+            if isinstance(node, ast.FunctionDef) and node.name == fn_name:
+                node.name = new_fn_name
+                node.returns = ast.Constant(value=None)
+                node.body = [ast.Pass()]
+                new_body.append(node)
+        
+        module = ast.Module(body=new_body, type_ignores=[])
+        ast.fix_missing_locations(module)
+        src= astor.to_source(module)
+        return Code(file_name=f"{new_fn_name}.py", content=src)
+
+    def _improve_check_fn(self, domain: Code, tool: ToolPolicy, previous_version:Code, review_comments: List[str], retries=2)->Code:
+        logger.debug(f"Improving check function... (retry = {retries})")
+        check_fn_name = f"check_{tool.name}"
+        prompt = f"""You are given:
+* a Python file describing the domain. It contains data classes and functions you may use.
+* a list of policy items. Policy items have a list of positive and negative examples. 
+* current implementation of a Python function, `{check_fn_name}()`.
+* a list of review comments on issues that need to be improved in the current implementation.
+
+The goal of the function is to check that all the policy items hold on the given input. 
+In particular, all positive examples should pass silently.
+For all negative examples, the function should raise a meaningful exception.
+If you need to retrieve additional data (that is not in the function arguments), you can call functions defined in the domain.
+You need to generate code that improve the current implementation, according to the review comments.
+The code must be simple and well documented.
+
+### Domain:
+```
+### {domain.file_name}
+
+{domain.content}
+```
+
+### Policy Items:
+
+{tool.policies_to_md()}
+
+
+### Current implemtnation
+```
+### {previous_version.file_name}
+
+{previous_version.content}
+```
+
+### Review commnets:
+
+{to_md_bulltets(review_comments)}
+"""
+        res_content = call_llm(prompt, self.llm)
+        body = extract_code_from_llm_response(res_content)
+        check_fn = Code(file_name=f"{check_fn_name}.py", content=body)
+        check_fn.save(self.cwd)
+        lint_report = run_pyright(self.cwd, check_fn.file_name)
+        if lint_report.list_errors():
+            logger.warning(f"Generated function with Python errors.")
+            if retries>0:
+                return self._improve_check_fn(domain, tool, check_fn, review_comments, retries-1)
+            raise Exception(f"Generation failed for tool {tool.name}")
+        return check_fn
+
+    def generate_tool_check_fn(self, domain: Code, tool:ToolPolicy, output_path:str, trial_no=0)->Tuple[Code, Code]:
+        check_fn = self._copy_check_fn_stub(domain, tool.name, f"check_{tool.name}")
+        check_fn.save(output_path)
+        logger.debug(f"Tool {tool.name} function draft created")
+
+        test_gen = ToolPolicyTestsGenerator(self.llm, self.cwd)
+        tests, errors = test_gen.generate_tool_tests(check_fn, tool)
+        logger.debug(f"Tests {tests.file_name} successfully created")
+
+        # logger.debug(f"Tool {tool_name} function is {'valid' if valid_fn() else 'invalid'}")
+        while trial_no < MAX_TOOL_IMPROVEMENTS and errors:
+            logger.debug(f"Tool {tool.name} function has errors. Retrying...")
+            check_fn = self._improve_check_fn(domain, tool, check_fn, errors)
+            check_fn.save(output_path)
+            errors = self._check_fn_is_ok(check_fn, domain, tests, output_path)
+            trial_no +=1
+        
+        return check_fn, tests
+
+    def _check_fn_is_ok(self, fn_code: Code, domain: Code, test_cases:Code, output_path:str)->List[str]:
+        report = run_unittests(output_path)
+        return report.list_errors()
+        # lint
+        # hallucinations
+        # llm all poliCIES ARE COVERED?
+        # llm code that is not described in policy?
+        return True

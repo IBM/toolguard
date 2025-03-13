@@ -2,13 +2,12 @@
 
 import ast
 import json
-import subprocess
 from typing import List
 
 import astor
 import yaml
-from policy_adherence.code import Code
-from policy_adherence.oas import OpenAPI, Operation, Parameter, Schema
+from policy_adherence.tools.datamodel_codegen import run as dm_codegen
+from policy_adherence.common.open_api import OpenAPI, Operation, Parameter, Schema
 
 def read_oas(file_path:str)->OpenAPI:
     with open(file_path, "r") as file:
@@ -26,25 +25,8 @@ primitive_oas_types_to_py = {
 }
 class OpenAPICodeGenerator():
     def generate_domain(self, oas_file:str, domain_py_file:str):
-        self.define_model(oas_file, domain_py_file)
+        dm_codegen(oas_file, domain_py_file)
         self.append_functions(domain_py_file, oas_file)
-
-    def define_model(self, oas_file:str, domain_file:str):
-        res = subprocess.run([
-                "datamodel-codegen",
-                "--use-field-description",
-                "--use-schema-description",
-                "--use-operation-id-as-name",
-                "--reuse-model",
-                "--input", oas_file,
-                "--output", domain_file
-            ], 
-            # cwd=self.cwd,
-            capture_output=True, 
-            text=True
-        )
-        if res.returncode != 0:
-            raise Exception(res.stderr)
 
     def append_functions(self, domain_py_file:str, oas_file:str):
         oas = read_oas(oas_file)
