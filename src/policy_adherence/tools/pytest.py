@@ -50,6 +50,7 @@ class Collector(BaseModel):
     nodeid: str
     outcome: TestOutcome
     result: List[ResultEntry]
+    longrepr: Optional[str] = None
 
 class Summary(BaseModel):
     failed: Optional[int] = 0
@@ -74,13 +75,20 @@ class TestReport(BaseModel):
     
     def list_errors(self)->List[str]:
         errors = []
+
+        #Python errors in the function under test
+        for col in self.collectors:
+            if col.outcome == TestOutcome.failed and col.longrepr:
+                errors.append(col.longrepr)
+
+        #applicative test failure
         for test in self.tests:
             if test.outcome == TestOutcome.failed:
                 errors.append(test.call.crash.message)
         return errors
 
-def run_unittests(folder:str, test_file:str, suffix:str = "")->TestReport:
-    report_file = f"pytest_report{suffix}.json"
+def run_unittests(folder:str, test_file:str, prefix:str = "")->TestReport:
+    report_file = f"{prefix}_pytest_report.json"
     subprocess.run([
             "pytest",
             test_file,

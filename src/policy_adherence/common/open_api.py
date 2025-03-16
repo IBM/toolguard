@@ -181,3 +181,13 @@ class OpenAPI(BaseModel):
             for op in path_item.operations.values():
                 if op.operationId == operationId:
                     return op
+                
+import json
+import yaml
+def read_openapi(file_path:str)->OpenAPI:
+    with open(file_path, "r") as file:
+        if file_path.endswith("json"):
+            d = json.load(file)
+        else:
+            d = yaml.safe_load(file)
+    return OpenAPI.model_validate(d, strict=False)

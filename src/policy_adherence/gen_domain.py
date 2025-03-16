@@ -1,21 +1,11 @@
 
 
 import ast
-import json
 from typing import List
 
 import astor
-import yaml
 from policy_adherence.tools.datamodel_codegen import run as dm_codegen
-from policy_adherence.common.open_api import OpenAPI, Operation, Parameter, Schema
-
-def read_oas(file_path:str)->OpenAPI:
-    with open(file_path, "r") as file:
-        if file_path.endswith("json"):
-            d = json.load(file)
-        else:
-            d = yaml.safe_load(file)
-    return OpenAPI.model_validate(d, strict=False)
+from policy_adherence.common.open_api import OpenAPI, Operation, Parameter, Schema, read_openapi
 
 primitive_oas_types_to_py = {
     "string": "str",
@@ -29,7 +19,8 @@ class OpenAPICodeGenerator():
         self.append_functions(domain_py_file, oas_file)
 
     def append_functions(self, domain_py_file:str, oas_file:str):
-        oas = read_oas(oas_file)
+        oas = read_openapi(oas_file)
+        
         with open(domain_py_file, "r", encoding="utf-8") as f:
             tree = ast.parse(f.read(), filename=domain_py_file)
         

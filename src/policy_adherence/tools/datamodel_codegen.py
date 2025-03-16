@@ -9,7 +9,7 @@ def run(oas_file:str, domain_file:str):
             "--use-schema-description",
             "--use-operation-id-as-name",
             "--output-model-type", "pydantic_v2.BaseModel", #"typing.TypedDict",
-            "--force-optional",
+            # "--force-optional",
             "--reuse-model",
             "--input", oas_file,
             "--output", domain_file

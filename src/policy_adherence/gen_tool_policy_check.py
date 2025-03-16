@@ -7,7 +7,7 @@ from policy_adherence.types import MyFile, ToolPolicy
 from policy_adherence.llm.llm_model import LLM_model
 # from policy_adherence.pylint import run_pylint
 
-from policy_adherence.tools.pyright import run_pyright
+from policy_adherence.tools.pyright import pyright_config, run_pyright
 from policy_adherence.tools.pytest import run_unittests
 from policy_adherence.utils import call_llm, extract_code_from_llm_response, to_md_bulltets
 
@@ -34,6 +34,7 @@ class PolicyAdherenceCodeGenerator():
 
     def generate_tools_check_fns(self, tool_policies: List[ToolPolicy], domain:MyFile)->ToolChecksCodeGenerationResult:
         logger.debug(f"Starting... will save into {self.cwd}")
+        pyright_config().save(self.cwd)
 
         tools_result: Dict[str, ToolChecksCodeResult] = {}
         for tool in tool_policies:
@@ -118,19 +119,19 @@ The code must be simple and well documented.
         body = extract_code_from_llm_response(res_content)
         check_fn = MyFile(file_name=f"{check_fn_name}.py", content=body)
         check_fn.save(self.cwd)
-        check_fn.save_as(self.cwd, f"{check_fn_name}_{trial}.py")
+        check_fn.save_as(self.cwd, f"{trial}_{check_fn_name}.py")
 
-        # lint_report = run_pyright(self.cwd, check_fn.file_name)
-        # if lint_report.summary.errorCount>0:
-        #     MyFile(
-        #             file_name=f"{check_fn_name}_{trial}_errors.json", 
-        #             content=lint_report.model_dump_json(indent=2)
-        #         ).save(self.cwd)
-        #     logger.warning(f"Generated function with Python errors.")
+        lint_report = run_pyright(self.cwd, check_fn.file_name)
+        if lint_report.summary.errorCount>0:
+            MyFile(
+                    file_name=f"{trial}_{check_fn_name}_errors.json", 
+                    content=lint_report.model_dump_json(indent=2)
+                ).save(self.cwd)
+            logger.warning(f"Generated function with Python errors.")
             
-        #     if trial < MAX_TOOL_IMPROVEMENTS:
-        #         return self._improve_check_fn(domain, tool, check_fn, review_comments, trial+1)
-        #     raise Exception(f"Generation failed for tool {tool.name}")
+            if trial < MAX_TOOL_IMPROVEMENTS:
+                return self._improve_check_fn(domain, tool, check_fn, review_comments, trial+1)
+            raise Exception(f"Generation failed for tool {tool.name}")
         return check_fn
     
 
@@ -143,19 +144,20 @@ The code must be simple and well documented.
 * an interface of a Python function-under-test, `{test_module_name}()`.
 
 Your task is to write unit tests to check the implementation of the interface-under-test.
-The function implemtation should check that ALL policy statements hold on its arguments.
+The function implemtation should assert that ALL policy statements hold on its arguments.
 If the arguments violate a policy statement, an exception should be thrown.
 Policy statement have positive and negative examples.
 For positive-cases, the function should not throw exceptions.
 For negative-cases, the function should throw an exception.
 Generate one test for each example. 
 
-If an unexpected exception is catched, the test should fail with the exception message.
+If an unexpected exception is catched, the test should fail with the nested exception message.
 
 Name the test using up to 6 representative words (snake_case).
 
-If the function-under-test need to access data from other functions in the domain, you should mock the call and the return value using `unittest.mock.patch`. 
-For example, if `check_book_reservation` is the function under test, and it may access the `get_user_details()`:
+The function-under-test might call other functions, in the domain, to retreive data, and check the policy accordingly. 
+Hence, you should MOCK the call to other functions and set the expected return value using `unittest.mock.patch`. 
+For example, if `check_book_reservation` is the function-under-test, it may access the `get_user_details()`:
 ```
 args = ...
 user = User(...)
@@ -188,9 +190,9 @@ Make sure to indicate test failures using a meaningful message.
         
         tests = MyFile(file_name=f"{test_module_name}.py", content=body)
         tests.save(self.cwd)
-        tests.save_as(self.cwd, f"{test_module_name}_{trial}.py")
+        tests.save_as(self.cwd, f"{trial}_{test_module_name}.py")
         lint_report = run_pyright(self.cwd, tests.file_name)
-        if lint_report.errors_only():
+        if lint_report.summary.errorCount>0:
             logger.warning(f"Generated tests with Python errors.")
             if trial < MAX_TEST_GEN_TRIALS:
                 return self.generate_tool_tests(fn_stub, tool, domain, trial+1)
@@ -210,7 +212,7 @@ Make sure to indicate test failures using a meaningful message.
         check_fn_name = f"check_{tool.name}"
         check_fn = self._copy_check_fn_stub(domain, tool.name, check_fn_name)
         check_fn.save(output_path)
-        check_fn.save_as(self.cwd, f"{check_fn_name}_-1.py")
+        check_fn.save_as(self.cwd, f"-1_{check_fn_name}.py")
         
         logger.debug(f"Tool {tool.name} function draft created")
 
@@ -228,5 +230,5 @@ Make sure to indicate test failures using a meaningful message.
         return check_fn, tests
 
     def _check_fn_is_ok(self, fn_code: MyFile, domain: MyFile, test_cases:MyFile, output_path:str, trial_no)->List[str]:
-        report = run_unittests(output_path, test_cases.file_name, f"_{trial_no}")
+        report = run_unittests(output_path, test_cases.file_name, trial_no)
         return report.list_errors()
