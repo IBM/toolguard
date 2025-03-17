@@ -3,7 +3,7 @@ import astor
 from pydantic import BaseModel
 from typing import Dict, List, Tuple
 from loguru import logger
-from policy_adherence.prompts import do_generate_tool_tests, do_improve_fn
+from policy_adherence.prompts import prompt_generate_tool_tests, prompt_improve_fn
 from policy_adherence.types import GenFile, ToolPolicy
 from policy_adherence.llm.llm_model import LLM_model
 
@@ -113,7 +113,7 @@ class PolicyAdherenceCodeGenerator():
     def _improve_check_fn(self, domain: GenFile, tool: ToolPolicy, prev_version:GenFile, review_comments: List[str], trial=0)->GenFile:
         fn_name = self.check_fn_name(tool.name)
         logger.debug(f"Improving check function... (trial = {trial})")
-        res_content = do_improve_fn(self.llm, fn_name, domain, tool, prev_version, review_comments)
+        res_content = prompt_improve_fn(self.llm, fn_name, domain, tool, prev_version, review_comments)
         body = extract_code_from_llm_response(res_content)
         check_fn = GenFile(
             file_name=f"{self.check_fn_module_name(tool.name)}.py", 
@@ -163,7 +163,7 @@ class PolicyAdherenceCodeGenerator():
 
     def _generate_tool_tests(self, fn_stub:GenFile, tool:ToolPolicy, domain:GenFile)-> GenFile:
         test_fn_name = self.test_fn_name(tool.name)
-        res_content = do_generate_tool_tests(self.llm, test_fn_name, fn_stub, tool, domain)
+        res_content = prompt_generate_tool_tests(self.llm, test_fn_name, fn_stub, tool, domain)
         body = extract_code_from_llm_response(res_content)
         tests = GenFile(file_name=f"{self.test_fn_module_name(tool.name)}.py", content=body)
         tests.save(self.cwd)
