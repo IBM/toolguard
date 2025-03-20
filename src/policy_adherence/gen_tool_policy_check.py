@@ -3,8 +3,9 @@ import astor
 from pydantic import BaseModel
 from typing import Dict, List, Tuple
 from loguru import logger
-from policy_adherence.prompts import prompt_generate_tool_tests, prompt_improve_fn
-from policy_adherence.types import GenFile, ToolPolicy
+from policy_adherence.prompts import prompt_improve_fn
+from policy_adherence.prompts_gen_ai import generate_toolcheck_tests
+from policy_adherence.types import SourceFile, ToolPolicy
 from policy_adherence.llm.llm_model import LLM_model
 
 import policy_adherence.tools.pyright as pyright
@@ -44,7 +45,7 @@ class PolicyAdherenceCodeGenerator():
     def test_fn_module_name(self, tool_name:str)->str:
         return f"test_check_{tool_name}"
     
-    def generate_tools_check_fns(self, tool_policies: List[ToolPolicy], domain:GenFile)->ToolChecksCodeGenerationResult:
+    def generate_tools_check_fns(self, tool_policies: List[ToolPolicy], domain:SourceFile)->ToolChecksCodeGenerationResult:
         logger.debug(f"Starting... will save into {self.cwd}")
         pyright.config().save(self.cwd)
 
@@ -66,7 +67,7 @@ class PolicyAdherenceCodeGenerator():
             tools=tools_result
         )
 
-    def generate_tool_check_fn(self, domain: GenFile, tool:ToolPolicy, trial_no=0)->Tuple[GenFile, GenFile]:
+    def generate_tool_check_fn(self, domain: SourceFile, tool:ToolPolicy, trial_no=0)->Tuple[SourceFile, SourceFile]:
         check_fn_name = f"check_{tool.name}"
         check_fn = self._copy_check_fn_stub(domain, tool.name, check_fn_name)
         check_fn.save(self.cwd)
@@ -89,7 +90,7 @@ class PolicyAdherenceCodeGenerator():
             trial_no +=1
 
 
-    def _copy_check_fn_stub(self, domain:GenFile, fn_name:str, new_fn_name:str)->GenFile:
+    def _copy_check_fn_stub(self, domain:SourceFile, fn_name:str, new_fn_name:str)->SourceFile:
         tree = ast.parse(domain.content)
         new_body = []
         new_body.append(ast.ImportFrom(
@@ -108,15 +109,15 @@ class PolicyAdherenceCodeGenerator():
         module = ast.Module(body=new_body, type_ignores=[])
         ast.fix_missing_locations(module)
         src= astor.to_source(module)
-        return GenFile(file_name=f"{new_fn_name}.py", content=src)
+        return SourceFile(file_name=f"{new_fn_name}.py", content=src)
 
-    def _improve_check_fn(self, domain: GenFile, tool: ToolPolicy, prev_version:GenFile, review_comments: List[str], trial=0)->GenFile:
+    def _improve_check_fn(self, domain: SourceFile, tool: ToolPolicy, prev_version:SourceFile, review_comments: List[str], trial=0)->SourceFile:
         fn_name = self.check_fn_name(tool.name)
         module_name = self.check_fn_module_name(tool.name)
         logger.debug(f"Improving check function... (trial = {trial})")
         res_content = prompt_improve_fn(self.llm, fn_name, domain, tool, prev_version, review_comments)
         body = extract_code_from_llm_response(res_content)
-        check_fn = GenFile(
+        check_fn = SourceFile(
             file_name=f"{module_name}.py", 
             content=body
         )
@@ -125,7 +126,7 @@ class PolicyAdherenceCodeGenerator():
 
         lint_report = pyright.run(self.cwd, check_fn.file_name)
         if lint_report.summary.errorCount>0:
-            GenFile(
+            SourceFile(
                     file_name=f"{trial}_{module_name}_errors.json", 
                     content=lint_report.model_dump_json(indent=2)
                 ).save(self.cwd)
@@ -137,7 +138,7 @@ class PolicyAdherenceCodeGenerator():
             return self._improve_check_fn(domain, tool, check_fn, errors, trial+1)
         return check_fn
     
-    def generate_tool_tests(self, fn_stub:GenFile, tool:ToolPolicy, domain:GenFile, trial=0)-> GenFile:
+    def generate_tool_tests(self, fn_stub:SourceFile, tool:ToolPolicy, domain:SourceFile, trial=0)-> SourceFile:
         logger.debug(f"Generating Tests... (trial={trial})")
         tests = self._generate_tool_tests(fn_stub, tool, domain)
         tests.save_as(self.cwd, f"{trial}_{tests.file_name}")
@@ -163,13 +164,13 @@ class PolicyAdherenceCodeGenerator():
         logger.debug(f"Tool {tool.name} tests error. Retrying...")
         return self.generate_tool_tests(fn_stub, tool, domain, trial+1)
 
-    def _generate_tool_tests(self, fn_stub:GenFile, tool:ToolPolicy, domain:GenFile)-> GenFile:
+    def _generate_tool_tests(self, fn_stub:SourceFile, tool:ToolPolicy, domain:SourceFile)-> SourceFile:
         test_fn_name = self.test_fn_name(tool.name)
-        res_content = prompt_generate_tool_tests(self.llm, test_fn_name, fn_stub, tool, domain)
+        res_content = generate_toolcheck_tests(test_fn_name, fn_stub, tool, domain)
         body = extract_code_from_llm_response(res_content)
-        tests = GenFile(file_name=f"{self.test_fn_module_name(tool.name)}.py", content=body)
+        tests = SourceFile(file_name=f"{self.test_fn_module_name(tool.name)}.py", content=body)
         tests.save(self.cwd)
         return tests
 
-    def _review_generated_tool_tests(self, domain: GenFile, tool:ToolPolicy, tests: GenFile)-> List[str]:
+    def _review_generated_tool_tests(self, domain: SourceFile, tool:ToolPolicy, tests: SourceFile)-> List[str]:
         return []

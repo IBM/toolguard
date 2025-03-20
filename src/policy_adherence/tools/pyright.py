@@ -3,7 +3,7 @@ import subprocess
 from pydantic import BaseModel
 from typing import List, Optional
 
-from policy_adherence.types import GenFile
+from policy_adherence.types import SourceFile
 
 ERROR = "error"
 WARNING = "warning"
@@ -82,7 +82,7 @@ def run(folder:str, py_file:str)->DiagnosticsReport:
     # return original.copy_errors_only()
     
 
-def config() ->GenFile:
+def config() ->SourceFile:
     cfg = {
         "typeCheckingMode": "basic",
         "reportOptionalIterable": WARNING,
@@ -90,7 +90,7 @@ def config() ->GenFile:
         "reportOptionalMemberAccess": WARNING,
         "reportAttributeAccessIssue": ERROR
     }
-    return GenFile(file_name="pyrightconfig.json",
+    return SourceFile(file_name="pyrightconfig.json",
                   content=json.dumps(cfg, indent=2))
 
 # if __name__ == '__main__':

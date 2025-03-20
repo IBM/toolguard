@@ -9,7 +9,7 @@ from policy_adherence.common.array import find
 from policy_adherence.common.str import to_camel_case
 from policy_adherence.tools.datamodel_codegen import run as dm_codegen
 from policy_adherence.common.open_api import OpenAPI, Operation, Parameter, ParameterIn, PathItem, Reference, RequestBody, Response, Schema, read_openapi
-from policy_adherence.types import GenFile
+from policy_adherence.types import SourceFile
 
 def primitive_jschema_types_to_py(type:Optional[str], format:Optional[str])->Optional[str]:
     #https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.2.md#data-types
@@ -34,7 +34,7 @@ class OpenAPICodeGenerator():
     def __init__(self, cwd:str) -> None:
         self.cwd = cwd
 
-    def generate_domain(self, oas_file:str, domain_py_file:str)->GenFile:
+    def generate_domain(self, oas_file:str, domain_py_file:str)->SourceFile:
         types_src = dm_codegen(oas_file)
 
         funcs_src = self.generate_functions(domain_py_file, oas_file)
@@ -47,7 +47,7 @@ class OpenAPICodeGenerator():
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(content)
 
-        return GenFile(file_name=domain_py_file, content=content)
+        return SourceFile(file_name=domain_py_file, content=content)
 
     def import_typing(self):
         return ast.ImportFrom(
