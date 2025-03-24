@@ -1,12 +1,13 @@
 import ast
 import asyncio
 import os
+import anyio
 import astor
 from pydantic import BaseModel
 from typing import Dict, List, Tuple
 from loguru import logger
-from policy_adherence.prompts import prompt_improve_fn, generate_policy_item_tests
-# from policy_adherence.prompts_gen_ai import generate_policy_item_tests, tool_dependencies
+from policy_adherence.prompts import prompt_improve_fn
+from policy_adherence.prompts_gen_ai import generate_policy_item_tests, tool_information_dependencies
 from policy_adherence.types import SourceFile, ToolPolicy, ToolPolicyItem
 from policy_adherence.llm.llm_model import LLM_model
 
@@ -172,10 +173,14 @@ class PolicyAdherenceCodeGenerator():
     async def _generate_tool_policy_item_tests(self, fn_stub:SourceFile, tool_name: str, policy_item:ToolPolicyItem, domain:SourceFile)-> SourceFile:
         test_fn_name = self.test_fn_name(tool_name, policy_item.name)
 
-        # deps = tool_dependencies(policy_item.name, policy_item.policy, domain)
-        # print(deps)
+        deps = await anyio.to_thread.run_sync(
+            lambda: tool_information_dependencies(policy_item.name, policy_item.policy, domain)
+        )
+        print(deps)
 
-        res_content = generate_policy_item_tests(self.llm, test_fn_name, fn_stub, policy_item, domain)
+        res_content = await anyio.to_thread.run_sync(
+            lambda: generate_policy_item_tests(test_fn_name, fn_stub, policy_item, domain, deps)
+        )
         body = extract_code_from_llm_response(res_content)
         tests = SourceFile(file_name=f"{self.test_fn_module_name(tool_name, policy_item.name)}.py", content=body)
         tests.save(self.cwd)

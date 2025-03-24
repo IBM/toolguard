@@ -7,3 +7,4 @@ loguru
 astor
 pyright
 datamodel-code-generator
+anyio

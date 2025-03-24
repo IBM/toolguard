@@ -79,7 +79,7 @@ The code must be simple and well documented.
 
 ### Policy Items:
 
-{tool.policies_to_md()}
+{tool}
 
 
 ### Current implemtnation

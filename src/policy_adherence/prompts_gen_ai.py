@@ -1,9 +1,10 @@
 
 from typing import List
-from policy_adherence.types import SourceFile, ToolPolicy, ToolPolicyItem
+from policy_adherence.types import SourceFile, ToolPolicyItem
 from programmatic_ai import generative
 
 model = "gpt-4o-2024-08-06"
+
 @generative(model=model, provider="azure", sdk="litellm")
 def generate_policy_item_tests(fn_name:str, fn_src:SourceFile, tool:ToolPolicyItem, domain:SourceFile, dependent_tool_names: List[str])-> str:
     """Generate Python unit tests for a function to verify tool-call compliance with policy constraints.
@@ -19,6 +20,7 @@ def generate_policy_item_tests(fn_name:str, fn_src:SourceFile, tool:ToolPolicyIt
     - Each **policy item** gets its own test class.
     - Each **example case** becomes a test method.
     - Test class and method names should be meaningful and use up to **six words in snake_case**.
+    - For each test function, add a comment starting with 'Policy: ', quoting the policy item that this function is testing 
 
     **Implementation Notes:**
     - When populating domain objects, make sure to pupulate non-optional fields.
@@ -53,7 +55,6 @@ def generate_policy_item_tests(fn_name:str, fn_src:SourceFile, tool:ToolPolicyIt
 
 
 
-model = "gpt-4o-2024-08-06"
 @generative(model=model, provider="azure", sdk="litellm")
 def tool_information_dependencies(tool_name:str, policy: str, domain:SourceFile)-> List[str]:
     """
@@ -65,7 +66,7 @@ def tool_information_dependencies(tool_name:str, policy: str, domain:SourceFile)
         domain (SourceFile): Python code defining available data types and other tool interfaces
 
     Returns:
-        str: Generated Python unit test code.
+        List[str]: dependent tool names
 
     **Dependency Rules:**
     - Tool available information is: from it function arguments, or from calling other tools.
@@ -98,18 +99,21 @@ def tool_information_dependencies(tool_name:str, policy: str, domain:SourceFile)
     "
     }
 
+    # According to the policy, the `buy_car` operation depends on `get_person` to get the driving licence of the owner, and on `get_insurance` to check the insurance is valid.
     assert tool_dependencies(
         "tool_name": "buy_car", 
         "policy": "when buying a new car, you should check that the car owner has a driving licence and that the insurance is valid.",
         "domain": domain
     ) == ["get_person", "get_insurance"]
 
+    # According to the policy, the `get_insurance` operation does not depend on any other operation
     assert tool_dependencies(
         "tool_name": "get_insurance", 
         "policy": "when buying a new car, you should check that the car owner has a driving licence and that the insurance is valid.",
         "domain": domain
     ) == []
 
+    # According to the policy, the `delete_car` operation does not depend on any other operation
     assert tool_dependencies(
         "tool_name": "delete_car", 
         "policy": "when buying a new car, you should check that the car owner has a driving licence and that the insurance is valid.",
