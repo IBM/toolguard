@@ -28,7 +28,7 @@ class PylintReport(RootModel[List[PylintMessage]]):
     def list_errors(self):
         return [item.message for item in self.root if item.type in TYPES_SEVERE]
 
-def run_pylint(folder:str, file:str)->PylintReport:
+def run(folder:str, file:str)->PylintReport:
     disable = "C,R,W" #Convension, Refactor, Warning
     res = subprocess.run([
             "pylint", 

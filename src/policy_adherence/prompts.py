@@ -21,14 +21,14 @@ def generate_policy_item_tests(fn_name:str, fn_src:SourceFile, tool:ToolPolicyIt
     - Each **example case** becomes a test method.
     - Test class and method names should be meaningful and use up to **six words in snake_case**.
     - For each test function, add a comment quoting the policy item that this function is testing 
-    - When populating domain objects, make sure to pupulate all non-optional fields.
-    - Test failure message should be informative, contain a description of the scenario that failed, and optionaly an exception stack trace.
+    - When populating domain objects, use pydantic `.model_construct()`, to skip validation.
+    - Failure message should descrive the test scenario that failed, the expected and the actual outcomes.
     - You should **mock** the responses from other tools listed in dependent_tool_names param.
     - You should use `unittest.mock.patch` for mocking other tools with the expected return values.
     
-    **Example: Testing the function `check_create_reservation` and mocking `["get_user", "get_hotel"]` tools responses**
+    **Example:** Testing the function `check_create_reservation`, for policy: `cannot book room for a date in the past`, and mocking dependent_tool_names: `["get_user", "get_hotel"]`
     ```python
-    args = ...
+    args = {...}
     user = User(...)
     hotel = Hotel(...)
 
@@ -37,6 +37,7 @@ def generate_policy_item_tests(fn_name:str, fn_src:SourceFile, tool:ToolPolicyIt
             try:
                 check_book_flight(args)
             except Exception as ex:
+                # Fail with a meaningful message describing the test scenario
                 pytest.fail("The user cannot book room for a date in the past")
     ```
 

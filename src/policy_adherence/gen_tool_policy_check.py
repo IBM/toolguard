@@ -11,13 +11,15 @@ from loguru import logger
 import policy_adherence.prompts as prompts #import generate_policy_item_tests, tool_information_dependencies
 from policy_adherence.types import SourceFile, ToolPolicy, ToolPolicyItem
 from policy_adherence.llm.llm_model import LLM_model
-
+import policy_adherence.tools.venv as venv
 import policy_adherence.tools.pyright as pyright
 import policy_adherence.tools.pytest as pytest
 from policy_adherence.utils import extract_code_from_llm_response
 
 MAX_TOOL_IMPROVEMENTS = 5
 MAX_TEST_GEN_TRIALS = 3
+PY_ENV = "my_env"
+PY_PACKAGES = ["pydantic"]
 
 class ToolChecksCodeResult(BaseModel):
     tool: ToolPolicy
@@ -56,6 +58,7 @@ class PolicyAdherenceCodeGenerator():
     
     async def generate_tools_check_fns(self, tool_policies: List[ToolPolicy], domain:SourceFile)->ToolChecksCodeGenerationResult:
         logger.debug(f"Starting... will save into {self.cwd}")
+        venv.run(os.path.join(self.cwd, PY_ENV), PY_PACKAGES)
         pyright.config().save(self.cwd)
 
         tools_with_poilicies = [tool for tool in tool_policies if len(tool.policy_items) > 0]
@@ -133,7 +136,7 @@ class PolicyAdherenceCodeGenerator():
         check_fn.save(self.cwd)
         self._save_debug(check_fn, f"{trial}_{module_name}.py")
 
-        lint_report = pyright.run(self.cwd, check_fn.file_name)
+        lint_report = pyright.run(self.cwd, check_fn.file_name, PY_ENV)
         if lint_report.summary.errorCount>0:
             SourceFile(
                     file_name=f"{trial}_{module_name}_errors.json", 
@@ -153,7 +156,7 @@ class PolicyAdherenceCodeGenerator():
         item_tests = await self._generate_tool_policy_item_tests(fn_stub, tool_name, policy_item, domain)
         self._save_debug(item_tests, f"{trial}_{item_tests.file_name}")
 
-        lint_report = pyright.run(self.cwd, item_tests.file_name)
+        lint_report = pyright.run(self.cwd, item_tests.file_name, PY_ENV)
         if lint_report.summary.errorCount>0:
             logger.warning(f"Generated tests with Python errors.")
             if trial < MAX_TEST_GEN_TRIALS:

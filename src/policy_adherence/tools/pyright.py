@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 from pydantic import BaseModel
 from typing import List, Optional
@@ -64,9 +65,12 @@ class DiagnosticsReport(BaseModel):
     #         )
     #     )
 
-def run(folder:str, py_file:str)->DiagnosticsReport:
+def run(folder:str, py_file:str, venv_name:str)->DiagnosticsReport:
+    py_path = os.path.join(venv_name, "bin", "python3")
     res = subprocess.run([
             "pyright", 
+            # "--venv-path", venv_path,
+            "--pythonpath", py_path,
             "--outputjson",
             py_file
         ], 
