@@ -24,14 +24,6 @@ class GeneralDiagnostic(BaseModel):
     range: Range
     rule: str
 
-    # def is_error(self)->bool:
-    #     #all fields in the generated domain are optional. 
-    #     #The generated tests set the field values, and then try to access them. This is safe 
-    #     # but pyright consider this as error
-    #     if "None" in self.message: 
-    #         return False
-        
-    #     return self.severity in [ERROR]
 class Summary(BaseModel):
     filesAnalyzed: int
     errorCount: int
@@ -44,26 +36,6 @@ class DiagnosticsReport(BaseModel):
     time: str
     generalDiagnostics: List[GeneralDiagnostic] 
     summary: Summary
-
-    # def errors_only(self)->List[GeneralDiagnostic]:        
-    #     if self.generalDiagnostics:
-    #         return [d for d in self.generalDiagnostics if d.is_error()]
-    #     return []
-    
-    # def copy_errors_only(self)->'DiagnosticsReport':
-    #     errs = self.errors_only() 
-    #     return DiagnosticsReport(
-    #         **self.model_dump(exclude={"generalDiagnostics", "summary"}),
-    #         generalDiagnostics = errs,
-    #         summary=Summary(
-    #             **self.summary.model_dump(exclude={"errorCount"}),
-    #             # filesAnalyzed
-    #             errorCount = len(errs)
-    #             # warningCount
-    #             # informationCount
-    #             # timeInSec
-    #         )
-    #     )
 
 def run(folder:str, py_file:str, venv_name:str)->DiagnosticsReport:
     py_path = os.path.join(venv_name, "bin", "python3")
@@ -78,8 +50,8 @@ def run(folder:str, py_file:str, venv_name:str)->DiagnosticsReport:
         capture_output=True, 
         text=True
     )
-    if res.returncode !=0:
-        raise Exception(res.stderr)
+    # if res.returncode !=0:
+    #     raise Exception(res.stderr)
     
     data = json.loads(res.stdout)
     return DiagnosticsReport.model_validate(data)

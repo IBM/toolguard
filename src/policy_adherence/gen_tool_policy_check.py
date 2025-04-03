@@ -47,8 +47,12 @@ def test_fn_name(name:str)->str:
 def test_fn_module_name(name:str)->str:
     return snake_case(test_fn_name(name))
 
-def py_module(*names:str):
-    return '.'.join([snake_case(un_py_extension(name)) for name in names])
+def py_module(file_path:str):
+    assert file_path
+    parts = file_path.split('/')
+    if parts[-1].endswith(".py"):
+        parts[-1] = un_py_extension(parts[-1])
+    return '.'.join([snake_case(part) for part in parts])
 
 async def generate_tools_check_fns(app_name: str, tools: List[ToolPolicy], py_root:str, openapi_path:str)->ToolChecksCodeGenerationResult:
     logger.debug(f"Starting... will save into {py_root}")
@@ -107,16 +111,17 @@ class ToolCheckPolicyGenerator:
         self.tool = tool
         self.domain = SourceFile.load_from(py_path, join(app_name, DOMAIN_PY))
         self.common = SourceFile.load_from(py_path, join(app_name, RUNTIME_COMMON_PY))
-        os.makedirs(join(py_path, snake_case(app_name)), exist_ok=True)
-        os.makedirs(join(py_path, snake_case(tool.name)), exist_ok=True)
+        os.makedirs(join(py_path, snake_case(app_name), snake_case(tool.name)), exist_ok=True)
+        os.makedirs(join(py_path, snake_case(DEBUG_DIR)), exist_ok=True)
+        os.makedirs(join(py_path, snake_case(TESTS_DIR)), exist_ok=True)
 
-    def _path_to_file(self, name:str)->str:
-        return join(snake_case(self.tool.name), name)
+    # def _path_to_file(self, name:str)->str:
+    #     return join(snake_case(self.tool.name), name)
 
     async def generate(self)->ToolChecksCodeResult:
         tool_check_fn, item_check_fns = self.create_initial_check_fns()
         for item_check_fn in item_check_fns:
-            tool_check_fn.save_as(self.py_path, join(DEBUG_DIR, f"-1_{item_check_fn.file_name}"))
+            tool_check_fn.save_as(self.py_path, join(DEBUG_DIR, f"-1_{Path(item_check_fn.file_name).parts[-1]}"))
         
         logger.debug(f"Tool {self.tool.name} function draft created")
     
@@ -147,7 +152,7 @@ class ToolCheckPolicyGenerator:
         )
         test_content = extract_code_from_llm_response(res_content)
         tests = SourceFile(
-            file_name= join(self.app_name, self.tool.name, TESTS_DIR, f"{test_fn_module_name(item.name)}.py"), 
+            file_name= join(TESTS_DIR, self.tool.name, f"{test_fn_module_name(item.name)}.py"), 
             content=test_content
         )
         tests.save(self.py_path)
@@ -162,7 +167,7 @@ class ToolCheckPolicyGenerator:
 
         #syntax ok, try to run it...
         logger.debug(f"Generated Tests... (trial={trial})")
-        report_file_name = join(self.app_name, self.tool.name, DEBUG_DIR, f"{trial}_{snake_case(item.name)}_report.json")
+        report_file_name = join(DEBUG_DIR, f"{trial}_{snake_case(item.name)}_report.json")
         test_report = pytest.run(self.py_path, tests.file_name, report_file_name)
 
         if test_report.all_tests_collected_successfully():
@@ -179,10 +184,10 @@ class ToolCheckPolicyGenerator:
 
     async def improve_tool_item_check_fn_loop(self, item: ToolPolicyItem, check_fn: SourceFile, tests:SourceFile)->SourceFile:
         for trial_no in range(MAX_TOOL_IMPROVEMENTS):
-            report_file_name = join(self.app_name, self.tool.name, DEBUG_DIR, f"{trial_no}_{snake_case(item.name)}_report.json")
+            report_file_name = join(DEBUG_DIR, f"{trial_no}_{snake_case(item.name)}_report.json")
             errors = pytest.run(
                     self.py_path, 
-                    self._path_to_file(tests.file_name),
+                    tests.file_name,
                     report_file_name
                 ).list_errors()
             if not errors: 
@@ -195,14 +200,14 @@ class ToolCheckPolicyGenerator:
 
     async def improve_check_fn(self, prev_version:SourceFile, review_comments: List[str], item: ToolPolicyItem, trial=0)->SourceFile:
         module_name = check_fn_module_name(item.name)
-        logger.debug(f"Improving check function... (trial = {trial})")
+        logger.debug(f"Improving check function {module_name}... (trial = {trial})")
 
         res_content = await anyio.to_thread.run_sync(lambda:
             prompts.improve_tool_check_fn(prev_version, self.domain, item, review_comments)
         )
         body = extract_code_from_llm_response(res_content)
         check_fn = SourceFile(
-            file_name=f"{module_name}.py", 
+            file_name=prev_version.file_name,
             content=body
         )
         check_fn.save(self.py_path)
@@ -214,7 +219,7 @@ class ToolCheckPolicyGenerator:
                     file_name=join(DEBUG_DIR, f"{trial}_{module_name}_errors.json"), 
                     content=lint_report.model_dump_json(indent=2)
                 ).save(self.py_path, )
-            logger.warning(f"Generated function with {lint_report.summary.errorCount} errors.")
+            logger.warning(f"Generated function {module_name} with {lint_report.summary.errorCount} errors.")
             
             if trial >= MAX_TOOL_IMPROVEMENTS:
                 raise Exception(f"Generation failed for tool {item.name}")
@@ -231,18 +236,18 @@ class ToolCheckPolicyGenerator:
         #     ast.arg(arg="chat_history", annotation=ast.Name(id="ChatHistory", ctx=ast.Load()))
         # )
 
-        _create_init_py(join(self.py_path, snake_case(self.app_name)))
+        _create_init_py(join(self.py_path, snake_case(self.app_name), snake_case(self.tool.name)))
         
         item_files = [self._create_item_module(item, fn_args) 
                 for item in self.tool.policy_items]
         
         body = [
-            self._create_import(py_module(self.app_name, self.domain.file_name), "*"),
-            self._create_import(py_module(self.app_name, self.common.file_name), "*")
+            self._create_import(py_module(self.domain.file_name), "*"),
+            self._create_import(py_module(self.common.file_name), "*")
         ]
         for item_module, item in zip(item_files, self.tool.policy_items):
             body.append(self._create_import(
-                py_module(self.app_name, self.tool.name, item_module.file_name),
+                py_module(item_module.file_name),
                 check_fn_name(item.name)
             ))
         
@@ -263,6 +268,7 @@ class ToolCheckPolicyGenerator:
         )) # type: ignore
         file_name = join(
             snake_case(self.app_name),
+            snake_case(self.tool.name),
             py_extension(check_fn_module_name(self.tool.name))
         )
         tool_file = self.py_module_to_file(body, file_name)
@@ -281,8 +287,8 @@ class ToolCheckPolicyGenerator:
 
     def _create_item_module(self, tool_item: ToolPolicyItem, fn_args:ast.arguments)->SourceFile:
         body = [
-            self._create_import(f"{py_module(self.app_name, self.domain.file_name)}", "*"),
-            self._create_import(f"{py_module(self.app_name, self.common.file_name)}", "*"),
+            self._create_import(f"{py_module(self.domain.file_name)}", "*"),
+            # self._create_import(f"{py_module(self.common.file_name)}", "*"),
             self._create_fn(name=check_fn_name(tool_item.name), args=fn_args)
         ]
         file_name = join(
