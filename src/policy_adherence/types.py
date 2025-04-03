@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
-from pydantic import BaseModel, Field, RootModel
-from typing import Dict, List, Optional, Tuple
+from pydantic import BaseModel, Field
+from typing import Dict, List, Optional
 
 from policy_adherence.utils import to_md_bulltets
 
@@ -20,11 +20,11 @@ class SourceFile(BaseModel):
             file.write(self.content)
 
     @staticmethod
-    def load_from(file_path:str)->'SourceFile':
-        with open(file_path, "r") as file:
+    def load_from(folder:str, file_path:str)->'SourceFile':
+        with open(os.path.join(folder, file_path), "r") as file:
             data = file.read()
             return SourceFile(
-                file_name=Path(file_path).name, 
+                file_name=file_path, 
                 content=data
             )
 
@@ -50,3 +50,15 @@ class ToolPolicy(BaseModel):
                 s+=f"##### Negative examples\n{to_md_bulltets(item.violation_examples)}"
             s+="\n"
         return s
+
+
+class ToolChecksCodeResult(BaseModel):
+    tool: ToolPolicy
+    tool_check_file: SourceFile
+    item_check_files: List[SourceFile]
+    test_files: List[SourceFile]
+
+class ToolChecksCodeGenerationResult(BaseModel):
+    output_path: str
+    domain_file: str
+    tools: Dict[str, ToolChecksCodeResult]

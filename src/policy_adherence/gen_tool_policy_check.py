@@ -1,202 +1,314 @@
 import ast
 import asyncio
 import os
-from pathlib import Path
+from os.path import join
 import anyio
 import anyio.to_thread
-import shutil
+from typing import List, Tuple
 import astor
-from pydantic import BaseModel
-from typing import Dict, List
 from loguru import logger
-from policy_adherence.check_fn import check_fn_module_name, check_fn_name, CheckFnManager
 from policy_adherence.common.array import find
+from policy_adherence.gen_domain import OpenAPICodeGenerator
 import policy_adherence.prompts as prompts
-from policy_adherence.types import SourceFile, ToolPolicy, ToolPolicyItem, ToolPolicyItem
-import policy_adherence.tools.venv as venv
+from policy_adherence.types import SourceFile, ToolChecksCodeResult, ToolPolicy, ToolPolicyItem, ToolPolicyItem
 import policy_adherence.tools.pyright as pyright
 import policy_adherence.tools.pytest as pytest
-from policy_adherence.utils import extract_code_from_llm_response, py_extension, py_name
+from policy_adherence.utils import extract_code_from_llm_response, py_extension, snake_case, un_py_extension
+
+import asyncio
+from pathlib import Path
+import shutil
+from typing import List
+from loguru import logger
+from policy_adherence.types import SourceFile, ToolChecksCodeGenerationResult, ToolPolicy
+import policy_adherence.tools.venv as venv
+import policy_adherence.tools.pyright as pyright
+
 
 MAX_TOOL_IMPROVEMENTS = 5
 MAX_TEST_GEN_TRIALS = 3
 PY_ENV = "my_env"
 PY_PACKAGES = ["pydantic"] #, "litellm"
-RUNTIME_COMMON = "common.py"
+DEBUG_DIR = "debug"
+TESTS_DIR = "tests"
+RUNTIME_COMMON_PY = "common.py"
+DOMAIN_PY = "domain.py"
 
-class ToolChecksCodeResult(BaseModel):
-    tool: ToolPolicy
-    tool_check_file: SourceFile
-    item_check_files: List[SourceFile]
-    test_files: List[SourceFile]
 
-class ToolChecksCodeGenerationResult(BaseModel):
-    output_path: str
-    domain_file: str
-    tools: Dict[str, ToolChecksCodeResult]
+def check_fn_name(name:str)->str:
+    return snake_case(f"check_{name}")
 
+def check_fn_module_name(name:str)->str:
+    return snake_case(check_fn_name(name))
 
 def test_fn_name(name:str)->str:
-    return py_name(f"test_check_{name}")
+    return snake_case(f"test_check_{name}")
 
 def test_fn_module_name(name:str)->str:
-    return py_name(test_fn_name(name))
+    return snake_case(test_fn_name(name))
 
-class PolicyAdherenceCodeGenerator():
-    cwd: str
+def py_module(*names:str):
+    return '.'.join([snake_case(un_py_extension(name)) for name in names])
 
-    def __init__(self, cwd:str) -> None:
-        self.cwd = cwd
-        self.debug_dir = os.path.join(cwd, "debug")
-        os.makedirs(self.debug_dir, exist_ok=True)
-        pytest.configure(self.cwd)
+async def generate_tools_check_fns(app_name: str, tools: List[ToolPolicy], py_root:str, openapi_path:str)->ToolChecksCodeGenerationResult:
+    logger.debug(f"Starting... will save into {py_root}")
+
+    #virtual env
+    venv.run(join(py_root, PY_ENV), PY_PACKAGES)
+
+    #pyright config
+    pyright.config().save(py_root)
+
+    #app folder:
+    app_root = join(py_root, app_name)
+    os.makedirs(app_root, exist_ok=True)
+    _create_init_py(app_root)
+
+    #common
+    tmp_common = SourceFile.load_from(str(Path(__file__).parent), "_runtime_common.py")
+    common = SourceFile(
+        content=tmp_common.content, 
+        file_name=join(app_name, RUNTIME_COMMON_PY)
+    )
+    common.save(py_root)
+
+    # domain
+    domain = OpenAPICodeGenerator(app_root)\
+        .generate_domain(openapi_path, DOMAIN_PY)
     
-    def _save_debug(self, src:SourceFile, file_name:str):
-        src.save_as(self.debug_dir, file_name)
+    #tools
+    tools_w_poilicies = [tool for tool in tools if len(tool.policy_items) > 0]
+    tool_results = await asyncio.gather(*[
+        ToolCheckPolicyGenerator(app_name, tool, py_root).generate()
+        for tool in tools_w_poilicies
+    ])
     
-    async def generate_tools_check_fns(self, tool_policies: List[ToolPolicy], domain:SourceFile)->ToolChecksCodeGenerationResult:
-        logger.debug(f"Starting... will save into {self.cwd}")
-        venv.run(os.path.join(self.cwd, PY_ENV), PY_PACKAGES)
-        pyright.config().save(self.cwd)
+    tools_result = {tool.name:res 
+        for tool, res 
+        in zip(tools_w_poilicies, tool_results)
+    }        
+    return ToolChecksCodeGenerationResult(
+        output_path=py_root,
+        domain_file=domain.file_name,
+        tools=tools_result
+    )
 
-        common_file = os.path.join(self.cwd, RUNTIME_COMMON)
-        shutil.copy(
-            os.path.join(Path(__file__).parent, "_runtime_common.py"),
-            common_file
-        )
-        common = SourceFile.load_from(common_file)
 
-        tools_with_poilicies = [tool for tool in tool_policies if len(tool.policy_items) > 0]
-        tool_results = await asyncio.gather(*[
-            self.generate_tool_tests_and_check_fn(domain, common, tool) 
-            for tool in tools_with_poilicies
+class ToolCheckPolicyGenerator:
+    app_name: str
+    py_path:str
+    tool:ToolPolicy
+    domain: SourceFile
+    common:SourceFile
+
+    def __init__(self, app_name:str, tool:ToolPolicy, py_path:str) -> None:
+        self.py_path = py_path
+        self.app_name = app_name
+        self.tool = tool
+        self.domain = SourceFile.load_from(py_path, join(app_name, DOMAIN_PY))
+        self.common = SourceFile.load_from(py_path, join(app_name, RUNTIME_COMMON_PY))
+        os.makedirs(join(py_path, snake_case(app_name)), exist_ok=True)
+        os.makedirs(join(py_path, snake_case(tool.name)), exist_ok=True)
+
+    def _path_to_file(self, name:str)->str:
+        return join(snake_case(self.tool.name), name)
+
+    async def generate(self)->ToolChecksCodeResult:
+        tool_check_fn, item_check_fns = self.create_initial_check_fns()
+        for item_check_fn in item_check_fns:
+            tool_check_fn.save_as(self.py_path, join(DEBUG_DIR, f"-1_{item_check_fn.file_name}"))
+        
+        logger.debug(f"Tool {self.tool.name} function draft created")
+    
+        items_tests = await asyncio.gather(* [
+            self.generate_tool_item_tests_and_check_fn(item, item_check_fn)
+                for item, item_check_fn in zip(self.tool.policy_items, item_check_fns)
         ])
-        tools_result = {tool.name:res 
-            for tool, res 
-            in zip(tools_with_poilicies, tool_results)
-        }        
-        return ToolChecksCodeGenerationResult(
-            output_path=self.cwd,
-            domain_file=domain.file_name,
-            tools=tools_result
-        )
-
-    async def generate_tool_tests_and_check_fn(self, domain: SourceFile, common:SourceFile, tool:ToolPolicy)->ToolChecksCodeResult:
-        tool_file, item_files = CheckFnManager(self.cwd)\
-            .create_initial_check_fns(domain, common, tool, self.cwd)
-        
-        # self._save_debug(tool_file, f"-1_{tool_file.file_name}")
-        for item_file in item_files:
-            self._save_debug(item_file, f"-1_{item_file.file_name}")
-        
-        logger.debug(f"Tool {tool.name} function draft created")
-        
-        tests = await asyncio.gather(* [
-            self.generate_tool_item_tests(file, item, common, domain)
-            for item, file in zip(tool.policy_items, item_files)
-        ])
-
-        item_check_files = await asyncio.gather(* [
-            self._improve_tool_check_fn_loop(domain, item_file, item, item_tests)
-            for item, item_file, item_tests in zip(tool.policy_items, item_files, tests)
-        ])
-        # for check_fn, tool_item in zip(check_fns, tool.policy_items):
-        #     check_module = replace_fn_body(check_fn, check_module, check_fn_name(tool_item.name), self.cwd)
-        
         return ToolChecksCodeResult(
-            tool=tool,
-            tool_check_file=tool_file,
-            item_check_files = item_check_files,
-            test_files=tests
+            tool=self.tool,
+            tool_check_file=tool_check_fn,
+            item_check_files = item_check_fns,
+            test_files=items_tests
         )
 
-    async def _improve_tool_check_fn_loop(self, domain: SourceFile, check_fn:SourceFile, tool_item:ToolPolicyItem, tests:SourceFile)->SourceFile:
+    async def generate_tool_item_tests_and_check_fn(self, item: ToolPolicyItem, check_fn: SourceFile)->SourceFile:
+        tests = await self.generate_tool_item_tests(item, check_fn)
+        await self.improve_tool_item_check_fn_loop(item, check_fn, tests)
+        return tests
+
+    async def generate_tool_item_tests(self, item: ToolPolicyItem, check_fn: SourceFile, trial=0)-> SourceFile:
+        logger.debug(f"Generating Tests {item.name}... (trial={trial})")
+        dep_tools = await self.dependent_tools(item)
+        logger.debug(f"Dependencies of {item.name}: {dep_tools}")
+
+        fn_name = check_fn_name(item.name)
+        res_content = await anyio.to_thread.run_sync(
+            lambda: prompts.generate_tool_item_tests(fn_name, check_fn, item, self.common, self.domain, dep_tools)
+        )
+        test_content = extract_code_from_llm_response(res_content)
+        tests = SourceFile(
+            file_name= join(self.app_name, self.tool.name, TESTS_DIR, f"{test_fn_module_name(item.name)}.py"), 
+            content=test_content
+        )
+        tests.save(self.py_path)
+        tests.save_as(self.py_path, join(DEBUG_DIR, f"{trial}_{test_fn_module_name(item.name)}.py"))
+
+        lint_report = pyright.run(self.py_path, tests.file_name, PY_ENV)
+        if lint_report.summary.errorCount>0:
+            logger.warning(f"Generated tests with Python errors {tests.file_name}.")
+            if trial < MAX_TEST_GEN_TRIALS:
+                return await self.generate_tool_item_tests(item, check_fn, trial+1)
+            raise Exception("Generated tests contain errors")
+
+        #syntax ok, try to run it...
+        logger.debug(f"Generated Tests... (trial={trial})")
+        report_file_name = join(self.app_name, self.tool.name, DEBUG_DIR, f"{trial}_{snake_case(item.name)}_report.json")
+        test_report = pytest.run(self.py_path, tests.file_name, report_file_name)
+
+        if test_report.all_tests_collected_successfully():
+            return tests
+        
+        logger.debug(f"Tool {item.name} tests error. Retrying...")
+        return await self.generate_tool_item_tests(item, check_fn, trial+1)
+
+    async def dependent_tools(self, item: ToolPolicyItem)->set[str]:
+        deps = await anyio.to_thread.run_sync(
+            lambda: prompts.tool_information_dependencies(item.name, item.description, self.domain)
+        )
+        return set(deps)
+
+    async def improve_tool_item_check_fn_loop(self, item: ToolPolicyItem, check_fn: SourceFile, tests:SourceFile)->SourceFile:
         for trial_no in range(MAX_TOOL_IMPROVEMENTS):
-            errors = pytest.run(self.cwd, tests.file_name).list_errors()
+            report_file_name = join(self.app_name, self.tool.name, DEBUG_DIR, f"{trial_no}_{snake_case(item.name)}_report.json")
+            errors = pytest.run(
+                    self.py_path, 
+                    self._path_to_file(tests.file_name),
+                    report_file_name
+                ).list_errors()
             if not errors: 
                 return check_fn
             
-            logger.debug(f"Tool {tool_item.name} check function unit-tests failed. Retrying...")
-            check_fn = await self._improve_check_fn(domain, tool_item, check_fn, errors, trial_no)
+            logger.debug(f"Tool {item.name} check function unit-tests failed. Retrying...")
+            check_fn = await self.improve_check_fn(check_fn, errors, item, trial_no)
         
-        raise Exception(f"Could not generate check function for tool {tool_item.name}")
+        raise Exception(f"Could not generate check function for tool {item.name}")
 
-    async def dependent_tools(self, tool_item: ToolPolicyItem, domain: SourceFile)->set[str]:
-        deps = await anyio.to_thread.run_sync(
-            lambda: prompts.tool_information_dependencies(tool_item.name, tool_item.description, domain)
-        )
-        return set(deps)
-        # all_deps = await asyncio.gather(*[item_dependencies(item) for item in tool_item.policy_items])
-        # uniq_deps = set(item for sublist in all_deps for item in sublist)
-        # return uniq_deps
-
-    async def _improve_check_fn(self, domain: SourceFile, tool_item: ToolPolicyItem, prev_version:SourceFile, review_comments: List[str], trial=0)->SourceFile:
-        module_name = check_fn_module_name(tool_item.name)
+    async def improve_check_fn(self, prev_version:SourceFile, review_comments: List[str], item: ToolPolicyItem, trial=0)->SourceFile:
+        module_name = check_fn_module_name(item.name)
         logger.debug(f"Improving check function... (trial = {trial})")
 
         res_content = await anyio.to_thread.run_sync(lambda:
-            prompts.improve_tool_check_fn(prev_version, domain, tool_item, review_comments)
+            prompts.improve_tool_check_fn(prev_version, self.domain, item, review_comments)
         )
         body = extract_code_from_llm_response(res_content)
         check_fn = SourceFile(
             file_name=f"{module_name}.py", 
             content=body
         )
-        check_fn.save(self.cwd)
-        self._save_debug(check_fn, f"{trial}_{module_name}.py")
+        check_fn.save(self.py_path)
+        check_fn.save_as(self.py_path, join(DEBUG_DIR, f"{trial}_{module_name}.py"))
 
-        lint_report = pyright.run(self.cwd, check_fn.file_name, PY_ENV)
+        lint_report = pyright.run(self.py_path, check_fn.file_name, PY_ENV)
         if lint_report.summary.errorCount>0:
             SourceFile(
-                    file_name=f"{trial}_{module_name}_errors.json", 
+                    file_name=join(DEBUG_DIR, f"{trial}_{module_name}_errors.json"), 
                     content=lint_report.model_dump_json(indent=2)
-                ).save(self.cwd)
+                ).save(self.py_path, )
             logger.warning(f"Generated function with {lint_report.summary.errorCount} errors.")
             
             if trial >= MAX_TOOL_IMPROVEMENTS:
-                raise Exception(f"Generation failed for tool {tool_item.name}")
+                raise Exception(f"Generation failed for tool {item.name}")
             errors = [d.message for d in lint_report.generalDiagnostics if d.severity == pyright.ERROR]
-            return await self._improve_check_fn(domain, tool_item, check_fn, errors, trial+1)
+            return await self.improve_check_fn(check_fn, errors, item, trial+1)
         return check_fn
     
-    async def generate_tool_item_tests(self, fn_stub:SourceFile, tool_item:ToolPolicyItem, common:SourceFile, domain:SourceFile, trial=0)-> SourceFile:
-        logger.debug(f"Generating Tests {tool_item.name}... (trial={trial})")
-        dependent_tools = await self.dependent_tools(tool_item, domain)
-        logger.debug(f"Dependencies of {tool_item.name}: {dependent_tools}")
+    def create_initial_check_fns(self)->Tuple[SourceFile, List[SourceFile]]:
+        tree = ast.parse(self.domain.content)
+        tool_fn = find(tree.body, lambda node: isinstance(node, ast.FunctionDef) and node.name == self.tool.name)
+        assert tool_fn
+        fn_args:ast.arguments = tool_fn.args # type: ignore
+        # node.args.args.append(
+        #     ast.arg(arg="chat_history", annotation=ast.Name(id="ChatHistory", ctx=ast.Load()))
+        # )
 
-        fn_name = check_fn_name(tool_item.name)
-        res_content = await anyio.to_thread.run_sync(
-            lambda: prompts.generate_tool_item_tests(fn_name, fn_stub, tool_item, common, domain, dependent_tools)
-        )
-        test_content = extract_code_from_llm_response(res_content)
-        tests = SourceFile(
-            file_name=f"{test_fn_module_name(tool_item.name)}.py", 
-            content=test_content
-        )
-        tests.save(self.cwd)
-        self._save_debug(tests, f"{trial}_{tests.file_name}")
-
-        lint_report = pyright.run(self.cwd, tests.file_name, PY_ENV)
-        if lint_report.summary.errorCount>0:
-            logger.warning(f"Generated tests with Python errors {tests.file_name}.")
-            if trial < MAX_TEST_GEN_TRIALS:
-                return await self.generate_tool_item_tests(fn_stub, tool_item, common, domain, trial+1)
-            raise Exception("Generated tests contain errors")
-    
-        #syntax ok, try to run it...
-        logger.debug(f"Generated Tests... (trial={trial})")
-        #still running against a stub. the tests should fail, but the collector should not fail.
-        test_report = pytest.run(self.cwd, tests.file_name)
-        report_file_name = f"{tool_item.name}_report.json"
-        SourceFile(
-            file_name=report_file_name, 
-            content=test_report.model_dump_json(indent=2)
-        ).save_as(self.debug_dir, report_file_name)
-
-        if test_report.all_tests_collected_successfully():
-            return tests
+        _create_init_py(join(self.py_path, snake_case(self.app_name)))
         
-        logger.debug(f"Tool {tool_item.name} tests error. Retrying...")
-        return await self.generate_tool_item_tests(fn_stub, tool_item, common, domain, trial+1)
+        item_files = [self._create_item_module(item, fn_args) 
+                for item in self.tool.policy_items]
+        
+        body = [
+            self._create_import(py_module(self.app_name, self.domain.file_name), "*"),
+            self._create_import(py_module(self.app_name, self.common.file_name), "*")
+        ]
+        for item_module, item in zip(item_files, self.tool.policy_items):
+            body.append(self._create_import(
+                py_module(self.app_name, self.tool.name, item_module.file_name),
+                check_fn_name(item.name)
+            ))
+        
+        call_item_fns = [
+            ast.Expr(
+                value=ast.Call(
+                    func=ast.Name(id=check_fn_name(item.name), ctx=ast.Load()),
+                    args=[ast.Name(id="request", ctx=ast.Load())],#TODO name
+                    keywords=[],
+                )
+            )
+            for item in self.tool.policy_items
+        ]
+        body.append(self._create_fn(
+            name=check_fn_name(self.tool.name),
+            args=fn_args,
+            body=call_item_fns
+        )) # type: ignore
+        file_name = join(
+            snake_case(self.app_name),
+            py_extension(check_fn_module_name(self.tool.name))
+        )
+        tool_file = self.py_module_to_file(body, file_name)
+        return (tool_file, item_files)
+     
+    def py_module_to_file(self, body, file_name:str)->SourceFile:
+        module = ast.Module(body=body, type_ignores=[])
+        ast.fix_missing_locations(module)
+        src= astor.to_source(module)
+        res = SourceFile(
+            file_name=file_name,
+            content=src
+        )
+        res.save(self.py_path)
+        return res
 
- 
+    def _create_item_module(self, tool_item: ToolPolicyItem, fn_args:ast.arguments)->SourceFile:
+        body = [
+            self._create_import(f"{py_module(self.app_name, self.domain.file_name)}", "*"),
+            self._create_import(f"{py_module(self.app_name, self.common.file_name)}", "*"),
+            self._create_fn(name=check_fn_name(tool_item.name), args=fn_args)
+        ]
+        file_name = join(
+            snake_case(self.app_name), 
+            snake_case(self.tool.name), 
+            py_extension(check_fn_module_name(tool_item.name))
+        )
+        return self.py_module_to_file(body, file_name)
+
+    
+    def _create_import(self, module_name:str, *items: str):
+        return ast.ImportFrom(
+            module=module_name,
+            names=[ast.alias(name=item, asname=None) for item in items], 
+            level=0 # 0 = absolute import, 1 = relative import (.)
+        )
+
+    def _create_fn(self, name:str, args, body=[ast.Pass()], returns=ast.Constant(value=None))->ast.FunctionDef:
+        return ast.FunctionDef(
+                name=name,
+                args=args,
+                body=body,
+                decorator_list=[],
+                returns=returns
+            ) # type: ignore
+    
+def _create_init_py(folder):
+    with open(join(folder, "__init__.py"), "w") as file:
+        pass

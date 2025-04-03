@@ -9,8 +9,8 @@ from dotenv import load_dotenv
 from loguru import logger
 
 from policy_adherence.types import SourceFile, ToolPolicy, ToolPolicyItem
-from policy_adherence.gen_domain import OpenAPICodeGenerator
 from policy_adherence.common.open_api import OpenAPI
+from policy_adherence.utils import py_extension
 
 model = "gpt-4o-2024-08-06"
 # import programmatic_ai
@@ -18,7 +18,7 @@ model = "gpt-4o-2024-08-06"
 # settings.provider = "azure"
 # settings.model = model
 # settings.sdk = "litellm"
-from policy_adherence.gen_tool_policy_check import PolicyAdherenceCodeGenerator
+from policy_adherence.gen_tool_policy_check import ToolCheckPolicyGenerator, check_fn_module_name, generate_tools_check_fns, test_fn_module_name
     
 def read_oas(file_path:str)->OpenAPI:
     with open(file_path, "r") as file:
@@ -101,17 +101,16 @@ async def gen_all():
     policy_paths = ["tau_airline/input/BookReservation.json"]
     output_dir = "tau_airline/output"
     now = datetime.now()
-    cwd = os.path.join(output_dir, now.strftime("%Y-%m-%d_%H_%M_%S"))
-    os.makedirs(cwd, exist_ok=True)
+    out_folder = os.path.join(output_dir, now.strftime("%Y-%m-%d_%H_%M_%S"))
+    os.makedirs(out_folder, exist_ok=True)
 
     tool_policies = [load_policy_new(path, tool_name) 
         for tool_name, path 
         in zip(tool_names, policy_paths)]
     
-    domain = OpenAPICodeGenerator(cwd)\
-        .generate_domain(oas_path, "domain.py")
-    result = await (PolicyAdherenceCodeGenerator(cwd)\
-        .generate_tools_check_fns(tool_policies, domain))
+    # domain = OpenAPICodeGenerator(cwd)\
+    #     .generate_domain(oas_path, "domain.py")
+    result = await generate_tools_check_fns("my_app", tool_policies, out_folder, oas_path)
 
     print(f"Domain: {result.domain_file}")
     for tool_name, tool in result.tools.items():
@@ -125,20 +124,21 @@ async def gen_tool_check_fn(case:str):
     tool_name = "book_reservation"
     policy_path = "tau_airline/input/BookReservation.json"
     tool = load_policy_new(policy_path, tool_name)
-    domain = SourceFile.load_from(os.path.join(cwd, "domain.py"))
+    item = tool.policy_items[0]
+    # domain = SourceFile.load_from(os.path.join(cwd, "domain.py"))
     # check_fn = SourceFile.load_from(os.path.join(cwd, "check_book_reservation.py"))
-    check_fn = SourceFile.load_from(os.path.join(cwd, "check_Baggage_Allowance.py"))
-    test = SourceFile.load_from(os.path.join(cwd, "test_check_Baggage_Allowance.py")) 
+    check_fn = SourceFile.load_from(os.path.join(cwd, tool_name, py_extension(check_fn_module_name(item.name))))
+    test = SourceFile.load_from(os.path.join(cwd,  tool_name, py_extension(test_fn_module_name(item.name))))
     # tests = [
     #     SourceFile.load_from(os.path.join(cwd, "test_check_Baggage Allowance.py")),
     #     SourceFile.load_from(os.path.join(cwd, "test_check_Passenger Information.py")),
     #     SourceFile.load_from(os.path.join(cwd, "test_check_Payment Method Restrictions.py")),
     # ]
-
-    gen = PolicyAdherenceCodeGenerator(cwd)
+    gen = ToolCheckPolicyGenerator(tool, cwd)
+    items = [item]
     check_futures = [
-        gen._improve_tool_check_fn_loop(domain, check_fn, tool_item, test)
-        for tool_item in tool.policy_items 
+        gen.improve_tool_item_check_fn_loop(tool_item, check_fn, test)
+        for tool_item in items 
     ]
     checks = await asyncio.gather(*check_futures)
     # res = await gen._generate_tool_check_fn(domain, check_fn, tool, test)
@@ -149,5 +149,5 @@ if __name__ == '__main__':
     logger.remove()
     logger.add(sys.stdout, colorize=True, format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> <level>{message}</level>")
 
-    # asyncio.run(gen_all())
-    asyncio.run(gen_tool_check_fn("game"))
+    asyncio.run(gen_all())
+    # asyncio.run(gen_tool_check_fn("game"))

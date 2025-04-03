@@ -78,8 +78,8 @@ def run(folder:str, py_file:str, venv_name:str)->DiagnosticsReport:
         capture_output=True, 
         text=True
     )
-    # if res != 0:
-    #     raise Exception(res.stderr)
+    if res.returncode !=0:
+        raise Exception(res.stderr)
     
     data = json.loads(res.stdout)
     return DiagnosticsReport.model_validate(data)

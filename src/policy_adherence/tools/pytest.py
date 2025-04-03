@@ -96,8 +96,7 @@ class TestReport(BaseModel):
                 errors.append(error)
         return errors
 
-def run(folder:str, test_file:str)->TestReport:
-    report_file = f"{Path(test_file).stem}_pytest.json"
+def run(folder:str, test_file:str, report_file)->TestReport:
     subprocess.run([
             "pytest",
             test_file,

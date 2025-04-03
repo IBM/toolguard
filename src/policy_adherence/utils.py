@@ -16,7 +16,7 @@ def to_md_bulltets(items: List[str])->str:
         s+=f"* {item}\n"
     return s
 
-def py_name(human_name: str)->str:
+def snake_case(human_name: str)->str:
     return human_name.replace(" ", "_")
 
 def py_extension(name:str)->str:
