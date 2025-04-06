@@ -33,6 +33,7 @@ DEBUG_DIR = "debug"
 TESTS_DIR = "tests"
 RUNTIME_COMMON_PY = "common.py"
 DOMAIN_PY = "domain.py"
+HISTORY_PARAM = "chat_history"
 
 
 def check_fn_name(name:str)->str:
@@ -90,7 +91,6 @@ async def generate_tools_check_fns(app_name: str, tools: List[ToolPolicy], py_ro
         tools=tools_result
     )
 
-
 class ToolCheckPolicyGenerator:
     app_name: str
     py_path:str
@@ -107,9 +107,6 @@ class ToolCheckPolicyGenerator:
         os.makedirs(join(py_path, to_snake_case(app_name), to_snake_case(tool.name)), exist_ok=True)
         os.makedirs(join(py_path, to_snake_case(DEBUG_DIR)), exist_ok=True)
         os.makedirs(join(py_path, to_snake_case(TESTS_DIR)), exist_ok=True)
-
-    # def _path_to_file(self, name:str)->str:
-    #     return join(snake_case(self.tool.name), name)
 
     async def generate(self)->ToolChecksCodeResult:
         tool_check_fn, item_check_fns = self.create_initial_check_fns()
@@ -225,9 +222,9 @@ class ToolCheckPolicyGenerator:
         tool_fn = find(tree.body, lambda node: isinstance(node, ast.FunctionDef) and node.name == self.tool.name)
         assert tool_fn
         fn_args:ast.arguments = tool_fn.args # type: ignore
-        # node.args.args.append(
-        #     ast.arg(arg="chat_history", annotation=ast.Name(id="ChatHistory", ctx=ast.Load()))
-        # )
+        fn_args.args.append(
+            ast.arg(arg=HISTORY_PARAM, annotation=ast.Name(id="ChatHistory", ctx=ast.Load()))
+        )
 
         py.create_init_py(join(self.py_path, to_snake_case(self.app_name), to_snake_case(self.tool.name)))
         
@@ -244,10 +241,12 @@ class ToolCheckPolicyGenerator:
                 check_fn_name(item.name)
             ))
         
-        call_item_fns = [
-            py.call_fn(check_fn_name(item.name), "request") #TODO name
-            for item in self.tool.policy_items
-        ]
+        call_item_fns = []
+        for item in self.tool.policy_items:
+            params = ["request", HISTORY_PARAM]#TODO names
+            call_item_fns.append(
+                py.call_fn(check_fn_name(item.name), *params) 
+            )
         body.append(py.create_fn(
             name=check_fn_name(self.tool.name),
             args=fn_args,
@@ -265,12 +264,14 @@ class ToolCheckPolicyGenerator:
     def _create_item_module(self, tool_item: ToolPolicyItem, fn_args:ast.arguments)->SourceFile:
         body = [
             py.create_import(f"{py.py_module(self.domain.file_name)}", "*"),
-            # self._create_import(f"{py_module(self.common.file_name)}", "*"),
+            py.create_import(f"{py.py_module(self.common.file_name)}", "*"),
             py.create_fn(name=check_fn_name(tool_item.name), args=fn_args)
         ]
         file_name = join(
             to_snake_case(self.app_name), 
             to_snake_case(self.tool.name), 
-            py.py_extension(check_fn_module_name(tool_item.name))
+            py.py_extension(
+                check_fn_module_name(tool_item.name)
+            )
         )
         return py.save_py_body(body, file_name, self.py_path)
