@@ -27,6 +27,7 @@ class Schema(BaseModel):
     default: Optional[Any] = None
     description: Optional[str] = None
     example: Optional[Any] = None
+    allOf: Optional[List[Union[Reference, 'Schema']]] = None
 
 class Contact(BaseModel):
     name: Optional[str] = None

@@ -38,30 +38,6 @@ def load_policy_new(file_path:str, tool_name:str)->ToolPolicy:
             for item in d.get("policies", [])
             if not item.get("skip")]
     return ToolPolicy(name=tool_name, policy_items=items)
-
-# def op_only_oas(oas: OpenAPI, operationId: str)-> OpenAPI:
-#     new_oas = OpenAPI(
-#         openapi=oas.openapi, 
-#         info=oas.info,
-#         components=oas.components
-#     )
-#     for path, path_item in oas.paths.items():
-#         for mtd, op in path_item.operations.items():
-#             if op.operationId == operationId:
-#                 if new_oas.paths.get(path) is None:
-#                     new_oas.paths[path] = PathItem(
-#                         summary=path_item.summary,
-#                         description=path_item.description,
-#                         servers=path_item.servers,
-#                         parameters=path_item.parameters,
-#                     ) # type: ignore
-#                 setattr(
-#                     new_oas.paths.get(path), 
-#                     mtd.lower(), 
-#                     copy.deepcopy(op)
-#                 )
-#                 op = Operation(**(substitute_refs(op.model_dump())))
-#     return new_oas
     
 def symlink_force(target, link_name):
     try:
