@@ -181,14 +181,14 @@ def tool_information_dependencies(tool_name:str, policy: str, domain:SourceFile)
 
 
 @generative(model=model, provider="azure", sdk="litellm")
-def improve_tool_check_fn(prev_impl:SourceFile, domain: SourceFile, tool: ToolPolicyItem, review_comments: List[str])-> str:
+def improve_tool_check_fn(prev_impl:SourceFile, domain: SourceFile, policy_item: ToolPolicyItem, review_comments: List[str])-> str:
     """
     Improve the previous tool-call check implementation (in Python) to cover all tool policy-items according to the review-comments.
 
     Args:
         prev_impl (SourceFile): previous implementation of the tool-call check.
         domain (SourceFile): Python code defining available data types and other tool interfaces.
-        tool (ToolPolicy): Requirements for this tool.
+        policy_item (ToolPolicyItem): Requirements for this tool.
         review_comments (List[str]): Review comments on the current implementation. For example, pylint errors or Failed unit-tests.
 
     Returns:

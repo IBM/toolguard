@@ -28,6 +28,9 @@ class Schema(BaseModel):
     description: Optional[str] = None
     example: Optional[Any] = None
     allOf: Optional[List[Union[Reference, 'Schema']]] = None
+    
+    def __str__(self) -> str:
+        return self.model_dump_json(exclude_none=True, indent=2)
 
 class Contact(BaseModel):
     name: Optional[str] = None
@@ -184,7 +187,7 @@ class OpenAPI(BaseModel):
                 if op.operationId == operationId:
                     return op
                 
-    def resolve_ref(self, obj: Reference | BaseModelT, object_type: type[BaseModelT])->BaseModelT:
+    def resolve_ref(self, obj: Reference | BaseModelT | None, object_type: type[BaseModelT])->BaseModelT | None:
         if isinstance(obj, Reference):
             tmp = find_ref(self.model_dump(), obj.ref)
             return object_type.model_validate(tmp)

@@ -50,7 +50,7 @@ async def gen_all():
     oas_path = "/Users/davidboaz/Documents/GitHub/tau_airline/input/openapi.yaml"
     tool_names = [
         "cancel_reservation",
-        "book_reservation"
+        # "book_reservation"
     ]
     policy_paths = [
         "/Users/davidboaz/Documents/GitHub/tau_airline/input/CancelReservation.json"
