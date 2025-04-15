@@ -5,10 +5,19 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Run gen py",
+            "name": "Gen py",
             "type": "debugpy",
             "request": "launch",
             "program": "tests/run_gen.py",
+            "console": "integratedTerminal",
+            "args": [],
+            "justMyCode": false
+        },
+        {
+            "name": "Gen Rules",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "tests/gen_rules.py",
             "console": "integratedTerminal",
             "args": [],
             "justMyCode": false
