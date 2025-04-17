@@ -1,7 +1,11 @@
+from enum import StrEnum
 from typing import List, Optional, Union
 from pydantic_xml import BaseXmlModel, attr, element
 from policy_adherence.common.jschema import JSONSchemaTypes, JSchema
 from policy_adherence.common.ref import DocumentWithRef
+
+FEEL_URI = "http://www.omg.org/spec/FEEL/20140401" #"https://www.omg.org/spec/DMN/20240513/FEEL/"
+
 class DMNElement(BaseXmlModel):
     id: str|None = attr(default=None)
     description: str|None = attr(default=None)
@@ -22,13 +26,56 @@ class DRGElement(NamedElement):
     pass
 
 class Expression(DMNElement):
-    typeRef: str|None = element(default=None)
+    typeRef: str|None = attr(default=None)
 
-class LiteralExpression(Expression, tag="literalExpression"):
+class LiteralExpression(Expression):
     text: str = element()
 
-class DecisionTable(Expression):
-    pass
+class UnaryTests(Expression):
+    text: Optional[str] = element()
+    expressionLanguage: Optional[str] = attr(default=None)
+
+class DecisionTableHitPolicy(StrEnum):
+    UNIQUE = "UNIQUE"
+    FIRST = "FIRST"
+    PRIORITY = "PRIORITY"
+    ANY = "ANY"
+    COLLECT = "COLLECT"
+    RULE_ORDER = "RULE ORDER"
+    OUTPUT_ORDER = "OUTPUT ORDER"
+
+class DecisionTableOrientation(StrEnum):
+    Rule_as_Row = "Rule-as-Row"
+    Rule_as_Column = "Rule-as-Column"
+    CrossTable = "CrossTable"
+
+class BuiltinAggregator(StrEnum):
+    SUM = "SUM"
+    COUNT = "COUNT"
+    MIN = "MIN"
+    MAX = "MAX"
+class DecisionTableInputClause(DMNElement):
+    inputExpression: LiteralExpression = element()
+    inputValues: Optional[UnaryTests] = element(default=None)
+
+class DecisionTableOutputClause(DMNElement):
+    name: str|None = attr(default=None)
+    typeRef: str|None = attr(default=None)
+    defaultOutputEntry: Optional[LiteralExpression] = element(default=None)
+    outputValues: Optional[UnaryTests] = element(default=None)
+
+class DecisionTableRule(DMNElement):
+    inputEntry: List[UnaryTests] = element(default=[])
+    outputEntry: List[LiteralExpression] = element(default=[])
+
+class DecisionTable(Expression, tag="decisionTable"):
+    hitPolicy: DecisionTableHitPolicy = attr(default=DecisionTableHitPolicy.UNIQUE)
+    preferredOrientation: DecisionTableOrientation = attr(default=DecisionTableOrientation.Rule_as_Row)
+    aggregation: Optional[BuiltinAggregator] = attr(default=None)
+    outputLabel: Optional[str] = attr(default=None)
+    input: List[DecisionTableInputClause] = element(default=[])
+    output: List[DecisionTableOutputClause] = element(default=[])
+    rule: List[DecisionTableRule]= element(default=[])
 
 class Invocation(Expression):
     pass
@@ -67,25 +114,24 @@ class Definitions(NamedElement,
             "feel": "http://www.omg.org/spec/FEEL/20140401"
         }):
     namespace: str|None = attr(default=None)
-    expressionLanguage: Optional[str] = attr(default="https://www.omg.org/spec/DMN/20240513/FEEL/")
-    typeLanguage: Optional[str] = attr(default="https://www.omg.org/spec/DMN/20240513/FEEL/")
+    expressionLanguage: Optional[str] = attr(default=FEEL_URI)
+    typeLanguage: Optional[str] = attr(default=FEEL_URI)
 
     itemDefinition: List[ItemDefinition] = element(default=[])
     decisions: List[Decision] = element(default=[])
     inputs: List[InputData] = element(default=[])
     # businessContextElement: List[BusinessContextElement]
 
-    # class Config:
-    #     xml_ns = ''  # default namespace (no prefix)
-    #     xml_ns_url = "https://www.omg.org/spec/DMN/20191111/MODEL/" 
     def __str__(self)->str:
-        return self.to_xml(
+        xml_bytes = self.to_xml(
             pretty_print=True,
-            encoding='unicode',
+            encoding='UTF-8',
             standalone=True,
             # exclude_unset = True,
             exclude_none=True
         )
+        return xml_bytes.decode("utf-8")
+    
     def save(self, filename:str):
         with open(filename, "w") as f:
             f.write(str(self))

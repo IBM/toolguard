@@ -25,16 +25,32 @@ async def generate_tools_check_rules(app_name:str, tools:List[ToolPolicy], out_f
             req_schema = op_only_oas.resolve_ref(req_body.content_json.schema_, JSchema)
             assert req_schema
             
-            dfs = dmn.Definitions(name=tool_item.name)
+            dfs = dmn.Definitions(
+                name=tool_item.name, 
+                id=to_snake_case(tool_item.name),
+                namespace="taubench")
             in_def = dmn.map_schema("request", req_schema, op_only_oas)
             dfs.itemDefinition.append(in_def)
             dfs.inputs.append(
                 dmn.InputData(name="req", id="req",
                     variable=dmn.InformationItem(typeRef="request", name="request")
                 ))
+            
+            # decision_logic = dmn.LiteralExpression(text="FIXME")
+            decision_logic = dmn.DecisionTable(
+                input=[
+                    dmn.DecisionTableInputClause(inputExpression=dmn.LiteralExpression(text="count(passengers)")),
+                    dmn.DecisionTableInputClause(inputExpression=dmn.LiteralExpression(text="insurance"))
+                ],
+                output=[
+                    dmn.DecisionTableOutputClause(name="result", typeRef="boolean")
+                ],
+                rule=[]
+            )
             dfs.decisions.append(dmn.Decision(
+                id=to_snake_case(tool_item.name),
                 name=tool_item.name,
-                decisionLogic=dmn.LiteralExpression(text="FIXME"),
+                decisionLogic=decision_logic,
                 informationRequirement=[
                     dmn.InformationRequirement(
                         requiredInput=dmn.DMNRef(href="#req"))
@@ -42,14 +58,16 @@ async def generate_tools_check_rules(app_name:str, tools:List[ToolPolicy], out_f
                 variable=dmn.InformationItem(name=f"{tool_item.name}_res", typeRef="boolean")))
     
             dfs_src = SourceFile(
-                file_name=f"{to_snake_case(tool_item.name)}.xml",
+                file_name=f"{to_snake_case(tool_item.name)}.dmn",
                 content=str(dfs)
             )
             dfs_src.save(app_root)
             
             rules_content = improve_tool_rules(dfs_src, tool_item, [])
             print(rules_content)
-            res = SourceFile(file_name=dfs_src.file_name+"1", content=rules_content)
+            res = SourceFile(
+                file_name=f"{to_snake_case(tool_item.name)}.xml",
+                content=rules_content)
             res.save(app_root)
             # results.append(res)
 
