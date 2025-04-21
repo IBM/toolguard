@@ -26,6 +26,7 @@ class JSchema(DocumentWithRef):
     default: Optional[Any] = None
     description: Optional[str] = None
     example: Optional[Any] = None
+    required: Optional[List[str]] = None
     allOf: Optional[List[Union[Reference, 'JSchema']]] = None
     
     def __str__(self) -> str:
