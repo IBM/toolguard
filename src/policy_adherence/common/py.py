@@ -1,6 +1,7 @@
 
 import ast
 import os
+from typing import List
 import astor
 
 from policy_adherence.common.str import to_snake_case
@@ -27,6 +28,16 @@ def create_fn(name:str, args, body=[ast.Pass()], returns=ast.Constant(value=None
             decorator_list=[],
             returns=returns
         ) # type: ignore
+
+def create_class(name:str, base_class_names:List[str] = [])->ast.ClassDef:
+    return ast.ClassDef(
+        name=name,
+        bases=[ast.Name(id=base, ctx=ast.Load()) for base in base_class_names],  
+        keywords=[],
+        body=[],
+        decorator_list=[],
+        type_params=[]
+    )
 
 def call_fn(fn_name:str, *args:str)->ast.Expr:
     return ast.Expr(

@@ -49,3 +49,14 @@ class ChatHistory:
     
     def ask_bool(self, question:str)->bool:
         return bool(ask_llm(question, self.messages, self.llm))
+    
+
+class PolicyViolationException(Exception):
+    _msg: str
+    def __init__(self, message:str):
+        super().__init__(message)
+        self._msg = message
+
+    @property
+    def message(self):
+        return self._msg

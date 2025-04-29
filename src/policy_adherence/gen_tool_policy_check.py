@@ -1,10 +1,11 @@
 import ast
 import asyncio
+import copy
 import os
 from os.path import join
 import anyio
 import anyio.to_thread
-from typing import List, Tuple
+from typing import Any, List, Tuple
 from loguru import logger
 from policy_adherence.common.array import find
 from policy_adherence.common import py
@@ -34,6 +35,8 @@ TESTS_DIR = "tests"
 RUNTIME_COMMON_PY = "common.py"
 DOMAIN_PY = "domain.py"
 HISTORY_PARAM = "chat_history"
+HISTORY_PARAM_TYPE = "ChatHistory"
+TOOLS_PARAM = "tools"
 
 def check_fn_name(name:str)->str:
     return to_snake_case(f"check_{name}")
@@ -47,18 +50,19 @@ def test_fn_name(name:str)->str:
 def test_fn_module_name(name:str)->str:
     return to_snake_case(test_fn_name(name))
 
-def fn_doc_string(args: ast.arguments):
-    arg0 = args.args[0]
-    arg1 = args.args[1]
+def fn_doc_string(args: list[ast.arg], history_arg, tools_arg):
+    app_args_doc = "\n    ".join([f"{arg.arg} ({arg.annotation.id})" for arg in args])
+    
     return f"""
-Checks that the {arg0.arg} and {arg1.arg} comply with a policy.
+Checks that a tool call comply with a policy.
 
 Args:
-    {arg0.arg} ({arg0.annotation.id}): the tool arguments
-    {arg1.arg} ({arg1.annotation.id}): provide question-answer services over the past chat messages.
+    {app_args_doc}
+    {history_arg.arg} ({history_arg.annotation.id}): provide question-answer services over the past chat messages.
+    {tools_arg.arg} ({tools_arg.annotation.id}): api to access other tools.
 
 Raises:
-    ValueError: If the request violates the policy.
+    PolicyViolationException: If the request violates the policy.
 """
 
 async def generate_tools_check_fns(app_name: str, tools: List[ToolPolicy], py_root:str, openapi_path:str)->ToolChecksCodeGenerationResult:
@@ -233,20 +237,41 @@ class ToolCheckPolicyGenerator:
         
         raise Exception(f"Generation failed for tool {item.name}")
     
+    def find_api_class(self, nodes: List[Any])->ast.ClassDef:
+        for node in nodes:
+            if isinstance(node, ast.ClassDef):
+                if find(node.bases, lambda base: isinstance(base, ast.Name) and base.id == "Protocol"):
+                    return node
+                
+    def find_tool_method(self, clz:ast.ClassDef, tool_name: str)->ast.FunctionDef:
+        for fn in clz.body:
+            if isinstance(fn, ast.FunctionDef):
+                if fn.name == to_snake_case(tool_name):
+                    return fn
+
     def create_initial_check_fns(self)->Tuple[SourceFile, List[SourceFile]]:
         tree = ast.parse(self.domain.content)
-        tool_fn = find(tree.body, lambda node: isinstance(node, ast.FunctionDef) and node.name == self.tool.name)
+        api_cls = self.find_api_class(tree.body)
+        assert api_cls
+        tool_fn = self.find_tool_method(api_cls, self.tool.name)
         assert tool_fn
 
         fn_args:ast.arguments = tool_fn.args # type: ignore
-        fn_args.args.append(
-            ast.arg(arg=HISTORY_PARAM, annotation=ast.Name(id="ChatHistory", ctx=ast.Load()))
-        )
-        fn_docstring = ast.Expr(value=ast.Constant(value=fn_doc_string(fn_args), kind=None))
+        
+        #remove self arg
+        if fn_args.args:
+            if fn_args.args[0].arg == "self":
+                fn_args.args.pop(0)
+        args = copy.deepcopy(fn_args.args)
+        history_arg = ast.arg(arg=HISTORY_PARAM, annotation=ast.Name(id=HISTORY_PARAM_TYPE, ctx=ast.Load()))
+        tools_arg = ast.arg(arg=TOOLS_PARAM, annotation=ast.Name(id=api_cls.name, ctx=ast.Load()))
+        
+        fn_docstring = fn_doc_string(args, history_arg, tools_arg)
+        fn_args.args.extend([history_arg, tools_arg])
 
         py.create_init_py(join(self.py_path, to_snake_case(self.app_name), to_snake_case(self.tool.name)))
         
-        item_files = [self._create_item_module(item, fn_args) 
+        item_files = [self._create_item_module(item, fn_args, fn_docstring) 
             for item in self.tool.policy_items]
         
         body = [
@@ -259,9 +284,9 @@ class ToolCheckPolicyGenerator:
                 check_fn_name(item.name)
             ))
         
-        fn_body = [fn_docstring]
+        fn_body = [ast.Expr(value=ast.Constant(value=fn_docstring, kind=None))]
         for item in self.tool.policy_items:
-            params = ["request", HISTORY_PARAM]#TODO names
+            params = [arg.arg for arg in args]+[HISTORY_PARAM, TOOLS_PARAM]
             fn_body.append(
                 py.call_fn(check_fn_name(item.name), *params) 
             )
@@ -279,15 +304,14 @@ class ToolCheckPolicyGenerator:
         return (tool_file, item_files)
      
 
-    def _create_item_module(self, tool_item: ToolPolicyItem, fn_args:ast.arguments)->SourceFile:
-        fn_docstring = ast.Expr(value=ast.Constant(value=fn_doc_string(fn_args), kind=None))
+    def _create_item_module(self, tool_item: ToolPolicyItem, fn_args:ast.arguments, fn_docstring:str)->SourceFile:
         body = [
             py.create_import(f"{py.py_module(self.domain.file_name)}", "*"),
             py.create_import(f"{py.py_module(self.common.file_name)}", "*"),
             py.create_fn(
                 name=check_fn_name(tool_item.name), 
                 args=fn_args,
-                body=[fn_docstring]
+                body=[ast.Expr(value=ast.Constant(value=fn_docstring, kind=None))]
             )
         ]
         file_name = join(
