@@ -51,11 +51,11 @@ def run_or_validate_step1(policy_text, oas_file:str, step1_path, forct_step1):
 async def run_step2(oas_path:str, step1_path:str, step2_path:str):
 	os.makedirs(step2_path, exist_ok=True)
 	
-	tool_policies = [load_tool_policy(tool_policy_path, tool_name)
-					 for tool_name, tool_policy_path
-					 in tool_policy_paths.items()]
-	
-	return await generate_tools_check_fns("my_app", tool_policies, step2_path, oas_path)
+	# tool_policies = [load_tool_policy(tool_policy_path, tool_name)
+	# 				 for tool_name, tool_policy_path
+	# 				 in tool_policy_paths.items()]
+	#
+	# return await generate_tools_check_fns("my_app", tool_policies, step2_path, oas_path)
 
 def main(policy_text:str, oas_file:str, step1_path:str, step2_path:str, forct_step1:bool):
 	run_or_validate_step1(policy_text, oas_file, step1_path, forct_step1)
@@ -92,7 +92,7 @@ if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='parser')
 	parser.add_argument('--policy-path', type=str,default='/Users/naamazwerdling/Documents/OASB/policy_validation/airline/wiki.md')
 	parser.add_argument('--oas', type=str, default='/Users/naamazwerdling/Documents/OASB/policy_validation/airline/airline.json')
-	parser.add_argument('--out-dir', type=str, default='/Users/naamazwerdling/Documents/OASB/policy_validation/airline')
+	parser.add_argument('--out-dir', type=str, default='/Users/naamazwerdling/Documents/OASB/policy_validation/airline/outdir')
 	parser.add_argument('--force-step1',action='store_true',default=False,help='Force execution of step 1 (default: False)')
 	parser.add_argument('--step1-dir-name', type=str, default='Step1')
 	parser.add_argument('--step2-dir-name', type=str, default='Step2')

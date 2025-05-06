@@ -65,6 +65,7 @@ class PRSent:
 		sorted_strings = sorted(strings)
 		for s in sorted_strings:
 			print(s)
+			
 	def references_to_sent_spans(self, filepath: str):
 		from nltk.tokenize import sent_tokenize
 		sentences = []
@@ -93,6 +94,7 @@ if __name__ == '__main__':
 	#gendir = '/Users/naamazwerdling/Documents/OASB/policy_validation/airline/final with salesforce'
 	#gendir = '/Users/naamazwerdling/Documents/OASB/policy_validation/airline/final_non-existing-tools-rev'
 	#gendir = '/Users/naamazwerdling/Documents/OASB/policy_validation/airline/final copy 5'
-	gendir = '/Users/naamazwerdling/Documents/OASB/policy_validation/airline/final oas'
+	#gendir = '/Users/naamazwerdling/Documents/OASB/policy_validation/airline/final oas'
+	gendir = '/Users/naamazwerdling/Documents/OASB/policy_validation/airline/final my json'
 
 	PRSent(gtdir, gendir)

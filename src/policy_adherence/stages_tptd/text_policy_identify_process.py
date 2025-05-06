@@ -244,21 +244,28 @@ class PolicyIdentifier:
 		return state
 	
 def step1_main(policy_text:str,fsummary:Dict,fdetails:Dict,outdir:str):
+	if not os.path.isdir(outdir):
+		os.makedirs(outdir)
+		
+	process_dir = os.path.join(outdir,"process")
+	if not os.path.isdir(process_dir):
+		os.makedirs(process_dir)
+	
 	for fname, detail in fdetails.items():
 		input_state = {
 			"policy_text": policy_text,
 			"tools": fsummary,
 			"target_tool": fname,
 			"target_tool_description": detail,
-			"outdir": os.path.join(outdir, "process")
+			"outdir": process_dir
 		}
 		p2 = PolicyIdentifier()
 		final_output = p2.executor.invoke(input_state)
 		print(json.dumps(final_output))
-		tmpoutdir = os.path.join(outdir, "final")
+		#tmpoutdir = os.path.join(outdir, "final")
 		outcontent = final_output["TPTD"]
 		
-		with open(os.path.join(tmpoutdir, fname + ".json"), "w") as outfile:
+		with open(os.path.join(outdir, fname + ".json"), "w") as outfile:
 			outfile.write(json.dumps(outcontent))
 	
 
