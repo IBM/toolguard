@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 from loguru import logger
 
 from policy_adherence.common.open_api import OpenAPI
+from policy_adherence.gen_tool_policy_check import generate_tools_check_fns
 from policy_adherence.stages_tptd.text_policy_identify_process import step1_main
 from tests.op_only_oas import op_only_oas
 
@@ -21,7 +22,8 @@ def validate_files_exist(oas, step1_path):
 	return True
 
 
-def run_or_validate_step1(policy_text,oas,step1_path,forct_step1):
+def run_or_validate_step1(policy_text, oas_file:str, step1_path, forct_step1):
+	oas = read_oas_file(oas_file)
 	if forct_step1 and validate_files_exist(oas,step1_path):
 		return
 	fsummary = {}
@@ -46,38 +48,26 @@ def run_or_validate_step1(policy_text,oas,step1_path,forct_step1):
 	step1_main(policy_text, fsummary, fdetails, step1_path)
 
 
-async def run_step2(oas:Dict,step1_path,step2_path):
-	pass
-
-	# oas_path = "/Users/davidboaz/Documents/GitHub/tau_airline/input/openapi.yaml"
-	# tool_policy_paths = {
-	# 	# "cancel_reservation": "/Users/davidboaz/Documents/GitHub/tau_airline/input/CancelReservation.json",
-	# 	"book_reservation": "/Users/davidboaz/Documents/GitHub/tau_airline/input/BookReservation.json"
-	# }
-	# output_dir = step2_path
-	# now = datetime.now()
-	# out_folder = os.path.join(output_dir, now.strftime("%Y-%m-%d_%H_%M_%S"))
-	# os.makedirs(out_folder, exist_ok=True)
-	#
-	# tool_policies = [load_tool_policy(tool_policy_path, tool_name)
-	# 				 for tool_name, tool_policy_path
-	# 				 in tool_policy_paths.items()]
-	#
-	# result = await generate_tools_check_fns("my_app", tool_policies, out_folder, oas_path)
-	#
-	# print(f"Domain: {result.domain_file}")
-	# for tool_name, tool in result.tools.items():
-	# 	print(f"\t{tool_name}\t{tool.tool_check_file.file_name}")
-	# 	for test in tool.test_files:
-	# 		print(f"\t{test.file_name}")
+async def run_step2(oas_path:str, step1_path:str, step2_path:str):
+	os.makedirs(step2_path, exist_ok=True)
 	
-
-
-def main(policy_text:str,oas,step1_path,step2_path,forct_step1):
-	run_or_validate_step1(policy_text,oas,step1_path,forct_step1)
-	asyncio.run(run_step2(oas,step1_path,step2_path))
+	tool_policies = [load_tool_policy(tool_policy_path, tool_name)
+					 for tool_name, tool_policy_path
+					 in tool_policy_paths.items()]
 	
-def read_oas_file(filepath):
+	return await generate_tools_check_fns("my_app", tool_policies, step2_path, oas_path)
+
+def main(policy_text:str, oas_file:str, step1_path:str, step2_path:str, forct_step1:bool):
+	run_or_validate_step1(policy_text, oas_file, step1_path, forct_step1)
+	result = asyncio.run(run_step2(oas_file, step1_path, step2_path))
+
+	print(f"Domain: {result.domain_file}")
+	for tool_name, tool in result.tools.items():
+		print(f"\t{tool_name}\t{tool.tool_check_file.file_name}")
+		for test in tool.test_files:
+			print(f"\t{test.file_name}")
+	
+def read_oas_file(filepath:str)->Dict:
 	path = Path(filepath)
 	if not path.exists():
 		raise FileNotFoundError(f"File not found: {filepath}")
@@ -107,14 +97,13 @@ if __name__ == '__main__':
 	parser.add_argument('--step1-dir-name', type=str, default='Step1')
 	parser.add_argument('--step2-dir-name', type=str, default='Step2')
 
-	
 	args = parser.parse_args()
 	policy_path = args.policy_path
 	oas_file = args.oas
 	policy_text = open(policy_path, 'r', encoding='utf-8').read()
 	policy_text = markdown.markdown(policy_text)
-	oas = read_oas_file(oas_file)
-	main(policy_text,oas,os.path.join(args.out_dir,args.step1_dir_name),os.path.join(args.out_dir,args.step2_dir_name),args.force_step1)
+
+	main(policy_text, oas_file, os.path.join(args.out_dir,args.step1_dir_name), os.path.join(args.out_dir,args.step2_dir_name), args.force_step1)
 	
 
 	

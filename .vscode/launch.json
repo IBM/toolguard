@@ -14,6 +14,20 @@
             "justMyCode": false
         },
         {
+            "name": "Step1",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "policy_adherence",
+            "console": "integratedTerminal",
+            "args": [
+                "--policy-path", "/Users/davidboaz/Documents/GitHub/tau_airline/input/wiki.md",
+                "--oas", "/Users/davidboaz/Documents/GitHub/tau_airline/input/openapi.yaml",
+                "--out-dir", "/Users/davidboaz/Documents/GitHub/tau_airline/output/dd",
+            ],
+            "justMyCode": false
+            
+        },
+        {
             "name": "Gen ODM",
             "type": "debugpy",
             "request": "launch",

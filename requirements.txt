@@ -12,4 +12,4 @@ flask-cors
 langgraph
 markdown
 anyio
-pydantic-xml[lxml] #for DMN
+# pydantic-xml[lxml] #for DMN
