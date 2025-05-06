@@ -54,7 +54,7 @@ Uses the output from Step 1 and the OpenAPI spec to generate Python code that en
    Copy the `src/.env.example` to `src/.env` and fill in your environment variables. 
    Replace `AZURE_OPENAI_API_KEY` with your actual API key.
 
-## Usage
+## ▶️ Usage
 
 ```bash
 PYTHONPATH=src python -m policy_adherence --policy-path <path_to_policy> --oas <path_to_oas> --out-dir <output_directory> [options]
