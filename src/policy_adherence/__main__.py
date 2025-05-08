@@ -83,7 +83,8 @@ def main(policy_text:str, oas_file:str, step1_out_dir:str, step2_out_dir:str, fo
 		for tool_name, tool in result.tools.items():
 			print(f"\t{tool_name}\t{tool.tool_check_file.file_name}")
 			for test in tool.test_files:
-				print(f"\t{test.file_name}")
+				if test:
+					print(f"\t\t{test.file_name}")
 
 	
 def read_oas_file(filepath:str)->Dict:
