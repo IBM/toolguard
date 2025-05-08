@@ -48,8 +48,20 @@ def test_fn_name(name:str)->str:
 def test_fn_module_name(name:str)->str:
     return to_snake_case(test_fn_name(name))
 
+def get_annotation_str(annotation):
+    if annotation is None:
+        return "unannotated"
+    elif isinstance(annotation, ast.Name):
+        return annotation.id
+    elif isinstance(annotation, ast.Subscript):
+        return ast.unparse(annotation)  # Python 3.9+
+    elif isinstance(annotation, ast.Attribute):
+        return ast.unparse(annotation)
+    else:
+        return "unknown"
+    
 def fn_doc_string(args: list[ast.arg], history_arg, api_arg):
-    app_args_doc = "\n    ".join([f"{arg.arg} ({arg.annotation.id})" for arg in args])
+    app_args_doc = "\n    ".join([f"{arg.arg} ({get_annotation_str(arg.annotation)})" for arg in args])
     
     return f"""
 Checks that a tool call complies with a policy.
