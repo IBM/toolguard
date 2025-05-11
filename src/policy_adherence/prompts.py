@@ -3,9 +3,7 @@ from typing import List, Set
 from policy_adherence.data_types import SourceFile, ToolPolicyItem
 from programmatic_ai import generative
 
-model = "gpt-4o-2024-08-06"
-
-@generative(model=model, provider="azure", sdk="litellm")
+@generative()
 async def generate_tool_item_tests(
     fn_under_test_name:str, 
     fn_src:SourceFile, 
@@ -94,7 +92,7 @@ from domain import *
     ...
 
 
-@generative(model=model, provider="azure", sdk="litellm")
+@generative()
 async def improve_tool_tests(prev_impl:SourceFile, domain: SourceFile, tool: ToolPolicyItem, review_comments: List[str])-> str:
     """
     Improve the previous test functions (in Python) to check the given tool policy-items according to the review-comments.
@@ -111,7 +109,7 @@ async def improve_tool_tests(prev_impl:SourceFile, domain: SourceFile, tool: Too
     ...
 
 
-@generative(model=model, provider="azure", sdk="litellm")
+@generative()
 async def tool_information_dependencies(tool_name:str, policy: str, domain:SourceFile)-> List[str]:
     """
     List other tools that the given tool depends on.
@@ -183,7 +181,7 @@ async def tool_information_dependencies(tool_name:str, policy: str, domain:Sourc
     ...
 
 
-@generative(model=model, provider="azure", sdk="litellm")
+@generative()
 async def improve_tool_check_fn(prev_impl:SourceFile, domain: SourceFile, policy_item: ToolPolicyItem, review_comments: List[str])-> str:
     """
     Improve the previous tool-call check implementation (in Python) to cover all tool policy-items according to the review-comments.
