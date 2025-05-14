@@ -1,0 +1,25 @@
+{
+    "policies": [
+        {
+            "policy_name": "action confirmation",
+            "description": "Before taking any actions that update the passenger information in the booking database, you must list the action details and obtain explicit user confirmation (yes) to proceed.",
+            "references": [
+                "before taking any actions that update the booking database (booking, modifying flights, editing baggage, upgrading cabin class, or updating passenger information), you must list the action details and obtain explicit user confirmation (yes) to proceed."
+            ]
+        },
+        {
+            "policy_name": "passenger information collection",
+            "description": "When updating passenger information, ensure to collect the first name, last name, and date of birth for each passenger, and confirm that all passengers fly the same flights and in the same cabin.",
+            "references": [
+                "the agent needs to collect the first name, last name, and date of birth for each passenger. all passengers must fly the same flights in the same cabin."
+            ]
+        },
+        {
+            "policy_name": "passenger modification restriction",
+            "description": "When updating passenger information, validate that the user can modify passenger information but cannot modify the number of passengers. This is something even a human agent cannot assist with.",
+            "references": [
+                "change passengers: the user can modify passengers but cannot modify the number of passengers. this is something that even a human agent cannot assist with."
+            ]
+        }
+    ]
+}

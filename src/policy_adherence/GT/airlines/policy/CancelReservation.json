@@ -1,0 +1,46 @@
+{
+    "policies": [
+        {
+            "policy_name": "Obtain User ID and Reservation ID",
+            "description": "Before a cancellation is processed, validate that the user's ID and reservation ID have been obtained.",
+            "references": [
+                "the agent must first obtain the user id, the reservation id, and the reason for cancellation (change of plan, airline cancelled flight, or other reasons)"
+            ]
+        },
+        {
+            "policy_name": "Obtain Reason for Cancellation",
+            "description": "Verify that a valid reason for cancellation (change of plan, airline cancelled flight, or other reasons) is provided by the user before proceeding with cancellation.",
+            "references": [
+                "the agent must first obtain the user id, the reservation id, and the reason for cancellation (change of plan, airline cancelled flight, or other reasons)"
+            ]
+        },
+        {
+            "policy_name": "Travel Insurance Purchase",
+            "description": "Validate whether the user purchased travel insurance, as it is necessary to enable full refund if canceling a flight due to health or weather reasons.",
+            "references": [
+                "travel insurance: the agent should ask if the user wants to buy the travel insurance, which is 30 dollars per passenger and enables full refund if the user needs to cancel the flight given health or weather reasons."
+            ]
+        },
+        {
+            "policy_name": "Cancellation Window",
+            "description": "Ensure that the cancellation is requested within 24 hours of booking or confirm if the airline has cancelled the flight. Confirm cancellation eligibility based on booking time and flight status.",
+            "references": [
+                "all reservations can be cancelled within 24 hours of booking, or if the airline cancelled the flight. otherwise, basic economy or economy flights can be cancelled only if travel insurance is bought and the condition is met, and business flights can always be cancelled. the rules are strict regardless of the membership status. the api does not check these for the agent, so the agent must make sure the rules apply before calling the api!"
+            ]
+        },
+        {
+            "policy_name": "Reservation Type Restrictions",
+            "description": "Confirm that for basic economy or economy bookings, travel insurance has been purchased and the condition is met for cancellation; for business bookings, cancellation is allowed at any time.",
+            "references": [
+                "all reservations can be cancelled within 24 hours of booking, or if the airline cancelled the flight. otherwise, basic economy or economy flights can be cancelled only if travel insurance is bought and the condition is met, and business flights can always be cancelled. the rules are strict regardless of the membership status. the api does not check these for the agent, so the agent must make sure the rules apply before calling the api!"
+            ]
+        },
+        {
+            "policy_name": "Unused Segments",
+            "description": "Verify that the entire trip has not been flown; if any of the segments have been used, canceling the reservation must involve transferring to a human agent.",
+            "references": [
+                "the agent can only cancel the whole trip that is not flown. if any of the segments are already used, the agent cannot help and transfer is needed."
+            ]
+        }
+    ]
+}

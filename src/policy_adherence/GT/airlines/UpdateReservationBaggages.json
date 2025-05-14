@@ -1,0 +1,197 @@
+{
+   "policies":[
+          {
+            "policy_name": "Policy Adherence Required",
+            "description": "When using 'UpdateReservationFlights', ensure all actions strictly adhere to airline policies. Reject any requests violating policy restrictions, such as those pertaining to modifying basic economy flights, maintaining consistent cabin class across all flight segments, or using correct payment methods for upgrades. Prior to invoking the tool, confirm that all parameters, such as reservation ID, cabin class, flight details, and payment ID, comply with policy requirements, including ensuring no modification of the flight status that is not allowed (e.g., 'on time', 'delayed', 'flying').",
+            "references": [
+                "The agent must first obtain the user id and the reservation id."     ],
+            "iteration_added": 0,
+            "violating_examples": [],
+            "compliance_examples": []
+        },
+      {
+         "policy_name":"Obtain Explicit User Confirmation for Baggage Update",
+         "description":"Before invoking the 'UpdateReservationBaggages' tool, present the user with the full details of the update, including the total number of baggage items, the number of non-free baggage items, and the payment method to be used. Secure the user's explicit confirmation by receiving a clear 'yes' from them before executing the tool to ensure compliance with policy guidelines.",
+         "references":[
+            "Before taking any actions that update the booking database (booking, modifying flights, editing baggage, upgrading cabin class, or updating passenger information), you must list the action details and obtain explicit user confirmation (yes) to proceed."
+         ],
+         "iteration_added":1,
+         "violating_examples":[
+            "An airline agent uses the 'UpdateReservationBaggages' tool to add an extra checked bag to a reservation without presenting the details to the user beforehand or obtaining explicit confirmation. The agent does not ask the user whether they agree to the update, violating the policy as the user confirmation process is skipped.",
+            "An agent updates the reservation to include 2 non-free baggage items and charges the user's credit card for the additional fees through 'UpdateReservationBaggages'. However, the agent fails to secure a clear 'yes' from the user before processing, breaking the requirement for explicit user consent as defined in the policy.",
+            "The agent calls the 'UpdateReservationBaggages' tool after modifying the baggage details and informing the user about the increased charges, yet does not ensure the user explicitly responds with a 'yes' confirmation. The agent proceeds with the update without verification of the user's approval, thus violating the policy requirement for confirmation.",
+            "An agent uses the 'UpdateReservationBaggages' tool to update baggage details immediately after receiving a complaint about existing baggage charges but does not reconfirm the action with the user, assuming prior consent suffices. This violates the policy as explicit user confirmation is required for every update action.",
+            "The agent assumes user consent based on a vague response and proceeds to update the baggage count with the 'UpdateReservationBaggages' tool, failing to secure an explicit 'yes' from the user, hence violating the policy on explicit confirmation.",
+            "An airline agent processes a request to update reservation baggages after the user was disconnected, believing the earlier incomplete conversation inferred agreement. This violates the policy that mandates explicit and unambiguous user confirmation before tool execution.",
+            "An airline agent uses the 'UpdateReservationBaggages' tool but only provides a partial list of updated details to the user. The agent fails to mention the payment method that will be used, violating the policy of providing complete information and securing explicit user confirmation.",
+            "The agent updates the baggage details using 'UpdateReservationBaggages' based on a previous similar request from the user, not realizing that each update requires fresh confirmation. This violates the policy as each tool invocation must have current user agreement.",
+            "An agent mistakenly presumes that informing the user about a service charge is sufficient confirmation and proceeds to call 'UpdateReservationBaggages' without receiving a direct 'yes'. This violates the explicit user confirmation requirement, as acknowledgment must be clear and direct.",
+            "Upon receiving a general approval from the user regarding reservation changes, the agent proceeds with the baggage update without specifying the baggage details or payment method explicitly. The agent overlooks the need for detailed and specific user consent, thus breaching the policy.",
+            "An agent updates the baggage information using the 'UpdateReservationBaggages' tool after the user casually mentions they might want to add a bag, without asking for explicit confirmation. This action breaches the policy that requires a clear 'yes' from the user.",
+            "The airline agent adjusts the baggage count expecting user agreement based on previous conversations but does not obtain explicit confirmation at the time of the current change, violating the requirement for fresh user consent.",
+            "An agent processes an update in baggage details after misinterpreting the user's expression of interest in additional baggage as confirmation. Proceeding without a clear 'yes' violates the policy's demand for explicit confirmation.",
+            "Assuming the user's silence as approval, the agent uses 'UpdateReservationBaggages' to add an extra bag to the reservation, disregarding the need for explicit verbal or written confirmation which violates the policy.",
+            "An airline agent receives a complaint about existing baggage charges and thinks prior complaints indicate ongoing consent; thus, they update baggage details without reconfirming, which violates the explicit confirmation requirement."
+         ],
+         "compliance_examples":[
+            "Before invoking the 'UpdateReservationBaggages' tool, the agent presents the user with a summary: 'Your reservation will be updated with 3 total baggage items, 1 of which requires payment. The payment method used will be 'credit_card_4421486'. Do you confirm?' The user replies 'Yes', ensuring the agent complies with the policy before proceeding with the tool call.",
+            "An agent clearly lists the details of the baggage update: 'Total baggage items: 4, Non-free baggage items: 2, Payment method: gift_card_3576581', and asks the user for confirmation with: 'Do you agree to the changes?' Upon receiving an explicit 'yes', the agent then invokes 'UpdateReservationBaggages', following the policy requirements.",
+            "The user is informed about baggage modification details involving 5 total baggages, 3 of which are non-free, and that a 'credit_card_4421486' will be charged. After clearly stating all action details, the agent requests and receives a clear 'yes' confirmation from the user, ensuring compliance with the policy before proceeding with 'UpdateReservationBaggages'.",
+            "An agent reiterates the baggage update terms, detailing 2 total bags with 1 non-free and charges applied to 'credit_card_7815826'. The agent waits and receives clear affirmation from the user with 'Yes, please proceed', ensuring full compliance with the policy requirements for explicit confirmation.",
+            "The agent sends a message detailing the new baggage updates, specifying 4 bags in total, with 2 chargeable, using 'gift_card_9123456' for payment. After restating the terms, the agent receives a user confirmation, 'Yes, I agree', which aligns with policy adherence.",
+            "An airline agent recaps to the user that 3 total baggage items will be updated with 2 non-free ones, billing 'certificate_4712345'. Obtaining the user's explicit 'Yes', the agent acts in accordance to policy, ensuring all procedural requirements are met before updating the reservation.",
+            "Before using the 'UpdateReservationBaggages' tool, an agent sends a detailed message: 'Your booking update involves 4 baggage items in total, with 2 as non-free. The chosen payment method is your gift_card_1234567. Do you confirm this update?' The user responds with a 'Yes', fulfilling the policy for explicit consent.",
+            "An agent communicates to the user: 'The baggage information will be updated to include 2 total items, with 1 chargeable. Payment will be made using credit_card_5621890. Do you agree?', receiving a 'Yes' from the user. This confirms adherence to policy guidelines by securing explicit user confirmation.",
+            "To comply with policy, the agent details a baggage update: 'The reservation will now feature 6 bags, with 3 non-free using certificate_8745123 for payments. Do you consent to these changes?' After user responds 'Yes', the agent proceeds with the update, ensuring policy adherence.",
+            "An agent briefs the user on the changes to the baggage update: 'This update involves 3 total baggage items, with 1 non-free. The payment will be processed via your saved credit_card_7815826. Do you confirm this change?' After receiving a straightforward 'Yes, I confirm' from the user, the agent proceeds with implementing the update following the policy.",
+            "The user is informed: 'We are adding 2 non-free baggage items to your reservation, bringing the total baggage count to 4. The charges will be applied using your gift_card_3576581. Do you approve?' Upon receiving a user affirmation of 'Yes', the agent initiates the tool, adhering to the policy requirement of explicit confirmation before execution.",
+            "The agent lays out the baggage update specifics to the user: 'You will have 5 baggage items in total, with 2 that are non-free, paid through credit_card_4421486. Is this change acceptable to you?' The user agrees by saying 'Yes', and the agent uses this consent to move forward with the tool call, ensuring compliance with policy guidelines.",
+            "The agent clearly informs the user: 'We are updating your booking with 3 total baggage items, 2 of which are non-free, using your credit_card_12345 for payment. Please reply with 'yes' to confirm this update.' The user replies 'Yes', adhering to the policy's requirement for explicit confirmation before tool invocation.",
+            "An agent outlines the baggage update to the user: 'Your reservation will be modified to include 4 total bags, 1 of which requires payment via gift_card_67890. Do you approve this update?' Upon receiving an explicit 'yes', the agent proceeds, following policy guidelines.",
+            "Before executing the 'UpdateReservationBaggages', the agent communicates: 'This transaction will involve 5 baggage items in total, with 3 non-free, charged to certificate_123456. Can you confirm this update?' The user confirms with a 'Yes', ensuring compliance with the policy's explicit consent requirement.",
+            "An agent explains: 'We will update your reservation to 2 total bags, with 1 chargeable, using your credit_card_5839201 for the charge. Do you agree to this change?' Receiving a 'Yes, I confirm' from the user, the agent proceeds in line with the policy.",
+            "The user is briefed about the update: 'The new baggage arrangement includes 3 total items, 2 non-free, with charges processed via gift_card_234567. Do you confirm these changes?' After the user\u2019s affirmative response, the agent complies with the policy and uses the tool."
+         ]
+      },
+      {
+            "policy_name": "payment in user data",
+            "description": "Verify that all payment methods are pre-registered in the user profile before proceeding with booking to maintain security and database integrity.",
+            "references": [
+                "All payment methods must already be in user profile for safety reasons."
+            ],
+            "iteration_added": 0,
+            "violating_examples": [
+                "Example 1: A user attempts to book a reservation using two credit cards. The policy mandates that no more than one credit card can be used for a reservation. This violates the rule.",
+                "Example 2: During reservation, a user inputs four gift cards. This violates the policy rule that allows for only up to three gift cards per reservation.",
+                "Example 3: A user submits a booking request where the payment method includes a travel certificate not listed in the user profile. This violates the policy as all payment methods must be pre-registered in the user profile.",
+                "Example 4: A booking attempt is made using a travel certificate, a credit card, and an additional travel certificate for balance. According to the policy, multiple travel certificates are not allowed per reservation, making this a violation.",
+                "Example 5: The booking data included the use of an unverified payment method\u2014a newly added gift card not synced with the user profile\u2014resulting in a policy breach.",
+                "Example 6: A user tries to book a reservation using two travel certificates. This violates the policy, which allows only one travel certificate per reservation.",
+                "Example 7: The booking request includes three credit cards, exceeding the maximum limit of one credit card allowed by the policy. This constitutes a violation.",
+                "Example 8: Upon making a reservation, the user provides payment details for a new credit card that isn't in the user's pre-registered profile list, breaching the policy's requirement for pre-registered payment methods."
+            ],
+            "compliance_examples": [
+                "Example 1: A reservation is made using a single credit card that is already registered in the user's profile. This is compliant with the policy, as it uses one credit card and matches the profile information.",
+                "Example 2: The user books a flight using one travel certificate and two gift cards (all pre-registered in their profile). There's no attempt to exceed the maximum allowed number of cards, ensuring compliance.",
+                "Example 3: A user uses one credit card and one gift card that are already stored in their user profile. This adheres to the payment method restriction policy as the number of payment types remains within allowed limits.",
+                "Example 4: The user completes a reservation with one registered travel certificate and one prior-listed credit card. The combination meets the policy requirements by not exceeding the tool's constraints.",
+                "Example 5: A booking is processed using three pre-registered gift cards and a credited credit card, without any travel certificate. This follows the policy by not surpassing the stipulated payment methods.",
+                "Example 6: A user successfully books a flight using one travel certificate and one credit card, both of which are pre-registered in their profile. This complies with the policy as it uses the allowed types and numbers of payment methods.",
+                "Example 7: A reservation is completed using only two gift cards and no travel certificate or credit card. Both gift cards are pre-existing in the user's profile, ensuring adherence to the policy's guidelines.",
+                "Example 8: The booking transaction involves a credit card and up to three gift cards, with all selected payment methods pre-registered in the user's profile, staying compliant with the policy.",
+                "Example 9: The user books a reservation using one pre-registered travel certificate and one pre-registered gift card. This is compliant as it adheres to the allowed limit of each payment method type.",
+                "Example 10: A booking is successfully made using a single pre-registered credit card with no travel certificates, ensuring policy compliance by not exceeding the maximum number of credit cards.",
+                "Example 11: The reservation goes through with one pre-registered gift card and two additional pre-registered gift cards, staying within the policy limit of three gift cards maximum."
+            ]
+        },
+      {
+         "policy_name":"Only Add Checked Bags",
+         "description":"ToolX can update the baggage information of an existing reservation, allowing users to add additional checked bags. Removing checked bags from the reservation is not permitted. Ensure the payment method for any additional non-free baggage is provided at invocation.",
+         "references":[
+            "The user can add but not remove checked bags."
+         ],
+         "iteration_added":1,
+         "violating_examples":[
+            "An airline agent attempts to use UpdateReservationBaggages to reduce the total number of baggage items from 3 to 2 for reservation ID 'ZFA04Y'. This action violates the policy because it involves removing a checked bag, which is not allowed.",
+            "The agent calls UpdateReservationBaggages with 'total_baggages' set to 1, previously it was set to 2 for reservation ID '5RN9XZ', thereby reducing the baggage count. The policy clearly states that bags cannot be removed, hence this call is non-compliant.",
+            "Despite the user requesting to remove a checked bag, the agent submits a request using UpdateReservationBaggages to change 'total_baggages' from 4 to 3. Removing checked bags is against the stated policy, representing a breach.",
+            "During a system glitch, an attempt is made to process a baggage update that inadvertently decreases the 'nonfree_baggages' number without adjusting payment details. This violates the policy as it reduces the baggage count incorrectly and lacks an updated payment method for additional baggage.",
+            "An agent mistakenly uses UpdateReservationBaggages and tries to adjust the total baggage count from 2 to 0 for reservation ID 'XJ92KL', removing all checked bags. This action is against the policy as it involves removing bags, which is prohibited.",
+            "A request is initiated to decrement the nonfree_baggages from 2 to 1 for reservation ID 'BD56HT' without the correct payment method provided for any additional baggage. This breach occurs because the policy does not allow reduction in baggage.",
+            "During a system error, an attempt is made to decrease both total_baggages and nonfree_baggages simultaneously in the UpdateReservationBaggages call, which violates the policy by making unauthorized reductions.",
+            "The agent receives an instruction to reduce the total_baggages from 5 to 3 on reservation ID 'GH89UI' due to a user\u2019s decision to travel lighter. Executing this violates the policy's stipulation against removing checked bags.",
+            "An agent accidentally sets 'total_baggages' from 3 to 1 for reservation ID 'JK67HY', which reduces the checked bags. This action breaches the policy against removing bags.",
+            "The airline agent mistakenly processes UpdateReservationBaggages with a reduction in 'nonfree_baggages' from 2 to 1 for reservation 'TY84OP' and fails to provide an updated payment method, which is a direct violation of the policy.",
+            "During a training session, an agent inadvertently attempts to lower the 'nonfree_baggages' count using UpdateReservationBaggages for a live reservation, mistakenly believing it to be a simulation. This action violates the policy as no reductions are allowed."
+         ],
+         "compliance_examples":[
+            "A reservation for ID 'AX37VB' initially has 2 checked bags, and with user confirmation, the airline agent calls UpdateReservationBaggages to increase the total checked bags to 3 using 'credit_card_12345678' for payment. This complies with the policy since bags are being added.",
+            "Before modifying the reservation, the agent lists the action details and receives explicit user confirmation to increase the non-free baggage count, then executes UpdateReservationBaggages with 'total_baggages' 4 and 'nonfree_baggages' 2 using a stored 'gift_card_87654321'. Such use adheres to policy requirements as it properly adds additional bags and specifies payment.",
+            "The agent accurately records and requests confirmation to update the baggage from 0 to 1 non-free bag for reservation 'TH89JK', calling UpdateReservationBaggages thereafter with all parameters, including a valid 'payment_id', thus adhering to all policy requirements.",
+            "Upon request, the user wants to add another checked bag. The agent gathers all details, ensures an appropriate payment method is available in the user profile, and increments the 'total_baggages' to reflect the addition, using UpdateReservationBaggages without reducing any prior baggage count, remaining policy-compliant.",
+            "The agent is contacted by a user wishing to understand their current baggage status and decides to add an additional checked bag to their reservation with the ID 'LMN456'. The agent verifies the existing baggage and initiates UpdateReservationBaggages, increasing 'total_baggages' count to 4 without altering any previous entries. By specifying 'nonfree_baggages' as 2 and using a registered 'credit_card_23456789', the action respects the policy's addition-only requirement and payment validation.",
+            "A user with reservation ID 'RTP123' decides to fly with more belongings and requests the addition of two more checked bags. The agent methodically reviews the current reservation details and, after confirming bag options with the user, employs UpdateReservationBaggages to increase 'total_baggages' from 1 to 3, ensuring 'nonfree_baggages' now counts to 2. The agent accompanies this transaction with a stored 'certificate_34567890', thus fully adhering to the policy by adding non-free baggage above the previous total.",
+            "For reservation ID 'ZL58NM', the agent prepares to add one more checked bag, securing user confirmation and validating 'credit_card_56789012' as the payment method. UpdateReservationBaggages is then used to increase 'total_baggages' from 2 to 3, adhering to the policy guidelines.",
+            "An agent receives a request to add an additional non-free bag for reservation 'LK90PB'. Ensuring payment details (using 'gift_card_98765432') are verified, they execute UpdateReservationBaggages to increment 'total_baggages' from 1 to 2, ensuring compliance with the policy to only add checked bags and update payment.",
+            "When approached by a user with reservation ID 'QWE789' who requires additional baggage, the agent adds a non-free bag, confirming the increase to 'total_baggages' as 4, supported by 'payment_id' 'certificate_123897'. The process complies with policy by adding rather than removing baggage.",
+            "A user wishes to add two additional checked bags to their existing reservation, ID 'ABC123'. The agent reviews the reservation details, obtains user confirmation, and confirms that the payment method 'credit_card_98765432' is stored in the user profile. The agent executes UpdateReservationBaggages to increase 'total_baggages' from 3 to 5, with 'nonfree_baggages' increasing to 3. This adheres to the policy as it only adds checked bags and includes a valid payment method.",
+            "For reservation ID 'XYZ456', the agent verifies the current baggage status and adds another non-free checked bag upon user request. By specifying 'total_baggages' as 2 and 'nonfree_baggages' as 2, with 'payment_id' 'gift_card_654321', the agent completes the UpdateReservationBaggages call while adhering to the policy, as it involves adding baggage and confirming payment details."
+         ]
+      },
+      {
+         "policy_name":"Ensure Payment Methods Are Pre-Authorized",
+         "description":"Before invoking UpdateReservationBaggages, ensure all payment methods such as travel certificates, credit cards, and gift cards are pre-authorized and appear in the user's profile. Use a maximum of one travel certificate, one credit card, and up to three gift cards per reservation as per company policy.",
+         "references":[
+            "<p>Payment: each reservation can use at most one travel certificate, at most one credit card, and at most three gift cards. The remaining amount of a travel certificate is not refundable. All payment methods must already be in user profile for safety reasons.</p>"
+         ],
+         "iteration_added":1,
+         "violating_examples":[
+            "An agent attempts to call UpdateReservationBaggages with a payment ID for a credit card that has not been listed in the user's profile. This violates the policy because all payment methods must be pre-authorized and present in the user's profile.",
+            "The agent uses two credit cards in a single reservation to pay for additional baggage charges. This is a policy violation as it exceeds the maximum allowance of one credit card per reservation.",
+            "A request to UpdateReservationBaggages uses a gift card that was not verified or stored in the user's profile. This is against the policy, which requires all payment methods to be pre-authorized and part of the user's profile.",
+            "The agent tries to apply two separate travel certificates towards updating baggage fees for a single reservation. This breaches the policy, which permits only one travel certificate per reservation.",
+            "An agent submits an UpdateReservationBaggages request using four gift cards for payment. This violates the policy, as only up to three gift cards are allowed per reservation.",
+            "An agent attempts to call UpdateReservationBaggages without verifying whether the payment method IDs are present in the user's profile. This violates the policy since all payment methods must be pre-approved and in the user's profile prior to the action.",
+            "The agent submits an UpdateReservationBaggages request using a payment ID for a travel certificate and an unrelated payment method not listed in the user's profile, thereby breaching the policy's pre-authorization requirement.",
+            "In an attempt to update baggage details, an agent mistakenly uses a credit card and two travel certificates, which violate the policy restrictions of using only one credit card and one travel certificate in any reservation.",
+            "An agent processes an UpdateReservationBaggages transaction and mistakenly utilizes a credit card, a travel certificate, and four gift cards, exceeding the authorized payment method limits specified in the policy."
+         ],
+         "compliance_examples":[
+            "Before calling UpdateReservationBaggages, an agent confirms that the used credit card for payment is listed in the user's profile and is the only credit card being used for this transaction, adhering to the company policy.",
+            "The agent updates the baggage information using one pre-authorized travel certificate from the user's profile and an accompanying gift card, ensuring that both payment methods are within the allowable limits.",
+            "In a compliant scenario, the agent uses two gift cards to cover the baggage update charges, ensuring both cards are pre-authorized and listed in the user's profile, staying well within the permitted use of up to three gift cards.",
+            "The agent processes the UpdateReservationBaggages request by using a single gift card, which is pre-authorized and recorded in the user's profile, following the policy limits for authorized payment methods.",
+            "The reservation update is made with a payment method comprising of a pre-authorized travel certificate and a pre-authorized gift card, ensuring all methods are present in the user profile and respecting the single-certificate and three-gift-card limit.",
+            "The agent verifies beforehand that all payment methods involved in the UpdateReservationBaggages request, including the single credit card and two gift cards, are pre-authorized and present in the user's profile, thus adhering to the policy.",
+            "When an agent updates baggage information, they ensure to utilize only one credit card and one travel certificate, both pre-authorized and stored in the user's profile, thus not breaching the policy.",
+            "In a compliant transaction, the agent uses one credit card that is on the user's profile and a maximum of three gift cards to pay for additional baggage fees, ensuring that these payment methods are pre-authorized. This aligns perfectly with the policy.",
+            "An agent ensures that the payment method used includes just one credit card and one gift card from the user's profile before updating the baggage information, thereby complying with company policy.",
+            "The baggage information update is performed using one travel certificate and one credit card, both verified and listed in the user's profile, demonstrating adherence to policy restrictions.",
+            "Adhering to company policy, an agent uses two pre-authorized gift cards from the user's profile for a baggage update request, maintaining compliance with the restriction on gift cards.",
+            "An agent processes an UpdateReservationBaggages transaction using a single gift card and a travel certificate, both of which are pre-authorized within the user's profile, without breaching the policy limits.",
+            "Complying with policy, the agent successfully updates baggage details using one credit card and two gift cards from the user's profile, ensuring all methods are pre-authorized and within usage limits.",
+            "An agent verifies that the payment method utilized for UpdateReservationBaggages consists solely of one travel certificate and two gift cards, all pre-authorized and listed in the user's profile, ensuring complete compliance with the policy.",
+            "Before proceeding with UpdateReservationBaggages, the agent checks that the payment method involves only one gift card and one credit card, both of which are pre-approved and saved in the user's profile, aligning perfectly with policy requirements.",
+            "In a compliant request, the agent uses one travel certificate and one gift card, both verified and present in the user's profile, to update baggage information, maintaining adherence to the policy's stipulations for authorized payment methods.",
+            "The agent reviews the user's profile before calling UpdateReservationBaggages, confirming that the payment method consists of one pre-authorized travel certificate and one credit card, following the policy requirements.",
+            "Successfully applying the UpdateReservationBaggages procedure, the agent uses one travel certificate and two gift cards, ensuring all methods are pre-authorized and within the usage limits specified in the user's profile, complying with the policy.",
+            "An agent calls UpdateReservationBaggages with a payment method that includes solely a pre-authorized gift card listed in the user's profile. This action aligns perfectly with company policy.",
+            "Before invoking UpdateReservationBaggages, the agent ensures the payment method involves only one credit card and ties into the policy prerequisites by confirming pre-authorization and presence within the user's profile."
+         ]
+      },
+      {
+         "policy_name":"Charge for Extra Baggage Items",
+         "description":"To use the UpdateReservationBaggages tool effectively, verify the user's membership level (regular, silver, or gold) and cabin class (basic economy, economy, business). This will determine the number of free checked bags allowed. Charge $50 for each additional baggage item beyond the free allowance according to the user's membership and cabin class entitlements.",
+         "references":[
+            "Checked bag allowance: If the booking user is a regular member, 0 free checked bag for each basic economy passenger, 1 free checked bag for each economy passenger, and 2 free checked bags for each business passenger. If the booking user is a silver member, 1 free checked bag for each basic economy passenger, 2 free checked bag for each economy passenger, and 3 free checked bags for each business passenger. If the booking user is a gold member, 2 free checked bag for each basic economy passenger, 3 free checked bag for each economy passenger, and 3 free checked bags for each business passenger. Each extra baggage is 50 dollars."
+         ],
+         "iteration_added":1,
+         "violating_examples":[
+            "A user with a regular membership books a reservation in basic economy and requests to update the baggage to include one checked baggage item without paying any fees. Since a regular member has 0 free checked bags for basic economy, this action violates the policy as it requires charging $50 for the baggage.",
+            "The airline agent updates the baggage information for a silver member traveling in economy class to include two more baggage items than the free allowance, without using any payment method for the extra charges. This occurs as the policy requires each extra baggage item beyond the free allowance to be charged $50.",
+            "An agent attempts to update the baggage for a gold member flying business class to have five total baggage items but mistakenly charges only for one excess baggage, despite only three being free based on their membership and cabin class. This results in a violation as there are two nonfree baggages that should have been charged.",
+            "An agent updates baggage for a silver member flying in basic economy to include four total bags without charging for the extra two beyond the allowed one. This violates the policy because each extra baggage beyond the free ones should incur a $50 charge.",
+            "The agent attempts to update the baggage for a regular member flying business class to include three total bags but mistakenly charges only for one, despite only two being free. This results in a violation because one nonfree baggage should have been charged.",
+            "An airline agent updates the baggage for a regular member in economy class to include three total luggage items without charging for the third bag. Since the membership allows for one free bag in economy class, this violates the policy as two extra bags should be charged $50 each.",
+            "A request is processed for a basic economy passenger with silver membership to add five total checked bags, but an error results in charges for only two excess bags, while four should be charged as free allowance for this case is just one. This undercharges the user, resulting in a violation of the policy."
+         ],
+         "compliance_examples":[
+            "A regular member flying in economy class requests to add an additional baggage item to their reservation beyond the free allowance of one checked bag. The system charges $50 for this single extra baggage, complying with the policy requirements.",
+            "A silver member with a basic economy ticket asks to update their reservation to include three checked baggages. The first checked bag is free, and the agent correctly applies a $100 charge for the two extra nonfree baggages, thus adhering to the policy.",
+            "The agent updates the baggage information for a gold member flying business class by allowing the user to include four checked bags. The agent charges $50 for the extra baggage beyond the three free ones allowed by this membership and cabin class combination, thus following the policy correctly.",
+            "A regular member in basic economy requests to add one extra baggage to their reservation. The system correctly charges $50 for this nonfree baggage, adhering to the policy requirements.",
+            "The agent successfully updates the baggage for a gold member in economy class, allowing two extra bags above the free three, applying a $100 charge for these nonfree items, thereby complying with the policy.",
+            "An agent updates the baggage information for a silver member in economy class, who requests to add an extra two bags, making it four in total. The agent correctly charges $100 because two of the bags exceed the free allowance of two, thus following the policy requirements.",
+            "The agent processes a request from a gold member flying in basic economy to include five total bags. Since two bags are free, the agent charges $150 for the additional three nonfree bags, complying with the policy.",
+            "A regular member flying business class requests an update for a total of four bags. The first two bags are free, and the agent accurately charges $100 for the two nonfree bags, adhering to the policy.",
+            "The agent updates a reservation for a gold member in business class, allowing a total of six bags. With three free as per policy, the agent levies a $150 charge for the additional nonfree bags, ensuring compliance.",
+            "A silver member flying business class requests to add one extra bag to the free allowance of three. The agent imposes a $50 charge for the excess baggage, in accordance with the policy.",
+            "An update is made for a regular member flying basic economy to have two checked bags. The agent imposes a $100 charge correctly, following the policy's requirement for charging $50 per additional nonfree bag beyond the allowance of zero for their cabin class and membership.",
+            "The baggage information for a silver member with an economy booking is updated to include four total bags. The agent appropriately applies a $100 charge for the two nonfree bags beyond the two free ones, ensuring compliance with the policy.",
+            "The agent updates a baggage request for a silver member flying business class, allowing a total of four checked bags. The policy allows for three free bags in this situation, so the agent applies a $50 charge for the additional nonfree bag, thus adhering to the policy correctly.",
+            "A gold member flying in basic economy asks to update their reservation to include four checked baggages. Since two bags are free for this membership and cabin class, the agent correctly applies a $100 charge for the two extra nonfree baggages, complying with the policy requirements.",
+            "The agent successfully updates the reservation baggage details for a gold member in economy class, allowing a total of five bags, with two being charged for as nonfree since the first three are free as per policy, resulting in a $100 charge and compliance with the policy."
+         ]
+      }
+   ]
+}

@@ -1,0 +1,5 @@
+[
+    "before taking any actions that update the booking database (booking, modifying flights, editing baggage, upgrading cabin class, or updating passenger information), you must list the action details and obtain explicit user confirmation (yes) to proceed.",
+    "the agent needs to collect the first name, last name, and date of birth for each passenger. all passengers must fly the same flights in the same cabin.",
+    "change passengers: the user can modify passengers but cannot modify the number of passengers. this is something that even a human agent cannot assist with."
+]

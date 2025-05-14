@@ -1,0 +1,362 @@
+{
+    "policies": [
+        {
+            "policy_name": "User Confirmation Requirement Before Modifying Flights",
+            "description": "Before invoking the 'UpdateReservationFlights' tool to modify flights, you must provide the user with the action details such as flight numbers, dates, and any changes to cabin class or payment information, and obtain explicit user confirmation (yes) to proceed. This ensures updates to the booking database are confirmed by the user before execution.",
+            "references": [
+                "Before taking any actions that update the booking database (booking, modifying flights, editing baggage, upgrading cabin class, or updating passenger information), you must list the action details and obtain explicit user confirmation (yes) to proceed."
+            ],
+            "iteration_added": 1,
+            "violating_examples": [
+                "An airline agent decides to modify a user's reservation by changing the flight dates and cabin class without asking the user for confirmation first. This violates the policy because explicit user confirmation was not obtained before executing the UpdateReservationFlights action.",
+                "The agent updates the reservation to include a new flight segment but forgets to inform the user of these changes or gather confirmation. Despite having detailed actions ready, executing the UpdateReservationFlights tool without verifying user acceptance constitutes a breach of the policy.",
+                "In a rush to complete a task, an agent updates the cabin class from economy to business for a user\u2019s existing booking without presenting the change details or receiving a 'yes' from the user. This policy violation occurs as the agent fails to seek explicit confirmation as required.",
+                "Under time constraints, an agent makes modifications to a reservation\u2019s payment method, switching from a credit card to a travel certificate, and executes the UpdateReservationFlights tool without communicating these changes to the user for their approval. This action does not comply with the policy, which mandates user acknowledgment of such alterations.",
+                "An agent automatically processes flight updates for a user\u2019s booking based on previously gathered information but neglects to confirm the latest adjustments with the user. Executing the tool before securing an explicit 'yes' response conflicts with the policy guidelines.",
+                "An agent receives a request from a user to update their reservation due to a schedule conflict but immediately processes the change without clarifying the specific flight numbers and dates with the user. This action violates the policy as it lacks the necessary confirmation from the user.",
+                "While adjusting a reservation to include an additional flight segment, the airline agent fails to provide a comprehensive update of the changes and does not wait for a 'yes' response before executing UpdateReservationFlights. This breach shows non-compliance with user verification protocols.",
+                "The agent is informed about a user's change in trip plans and updates the flights, cabin class, and payment method, all in one go, without presenting these changes for user confirmation. Disregarding user consent violates the policy for usage of UpdateReservationFlights.",
+                "An agent modifies multiple flight segments within a reservation without explaining the reason to the user and continues with the UpdateReservationFlights call without asking for user confirmation. This breach arises from not obtaining the mandatory user acknowledgment as dictated by the policy.",
+                "The agent receives an updated itinerary for a user's trip and immediately executes the UpdateReservationFlights tool without providing a chance for the user to review and confirm the flight details. By skipping the step of gaining explicit consent, the agent violates the policy.",
+                "After updating flight numbers and dates based on a user's partial request, the agent proceeds to finalize changes through UpdateReservationFlights without seeking user approval for the complete modifications, thus failing to adhere to the policy's confirmation requirement.",
+                "During a busy shift, an agent updates a reservation's flight information, including cancellations and rebookings, but neglects to explain these to the user or get a clear 'yes' before finalizing the UpdateReservationFlights tool action, breaching policy compliance.",
+                "A user requests additional details on the flight changes before proceeding, but the agent proceeds with updating the reservation without providing these details or confirming user consent. This action breaches the policy as the user's explicit agreement was not obtained.",
+                "An agent modifies the passenger's flight itinerary and payment information while neglecting to disclose these actions to the user or confirm their acceptance. Executing the UpdateReservationFlights tool without this step violates the user confirmation requirement."
+            ],
+            "compliance_examples": [
+                "An airline agent presents the user with the planned modifications, including specific flight numbers and dates, notifying the user of a cabin upgrade opportunity. Upon receiving a 'yes' from the user, the agent proceeds with invoking the UpdateReservationFlights tool, thus fully complying with the required confirmation policy.",
+                "Before changing the payment method in a booking, the agent details the payment change from a credit card to a gift card and outlines the new flight itinerary. After obtaining explicit consent from the user, the UpdateReservationFlights call is executed, ensuring adherence to the policy.",
+                "The agent carefully reviews the updated reservation details with the user, which include changing two flight segments. Upon verifying that the user agrees, the agent then proceeds to use UpdateReservationFlights, upholding the policy\u2019s directive for user confirmation.",
+                "Before using the tool to alter a reservation's cabin from economy to business, the agent communicates the potential additional charges and new seating arrangements. Once the user responds affirmatively, the policy is followed, and the action is carried out correctly.",
+                "The agent explains the desired changes to a user\u2019s itinerary due to a schedule adjustment and ensures the user approves each detail, including flight numbers and dates, before proceeding with the UpdateReservationFlights tool call. This scenario exemplifies compliance with the need for explicit permission before making reservation changes.",
+                "An airline agent encounters a request to modify a user's itinerary due to new travel policies. The agent outlines these policies with the user, details the proposed changes, and secures a clear 'yes' from the user, thus complying with the mandatory user confirmation requirements before using the UpdateReservationFlights tool.",
+                "Upon receiving new flight preferences from a user, an agent meticulously shares the updated itinerary, including changes in cabin class and flight dates with the user. Once the user confirms these updates by saying 'yes,' the agent proceeds with the tool call in full compliance with the policy.",
+                "Before changing flights as per the user's request, the agent confirms each detail of the proposed itinerary adjustments, waits for the user to understand and actively agree, and only then performs the UpdateReservationFlights action, exemplifying strict adherence to the policy.",
+                "Before making adjustments to a user's flight schedule, the agent clearly explains all the changes, including new flight numbers and dates. After receiving an explicit 'yes' from the user, the agent proceeds with the UpdateReservationFlights tool, adhering to the policy.",
+                "While processing a change in cabin class, the agent thoroughly details the modifications to the user, including any additional charges, and obtains explicit confirmation before executing the UpdateReservationFlights action, thus following the policy guidelines.",
+                "An airline agent receives a request to modify a user's reservation details. The agent first lists all the specific changes, such as new flight numbers, dates, and payment updates, asks the user if they agree to these changes, and only after receiving a 'yes' confirmation, invokes the UpdateReservationFlights tool, thus following the policy's requirement.",
+                "The agent needs to update the flight segment details for a user due to an unexpected schedule change. Before proceeding, the agent informs the user of the new flight details and any associated changes, waits for the user's confirmation, and only then uses the UpdateReservationFlights tool to implement the changes, complying with the policy.",
+                "In a situation where a user's reservation requires modifications, the agent clearly outlines each change, including all affected flight numbers and cabin class updates, to the user. After getting explicit confirmation from the user with a 'yes', the agent uses the UpdateReservationFlights tool, ensuring policy compliance."
+            ]
+        },
+        {
+            "policy_name": "Flight Status Restrictions - Available",
+            "description": "Flights chosen for booking using ToolX must have the status 'available' to ensure that they have not taken off and have seats and prices listed for booking.",
+            "references": [
+                "If the status is \"available\", the flight has not taken off, available seats and prices are listed."
+            ],
+            "iteration_added": 2,
+            "violating_examples": [
+                "A user attempts to book a flight to New York on May 16th using the BookReservation tool. However, the flight status indicates 'delayed'. Despite this, the user proceeds with the booking request. This violates the policy as only flights with the status 'available' can be booked.",
+                "An agent tries to book a reservation for a user on flight HAT007 from ATL to MIA. The API checks reveal that the flight's status is currently 'flying', yet the agent still attempts to complete the booking process. This situation breaches the policy because the flight must be 'available' for booking.",
+                "A reservation request is made for a flight with the status 'on time'. Although the agent lists the flight details including the departure and arrival times, the flight cannot be booked because it doesn't have the status 'available', leading to a policy violation.",
+                "An agent attempts to book a round-trip from LAX to DFW for a user, but the departure flight's status is 'on time', which is not permissible as per the policy that only allows booking flights with 'available' status.",
+                "A user tries to book a flight from ORD to ATL using the BookReservation tool, overlooking the fact that the flight status is 'delayed'. Proceeding with this booking request violates the policy that mandates only 'available' flights can be booked.",
+                "A reservation is attempted for a flight where the status is 'cancelled'. Despite knowing that only flights with 'available' status can be booked, the agent proceeds, resulting in a policy breach."
+            ],
+            "compliance_examples": [
+                "A user requests to book a flight from SFO to LAX on June 20th. The agent checks the flight information and confirms that the flight status is 'available' before proceeding with the booking using the BookReservation tool. This adheres to the policy requirements.",
+                "An agent successfully books a flight from DFW to BOS for a user. Before booking, they verify that the flight HAT123 is listed with the status 'available'. This is a clear example of compliance with the policy.",
+                "When prompted to reserve a seat for a round-trip journey, the agent double-checks that all flights included in the itinerary have the status 'available'. Each flight is confirmed before proceeding, demonstrating proper adherence to the policy.",
+                "While booking a flight from DEN to ORD on July 15th, the agent verifies that the selected flight, HAT234, has the status 'available' before initiating the booking. Ensuring compliance with the policy by confirming the flight's availability before proceeding.",
+                "An agent processes a reservation request for a flight from JFK to MCO. The tool confirms that the flight status is 'available', fulfilling the policy requirements, resulting in a successful booking process.",
+                "A user wants to reserve a flight from SEA to LAX. The agent uses the BookReservation tool and checks that the flight status is 'available' before completing the booking, ensuring compliance with the booking policy."
+            ]
+        },
+        {
+            "policy_name": "Flight Status Restrictions - Not Bookable",
+            "description": "Flights with status 'delayed', 'on time', or 'flying' cannot be booked.",
+            "references": [
+                "If the status is \"delayed\" or \"on time\", the flight has not taken off, cannot be booked.",
+                "If the status is \"flying\", the flight has taken off but not landed, cannot be booked."
+            ],
+            "iteration_added": 2,
+            "violating_examples": [
+                "An agent attempts to book a reservation for a flight with the status 'delayed'. Despite the policy clearly stating that 'delayed' flights cannot be booked, the agent initiates the booking process, which directly violates this restriction.",
+                "While updating a booking for a user, an agent includes a flight with the status 'on time' in the reservation. This violates the flight status restriction policy as 'on time' flights are not allowed to be booked.",
+                "A user requests booking for a flight that is currently 'flying'. The agent proceeds with the booking tool without checking the flight status, thereby breaching the policy that explicitly prohibits booking flights with the 'flying' status."
+            ],
+            "compliance_examples": [
+                "An agent checks the flight status before attempting to book and discovers that the desired flight is 'delayed'. Acknowledging the policy, the agent informs the user about the restriction and does not proceed with the booking.",
+                "Before finalizing a reservation, the agent ensures that all selected flights have the status 'available'. By confirming this status, the agent adheres to the policy, as only 'available' flights are eligible for booking.",
+                "A user requests a booking for a specific flight, and upon checking, the agent notices the flight is 'on time'. In compliance with the policy, the agent informs the user about the restriction and suggests considering alternative flights that are bookable.",
+                "Before booking a round-trip flight, the agent verifies all flights\u2019 statuses. Upon finding an 'on time' status for one leg, they immediately inform the user and suggest considering bookable alternatives, ensuring compliance with the policy.",
+                "An agent proactively checks the status of every flight segment requested by the user. When one segment shows a 'flying' status, they refrain from booking it and instead offer flights with an 'available' status, strictly adhering to the policy requirements.",
+                "During a booking request, the agent finds that one desired flight is marked 'flying'. The agent immediately flags this status, advises the user that it cannot be booked, and looks for alternative flights with an 'available' status, thus maintaining compliance with the policy.",
+                "While using the BookReservation tool, the agent preemptively checks a flight's status and identifies it as 'delayed'. Acknowledging the policy restriction, the agent does not input this flight and instead seeks an alternative, fully compliant with the policy.",
+                "A user asks to book a round-trip, and upon verifying the status of both legs, the agent observes one leg is 'delayed'. The agent informs the user about the status restriction and suggests rescheduling, ensuring policy adherence.",
+                "In a situation where a flight status is reported as 'on time', the agent utilizes the BookReservation tool with diligence, notifying the user of the policy restrictions against such bookings and recommending other flights that are 'available'."
+            ]
+        },
+        {
+            "policy_name": "Obtain Payment Method for Flight Changes",
+            "description": "When updating a flight reservation using the UpdateReservationFlights tool, the agent must ensure that a valid payment method, either a gift card or a credit card stored in the user's profile, is provided for any additional costs or refunds associated with the change.",
+            "references": [
+                "Payment: If the flights are changed, the user needs to provide one gift card or credit card for payment or refund method. The agent should ask for the payment or refund method instead."
+            ],
+            "iteration_added": 1,
+            "violating_examples": [
+                "An agent updates a reservation using UpdateReservationFlights without confirming that the payment method is stored in the user's profile. The request proceeds even though the selected gift card was manually entered and not retrieved from the profile, violating the policy requirement.",
+                "The agent attempts to modify the whole reservation with new flights using the UpdateReservationFlights tool, but neglects to provide any payment ID for potential additional costs, failing to adhere to the policy which mandates a valid payment method for changes.",
+                "In a scenario where flight segments are updated, the agent picks an outdated payment method that the user had removed from their profile, and calls UpdateReservationFlights. As the payment isn't verified against the current profile, it breaches the policy.",
+                "An agent proceeds to update a flight reservation using the UpdateReservationFlights tool without verifying that the entered credit card is stored in the user\u2019s profile. This oversight violates the policy as non-stored payment methods should not be used.",
+                "During a reservation modification, the agent directly inputs a new payment method manually, bypassing the required step of selecting from existing payments in the user's profile. This action breaches the policy as it mandates using only stored payment methods for any payment or refund.",
+                "In updating a reservation, the agent accidentally uses a generic payment ID not tied to any specific or stored user profile payment method, thus violating the policy requiring confirmation of valid, profile-stored payment methods.",
+                "An agent updates a reservation using UpdateReservationFlights without first verifying the availability of a valid payment method in the user's profile. They proceed with the transaction using a manually entered credit card number, which breaches the policy requirement for using profile-stored payment methods.",
+                "The agent modifies the flight segments using UpdateReservationFlights but selects a payment method that has already expired in the user's profile. By failing to ensure the method's validity, this action violates the policy related to valid profile-stored payment methods.",
+                "During an update using UpdateReservationFlights, the agent uses a payment ID from a previous reservation that was not confirmed to be currently active in the user's profile. This oversight violates the critical policy of verifying the current status and validity of payment methods from the profile.",
+                "An agent calls UpdateReservationFlights but does not provide any payment method ID, assuming an existing balance will cover potential changes. This directly contravenes the policy stipulating that a stored payment method must be specified for any flight modifications.",
+                "After confirming flight changes, the agent proceeds with UpdateReservationFlights by choosing an outdated gift card not marked as valid in the user\u2019s profile. This decision breaches the policy requirement to use only confirmed and active payment methods for transactions."
+            ],
+            "compliance_examples": [
+                "The agent updates the reservation details by calling UpdateReservationFlights, ensuring they have checked the user's profile for an active and valid credit card marked as 'credit_card_4421486', which is then used for any additional transaction fees, complying with the policy.",
+                "Before using UpdateReservationFlights to modify a reservation, the agent prompts the user to confirm their default payment option. After validating that the gift card is active in the user's profile, they proceed with the update in compliance with policy standards.",
+                "To change the cabin class of a reservation using UpdateReservationFlights, the agent inputs a valid payment ID from the user's profile, such as 'certificate_7815826', ensuring that all new costs will be accounted for using an authorized method as per the policy.",
+                "When initiating the UpdateReservationFlights tool, the agent promptly retrieves the payment details from the user\u2019s profile, confirming the presence of a valid 'gift_card_2434578', before proceeding with the reservation update, thereby adhering to policy requirements.",
+                "After confirming flight changes, the agent checks the user\u2019s profile and selects 'credit_card_6741893' as the payment method for the update process, ensuring the selection complies with the policy by using a stored method.",
+                "To proceed with a flight reservation update, the agent verifies the user's profile for the registered payment methods, subsequently using 'gift_card_7815826' for cost processing, thereby demonstrating full compliance with the policy.",
+                "As part of updating a reservation using the UpdateReservationFlights tool, an agent confirms with the user about utilizing 'credit_card_1234567', which is present and active in the user's profile, for handling any potential charges related to the updates, exemplifying adherence to policy guidelines.",
+                "Before executing the UpdateReservationFlights command, the agent verifies the availability of 'gift_card_7854421' in the user's profile, ensuring it is prepared for any additional charges, thus complying with the policy requirement for pre-verified payment methods.",
+                "An agent reviews the user profile and selects 'certificate_9988776', ensuring it remains valid and active, before proceeding with the UpdateReservationFlights tool to manage flight changes, demonstrating compliance with the policy to use only stored payment methods.",
+                "In preparation for initiating the UpdateReservationFlights tool, the agent confirms that the payment method labeled 'gift_card_1122334' exists in the user's profile and is valid for transaction handling, ensuring adherence to the policy's mandate on payment validation.",
+                "An agent updates a reservation using the UpdateReservationFlights tool. Before proceeding with the update, they make sure to verify and select a valid payment method stored in the user's profile, 'credit_card_9876543'. This confirms that any additional costs are covered under the user's existing payment options, ensuring adherence to policy requirements.",
+                "The agent proceeds to modify a flight reservation utilizing the UpdateReservationFlights tool, while ensuring the payment method, 'gift_card_5647382', is active in the user's profile. By following this verification step, the agent complies with the policy mandate of using stored payment methods for transaction security."
+            ]
+        },
+        {
+            "policy_name": "Non-Modifiable Basic Economy Flights",
+            "description": "Basic economy flights cannot be modified.",
+            "references": [
+                "<p>Change flights: Basic economy flights cannot be modified. Other reservations can be modified without changing the origin, destination, and trip type. Some flight segments can be kept, but their prices will not be updated based on the current price. The API does not check these for the agent, so the agent must make sure the rules apply before calling the API!</p>"
+            ],
+            "iteration_added": 1,
+            "violating_examples": [
+                "An airline agent tries to call UpdateReservationFlights on a reservation with the cabin class set to 'basic_economy'. Despite knowing the policy, the agent mistakenly attempts to modify the flights within this reservation, violating the policy that basic economy flights cannot be modified.",
+                "The agent selects a basic economy reservation and attempts to change the flight details by using UpdateReservationFlights and modifies the flight segment dates. This action breaches the policy, as it involves altering a basic economy reservation, which is not permitted.",
+                "A user requests to update one of the flight segments for their basic economy reservation. The agent proceeds to use UpdateReservationFlights to make the change, which clearly violates the policy that prohibits modifying basic economy flights.",
+                "An agent attempts to use UpdateReservationFlights on a reservation marked as 'basic_economy', mistakenly believing they can update the flight details without breaching the policy. This violates the policy since no modifications are allowed for basic economy flights.",
+                "During a busy workday, an agent accidentally processes a basic economy reservation for a flight change using UpdateReservationFlights, ignoring the policy that strictly prohibits such modifications.",
+                "A customer insists on updating their basic economy flight reservation, and the agent proceeds with the request via UpdateReservationFlights, which violates the policy of non-modifiable basic economy flights."
+            ],
+            "compliance_examples": [
+                "An agent receives a request to change flights for a reservation. Upon checking, the agent finds that the reservation class is 'economy' and proceeds to call UpdateReservationFlights, adhering to the policy since basic economy was not involved.",
+                "A customer asks to modify the flight details in their reservation. The agent first verifies the cabin class and finds it to be 'business'. Reassured that basic economy is not in play, the agent correctly uses UpdateReservationFlights.",
+                "An agent gets a request to update a flight segment. After confirming the reservation cabin class is not 'basic_economy', they proceed with the modification via UpdateReservationFlights, ensuring compliance with the policy.",
+                "A passenger contacts an agent requesting a modification to their flight reservation. The agent carefully verifies the cabin class of the reservation and sees that it is 'premium_economy'. As basic economy is not the cabin class, the agent goes ahead and successfully calls UpdateReservationFlights, thus complying with the policy.",
+                "During a routine reservation update request, the agent checks the cabin class and confirms it is 'first_class'. Satisfied that they are not dealing with a basic economy reservation, the agent safely uses UpdateReservationFlights, maintaining adherence to the policy.",
+                "A user contacts the agent to update their reservation. After verifying that the reservation class is 'first_class', the agent confidently proceeds to call UpdateReservationFlights, as the policy only restricts modifications to 'basic_economy' reservations.",
+                "An agent is requested to update a flight for a frequent flyer. Upon validation, the reservation is determined to be under 'premium_economy'. The agent uses UpdateReservationFlights without issue, following the policy which applies restrictions only to 'basic_economy' reservations.",
+                "While dealing with a request to change a reservation, the agent checks and finds the reservation class marked as 'business_plus'. Without any conflicts with the policy restricting 'basic_economy' modifications, the agent properly uses the UpdateReservationFlights tool.",
+                "A customer needs an urgent update to their flight reservation. The agent quickly confirms the class as 'luxury_economy' and proceeds to make the necessary changes using UpdateReservationFlights, aligning with the policy that only limits basic economy changes.",
+                "Faced with a change request, the agent identifies the cabin class of a reservation as 'elite_first'. Confident that the policy does not restrict elite classes, the agent correctly updates the reservation with UpdateReservationFlights.",
+                "An agent is approached with a request to change flights for a reservation initially marked as 'standard_economy'. After confirming the cabin type, they appropriately use UpdateReservationFlights, conforming to the policy as it does not affect basic economy.",
+                "Upon receiving a request for flight modifications, the agent checks and verifies that the reservation is classified under 'executive'. Satisfied with the classification, the agent proceeds to utilize UpdateReservationFlights, ensuring compliance with the policy regarding basic economy.",
+                "An agent reviews a change request and establishes that the flight reservation is categorized as 'international_business'. Understanding that the policy restricts only basic economy reservations, the agent confidently updates the reservation using UpdateReservationFlights.",
+                "While processing flight changes, an agent verifies the class of reservation as 'silver_economy'. Recognizing no basic economy involvement, they proceed with the UpdateReservationFlights tool, maintaining compliance.",
+                "A client requests alterations in their booking details, with the reservation verified as 'platinum_business'. Knowing the reservation is not basic economy, the agent successfully updates it using UpdateReservationFlights, consistent with the policy."
+            ]
+        },
+        {
+            "policy_name": "Adherence to API Rules by Agents",
+            "description": "Agents using the 'UpdateReservationFlights' tool must verify the following before invocation: (1) Basic economy flights cannot be modified. (2) For other reservations, changes can be made without altering the origin, destination, or trip type. (3) Flight segments retained in a reservation do not have updated prices; ensure these conditions are met manually as they are not enforced by the API.",
+            "references": [
+                "Change flights: Basic economy flights cannot be modified. Other reservations can be modified without changing the origin, destination, and trip type. Some flight segments can be kept, but their prices will not be updated based on the current price. The API does not check these for the agent, so the agent must make sure the rules apply before calling the API!",
+                "The agent must first obtain the user id and the reservation id."
+            ],
+            "iteration_added": 1,
+            "violating_examples": [
+                "An agent calls UpdateReservationFlights to change a basic economy flight reservation. The policy explicitly states that basic economy flights cannot be modified, thus this action violates the policy.",
+                "The agent attempts to use UpdateReservationFlights to change the origin of a reservation from 'JFK' to 'LAX'. The policy requires that modifications should not alter the origin, destination, or trip type, which makes this a violation.",
+                "A reservation initially had one-stop flights, and the agent uses UpdateReservationFlights to update segments but introduces changes in the trip type from one-way to round-trip. This violates the policy requiring no change in the trip type.",
+                "The agent modifies a reservation by keeping the existing flight segment, yet mistakenly assumes the price will update to reflect current values and does not check it manually. The lack of price verification contravenes the policy, as the API does not facilitate automatic updates.",
+                "The agent attempts to modify a user\u2019s reservation without first confirming the user id and reservation id, thereby violating the policy which mandates these confirmations prior to using the API.",
+                "An agent mistakenly uses UpdateReservationFlights to modify a flight from a basic economy reservation. According to the policy, basic economy flights cannot be altered, hence, this action violates the policy.",
+                "An agent attempts to update the reservation details using UpdateReservationFlights without verifying the user id and reservation id beforehand. This is a breach of the policy, which requires user and reservation ids to be confirmed prior to any modification.",
+                "The agent uses UpdateReservationFlights to modify a reservation but changes the destination from 'LGA' to 'ORD'. This violates the policy since the origin, destination, and trip type should not be changed during modifications.",
+                "The agent modifies a reservation, retaining an old flight segment, but assumes the pricing has automatically updated, failing to manually verify which is against the policy as prices for retained segments must be manually checked.",
+                "An agent tries to alter a reservation with UpdateReservationFlights, introducing new travel dates without confirmation of the maintained original pricing for retained segments, thus violating the policy directive for price assurance.",
+                "An agent attempts to use UpdateReservationFlights to modify a basic economy reservation, despite knowing that such changes are not permitted by the policy. This violation occurs because the policy explicitly prohibits modifications to basic economy flights.",
+                "A user requests changes to their flight segments, and the agent uses UpdateReservationFlights without confirming the user id and reservation id first. This violates the policy that mandates verification of these details prior to any modification.",
+                "The agent uses UpdateReservationFlights and modifies a reservation by changing the trip type from 'round_trip' to 'one_way', overlooking the policy condition that forbids any change in trip type during modifications.",
+                "An agent incorrectly updates flight segments in a reservation while assuming the APIs will automatically adjust the pricing for retained segments, without manual verification. This breaches the policy requirement for price assurance for unchanged segments."
+            ],
+            "compliance_examples": [
+                "An agent successfully updates a reservation's flight segments for a business class flight without altering the origin, destination, or trip type. The agent ensures that any retained flight segments do not have their prices updated, and manually verifies this before calling the API, thus adhering to the policy.",
+                "The agent confirms the user id and the reservation id before using UpdateReservationFlights to modify the reservation, ensuring compliance with the policy requirements.",
+                "An agent uses UpdateReservationFlights to change flights in an economy reservation by maintaining the origin, destination, and trip type. The agent verifies that segments retained from the original reservation uphold the same pricing terms and does not rely on the API for price checking, thus following policy directives strictly.",
+                "The agent refrains from attempting to modify the flight details of a basic economy reservation, opting instead to inform the user of the policy limitations, demonstrating adherence to the policy prohibiting changes to basic economy flights.",
+                "Before invoking UpdateReservationFlights, the agent checks that none of the flight segments being updated exceed the allowable changes in terms of destination, origin, or trip type, and verifies that the payment method aligns with user profile data.",
+                "An agent uses UpdateReservationFlights to modify a passenger's flight without altering the origin, destination, or trip type, ensuring all retained segments do not have updated pricing. The agent verifies the user's identity and reservation ID before proceeding.",
+                "An agent updates an economy class reservation without changing the origin or destination. The agent checks that all flight segments maintained from the original reservation retain their original pricing through manual verification and proper adherence to the policy.",
+                "An agent verifies both the user id and reservation id before invoking UpdateReservationFlights to change the flight details, aligning with the policy stipulations.",
+                "Before using UpdateReservationFlights, the agent confirms that no changes to the origin, destination, or trip type are made, and validates that all retained flight segments maintain their original price as per the policy.",
+                "The agent refrains from altering a basic economy reservation using UpdateReservationFlights and informs the user about policy restrictions, demonstrating adherence to policy directives.",
+                "An agent decides not to alter any part of the basic economy flight using UpdateReservationFlights and opts to communicate the policy restrictions to the user instead, showing compliance with the set regulations.",
+                "The agent updates a business class reservation using UpdateReservationFlights without altering the original trip details or relying on automatic price updates, which is fully compliant with the given policy.",
+                "When using UpdateReservationFlights, the agent adheres to the policy by first verifying the user id and reservation id, ensuring that no alterations are made to the origin or destination, and manually verifying that the pricing of any retained segments remains correct.",
+                "The agent confirms the user id and the reservation id before initiating changes to a business class reservation using UpdateReservationFlights, ensuring not to alter the origin, destination, or trip type, and verifying prices of retained flight segments without relying on API enforcement.",
+                "An agent successfully utilizes UpdateReservationFlights by maintaing all conditions set forth by the policy: verifying user id, reservation id, ensuring no change to trip details, and manually checking the prices of retained flight segments remain unmodified."
+            ]
+        },
+        {
+            "policy_name": "Cabin Class Consistency",
+            "description": "When updating a flight reservation using the UpdateReservationFlights tool, ensure that the cabin class remains the same for all flight segments within the reservation. It is not permissible to change the cabin class for individual flight segments within the same reservation.",
+            "references": [
+                "Change cabin: all reservations, including basic economy, can change cabin without changing the flights. Cabin changes require the user to pay for the difference between their current cabin and the new cabin class. Cabin class must be the same across all the flights in the same reservation; changing cabin for just one flight segment is not possible."
+            ],
+            "iteration_added": 0,
+            "violating_examples": [
+                "A user tries to update a flight reservation with two segments, where the first segment is changed to 'business' class and the second remains 'economy'. This violates the 'Cabin Class Consistency' policy because the cabin class is not consistent across all segments.",
+                "The agent updates a reservation's flights and modifies the first segment to 'economy' while leaving the rest of the segments as 'basic_economy'. Despite receiving confirmation from the user, this action breaches the policy since it results in mixed cabin classes across segments.",
+                "In an update request, the agent changes three flight segments to 'business' class, but inadvertently leaves one segment as 'economy'. This results in non-compliance with the policy, which mandates uniformity in cabin class throughout all segments within the reservation.",
+                "The agent updates a flight reservation with inconsistent cabin classes across segments due to a mistake in the input data. For example, the first segment remains 'basic_economy' while the second is mistakenly updated to 'business'. This is a violation of the 'Cabin Class Consistency' policy.",
+                "The agent receives input to update a reservation but inadvertently sets different cabin classes for overlapping flights in a multi-city itinerary, leaving one segment in 'economy' while another is updated to 'business'. This action breaches the required uniformity in cabin class across all segments."
+            ],
+            "compliance_examples": [
+                "A user requests to update all flight segments in their reservation to 'business' class. The agent confirms and proceeds to update all segments uniformly, adhering to the 'Cabin Class Consistency' policy.",
+                "During a reservation update, the agent changes all three flight segments from 'economy' to 'basic_economy'. Since the cabin class change is applied consistently across all segments, this complies with the policy.",
+                "An update is performed on a reservation and all segments are simultaneously upgraded to 'economy' class. As the cabin class remains the same for every segment, the action is compliant with the policy requirements.",
+                "A user provides a request to upgrade their entire multi-segment reservation to 'economy'. The agent processes the request ensuring that every flight segment in the entire reservation is updated to 'economy', following the 'Cabin Class Consistency' policy perfectly.",
+                "While updating a reservation, the user desires to switch from 'basic_economy' to 'business' for all flight segments. The agent successfully updates each flight segment to 'business', thus upholding the policy as the cabin class is kept uniform across the reservation.",
+                "The agent receives a reservation update request, and switches all four flight segments from 'business' to 'economy' class as per the user's instructions. This uniform change across all segments demonstrates compliance with the 'Cabin Class Consistency' policy.",
+                "An agent processes a user's request to change all flight segments in their multi-leg journey to 'business' class, ensuring each segment within the reservation reflects the updated cabin class and adheres to the policy.",
+                "While updating a flight reservation, the agent verifies the cabin class change request to ensure uniformity, then applies the switch from 'economy' to 'business' consistently across all five segments in the user's itinerary, thus maintaining compliance with the policy."
+            ]
+        },
+        {
+            "policy_name": "Modifiable Non-Basic Economy Reservations",
+            "description": "To modify a reservation using UpdateReservationFlights, ensure the reservation is not basic economy, and validate that the origin, destination, and trip type remain intact. These verifications should be performed before using the tool.",
+            "references": [
+                "Change flights: Basic economy flights cannot be modified. Other reservations can be modified without changing the origin, destination, and trip type. Some flight segments can be kept, but their prices will not be updated based on the current price. The API does not check these for the agent, so the agent must make sure the rules apply before calling the API!"
+            ],
+            "iteration_added": 1,
+            "violating_examples": [
+                "An agent attempts to use UpdateReservationFlights to modify a reservation with a cabin class of 'basic_economy' without checking if it is modifiable. Since basic economy flights cannot be modified, this is a clear violation of the policy.",
+                "The agent tries to change a 'round_trip' reservation to a 'one_way' while invoking UpdateReservationFlights. This violates the policy as it requires the trip type to remain unchanged.",
+                "An update to a reservation is initiated via UpdateReservationFlights, where the origin is altered from 'JFK' to 'LAX'. This violates the policy since the origin should not change when modifying a reservation.",
+                "When calling UpdateReservationFlights, the agent fails to verify the reservation type, and proceeds with a modification on a 'basic_economy' reservation regardless. This oversight directly breaches the policy.",
+                "An attempt is made to modify a reservation using UpdateReservationFlights, where the destination is changed from 'SFO' to 'SEA'. This violates the requirement that the destination must remain unchanged during modification.",
+                "An agent uses UpdateReservationFlights to change a reservation's cabin class while thinking that the API will handle checking if the change is possible. However, the API doesn't check this, leading to a violation as the reservation was in 'basic_economy', and changing cabin class is not allowed.",
+                "During an UpdateReservationFlights call, an agent attempts to modify a reservation identified as 'basic_economy', thinking it was 'economy', leading to a violation since basic economy reservations cannot be altered. This results from not verifying the reservation type beforehand.",
+                "An agent decides to modify a booking using UpdateReservationFlights without ensuring that the cabin class is not 'basic_economy'. The agent proceeds with the modification regardless, violating the policy that prohibits changes to basic economy reservations.",
+                "The agent uses UpdateReservationFlights to modify a reservation and inadvertently excludes some flight segments from the modification call. This omission breaches the policy, which requires all segments to be included in the array even if unchanged.",
+                "During an UpdateReservationFlights operation, an agent mistakenly attempts to update flights for a reservation with a different user ID than the original booking. This violates the policy as it fails to ensure compatibility with the user's reservation details.",
+                "An agent tries to update a reservation's flight details using UpdateReservationFlights without checking if the payment method exists in the user's profile. This violates the policy because the payment info must be verified beforehand.",
+                "An agent uses UpdateReservationFlights to change a reservation where the destination city changes from one airport to another within the same city (e.g., LHD to LHJ in Los Angeles). This violates the policy as the destination should remain unchanged.",
+                "A user requests to update their reservation flights without checking the cabin class, which inadvertently attempts to modify it from 'business' to 'economy'. This breaches the policy since the cabin class must not be altered.",
+                "During a flight update, the agent inadvertently mixes two reservations' flight numbers, leading to a change where some flights were not originally part of the reservation. This error violates the policy, as all flights included must pertain to the original reservation.",
+                "UpdateReservationFlights is called with incorrect or incomplete flight segment data, missing flight numbers for some segments of the reservation but proceeding with the API call. This constitutes a breach of the rule requiring inclusion of all segments.",
+                "An agent tries to modify a reservation using UpdateReservationFlights and neglects to include all original flight segments in the request. This violates the policy requirement that the entire itinerary must be considered, even if no changes are made to certain segments.",
+                "During a flight modification request, the agent includes a payment method that is not present in the user\u2019s profile, contravening the policy that mandates such verification beforehand.",
+                "UpdateReservationFlights is used where the agent alters flight segments from the original reservation without checking the user's verification, breaching the policy's provisions on unchanged flight segments."
+            ],
+            "compliance_examples": [
+                "The agent ensures the reservation is not a 'basic_economy' type before using UpdateReservationFlights to attempt any modifications, adhering strictly to the policy.",
+                "Before calling UpdateReservationFlights, the agent verifies that the origin and destination match the original booking (E.g., 'LAX' to 'JFK') in a reservation to maintain policy compliance.",
+                "An agent successfully modifies a reservation using UpdateReservationFlights, ensuring that the reservation maintains its current trip type of 'one_way' and does not attempt to change it.",
+                "Before making any changes, the agent confirms the reservation\u2019s cabin class is 'economy', not 'basic_economy', aligning with policy requirements for modification.",
+                "A compliant use of UpdateReservationFlights is exemplified by an agent confirming that both origin ('BOS') and destination ('MIA') remain fixed as per the original booking when processing a reservation modification.",
+                "The agent checks and confirms that all flight segments are included in the UpdateReservationFlights API call for modification while ensuring no segment prices are altered as per policy, illustrating compliant usage.",
+                "A reservation originally created with a 'round_trip' trip type is correctly modified without altering the trip type during UpdateReservationFlights execution, demonstrating adherence to the policy requirements.",
+                "The agent reviews the user profile to confirm the reservation is 'economy' class before proceeding with changes via UpdateReservationFlights, showing adherence to modification policies.",
+                "An agent checks that the trip type of the reservation remains 'round_trip' before executing an update with UpdateReservationFlights, ensuring compliance with the policy's stipulations.",
+                "Before calling UpdateReservationFlights, the agent ensures all original flight segments are included in the API call and all conditions of origin, destination, and unchanged segment prices are met.",
+                "An agent ensures the reservation's payment method is accurately linked to a verified user profile entry before proceeding with UpdateReservationFlights, adhering to safety protocols and policy compliance.",
+                "The agent methodically checks that the reservation's trip type remains 'round_trip' and confirms the flight numbers correspond to the intended reservation before updating using UpdateReservationFlights.",
+                "Before executing an UpdateReservationFlights call, the agent verifies all segments including flight number and date, ensuring they match the existing flight details without any changes in origin or destination.",
+                "An agent properly uses UpdateReservationFlights by confirming the reservation's cabin class remains 'economy', and ensures that only allowed changes are made, in conformity with policy guidelines.",
+                "Before proceeding with flight modifications, the agent verifies the flights' origin and destination align with those detailed in the original reservation. The agent uses UpdateReservationFlights successfully without attempting to adjust these parameters.",
+                "The agent carefully reviews and confirms that all original flight details, including origin, destination, and trip type, remain consistent before making modifications using UpdateReservationFlights.",
+                "An agent properly uses UpdateReservationFlights to update a reservation by ensuring the linked payment method is verified in the user's profile, demonstrating adherence to the policy protocols.",
+                "Before calling UpdateReservationFlights, the agent checks that the cabin class is set to 'economy' and not 'basic_economy', confirming compliance with the policy requirements for modifying reservations."
+            ]
+        },
+        {
+            "policy_name": "Policy Adherence Required",
+            "description": "When using 'UpdateReservationFlights', ensure all actions strictly adhere to airline policies. Reject any requests violating policy restrictions, such as those pertaining to modifying basic economy flights, maintaining consistent cabin class across all flight segments, or using correct payment methods for upgrades. Prior to invoking the tool, confirm that all parameters, such as reservation ID, cabin class, flight details, and payment ID, comply with policy requirements, including ensuring no modification of the flight status that is not allowed (e.g., 'on time', 'delayed', 'flying').",
+            "references": [
+                "The agent must first obtain the user id and the reservation id.",
+                "Change flights: Basic economy flights cannot be modified. Other reservations can be modified without changing the origin, destination, and trip type. Some flight segments can be kept, but their prices will not be updated based on the current price. The API does not check these for the agent, so the agent must make sure the rules apply before calling the API!",
+                "Change cabin: all reservations, including basic economy, can change cabin without changing the flights. Cabin changes require the user to pay for the difference between their current cabin and the new cabin class. Cabin class must be the same across all the flights in the same reservation; changing cabin for just one flight segment is not possible.",
+                "Payment: If the flights are changed, the user needs to provide one gift card or credit card for payment or refund method. The agent should ask for the payment or refund method instead."
+            ],
+            "iteration_added": 0,
+            "violating_examples": [
+                "An agent attempts to use UpdateReservationFlights for a basic economy reservation, trying to change the flight from 'HAT100' to 'HAT101'. This violates the policy because basic economy flights cannot be modified.",
+                "An agent initiates the UpdateReservationFlights call to change the flights of a reservation but uses different cabin classes for different flight segments. This breaches the policy, as all flight segments must have the same cabin class.",
+                "The agent calls UpdateReservationFlights using a payment ID not listed in the user's profile for the cabin upgrade. This policy violation arises because the payment method must be from the user's existing profile.",
+                "An agent proceeds to use UpdateReservationFlights for a reservation where the flight status is 'delayed', attempting to alter it nonetheless. This action disregards the policy which prohibits changing flights that are on time, delayed, or flying.",
+                "The agent attempts to modify the flight's origin and destination via UpdateReservationFlights while keeping the cabin class the same. This is a policy violation as the modification is not permitted to change the origin or destination.",
+                "The agent uses UpdateReservationFlights to change a flight to 'HAT202' while the reservation is for a flight with the status 'on time'. This violates the policy that modifications are not allowed for on-time flights.",
+                "An attempt is made to call UpdateReservationFlights without verifying if the payment method is stored in the user profile, resulting in a breach of policy by using an unvalidated payment method.",
+                "The agent tries to modify only one flight segment to change its cabin class via UpdateReservationFlights, but this violates the rule that requires a consistent cabin class across all segments.",
+                "An agent uses UpdateReservationFlights to change a flight's cabin class but provides flight segments with mismatched dates, causing an inconsistency that violates the policy requirement for consistent flight details across segments.",
+                "The agent ignores user confirmation and directly uses UpdateReservationFlights to modify flight details, breaching the policy stipulation for explicit user consent before any database update.",
+                "An agent makes a call to UpdateReservationFlights for a reservation with the user-provided outdated reservation date, which doesn't align with the current policy that demands accurate details for flight modifications."
+            ],
+            "compliance_examples": [
+                "Before calling UpdateReservationFlights, the agent confirms the reservation is not for a basic economy class and that all flight segments will retain the same cabin class. This ensures compliance with the airline's policy of consistent cabin class modifications.",
+                "An agent checks that the user can provide a valid payment method from their user profile to cover any additional costs, adhering to the policy requirement before processing cabin upgrades with UpdateReservationFlights.",
+                "The agent verifies all flights in the UpdateReservationFlights call remain within the same origin and destination parameters as the original booking, complying with the policy that prohibits such changes.",
+                "The agent makes sure the reservation ID provided is correct and valid before calling UpdateReservationFlights, confirming the necessary policy compliance regarding input parameters.",
+                "To ensure compliance, the agent only invokes UpdateReservationFlights after obtaining both user and reservation IDs, as well as verifying all flights intended for update still have a status of 'available'.",
+                "Prior to using UpdateReservationFlights, the agent double-checks that the reservation involves flights that have an 'available' status, aligning with the policy that disallows modifications on flights with any other status, ensuring adherence to policy rules.",
+                "The agent ensures that all parameters provided for UpdateReservationFlights, including reservation ID, flight details, and payment method, are valid and conform to user profile records, satisfying the policy's accuracy requirements.",
+                "In preparation to execute UpdateReservationFlights, the agent secures explicit user approval for any policy-compliant modifications, thereby maintaining strict observance of policy mandates.",
+                "Before proceeding with UpdateReservationFlights, the agent verifies the reservation involves flights that have an 'available' status, thereby adhering to the policy that prohibits changes on flights that are on time, delayed, or flying.",
+                "An agent validates that the reservation modification does not attempt to change the trip type or the original origin and destination, thus complying with the policy regarding reservation consistency.",
+                "Prior to calling UpdateReservationFlights, the agent confirms that the reservation ID and user ID are correctly obtained, ensuring they are valid and match user profile data, which aligns with the requirement for correct input parameters.",
+                "To comply with the policy, the agent checks that all segments in the UpdateReservationFlights request use a single payment method listed in the user profile, thereby following the user's existing profile constraints.",
+                "The agent refrains from altering any reservation that includes a basic economy flight, following the policy that prohibits such modifications.",
+                "Before invoking UpdateReservationFlights, the agent meticulously checks that all flights to be updated have 'available' status and does not attempt changes on any other status, adhering to policy requirements.",
+                "An operation to UpdateReservationFlights is initiated only after confirming that the proposed modifications retain the original origin and destination, ensuring policy compliance regarding flight route consistency.",
+                "Before executing UpdateReservationFlights, the agent successfully gathers accurate user feedback for changes and obtains user confirmation, ensuring all modifications comply with the policy of gathering user consent.",
+                "The agent checks that the flight details within the UpdateReservationFlights request include matching origin and destination parameters as the initial booking, adhering to the policy to prevent unauthorized changes.",
+                "To adhere to the policy, the agent ensures that the payment ID used in the UpdateReservationFlights matches entries in the user's profile, avoiding any unauthorized payment method use."
+            ]
+        },
+         {
+            "policy_name": "payment in user data",
+            "description": "Verify that all payment methods are pre-registered in the user profile before proceeding with booking to maintain security and database integrity.",
+            "references": [
+                "All payment methods must already be in user profile for safety reasons."
+            ],
+            "iteration_added": 0,
+            "violating_examples": [
+                "Example 1: A user attempts to book a reservation using two credit cards. The policy mandates that no more than one credit card can be used for a reservation. This violates the rule.",
+                "Example 2: During reservation, a user inputs four gift cards. This violates the policy rule that allows for only up to three gift cards per reservation.",
+                "Example 3: A user submits a booking request where the payment method includes a travel certificate not listed in the user profile. This violates the policy as all payment methods must be pre-registered in the user profile.",
+                "Example 4: A booking attempt is made using a travel certificate, a credit card, and an additional travel certificate for balance. According to the policy, multiple travel certificates are not allowed per reservation, making this a violation.",
+                "Example 5: The booking data included the use of an unverified payment method\u2014a newly added gift card not synced with the user profile\u2014resulting in a policy breach.",
+                "Example 6: A user tries to book a reservation using two travel certificates. This violates the policy, which allows only one travel certificate per reservation.",
+                "Example 7: The booking request includes three credit cards, exceeding the maximum limit of one credit card allowed by the policy. This constitutes a violation.",
+                "Example 8: Upon making a reservation, the user provides payment details for a new credit card that isn't in the user's pre-registered profile list, breaching the policy's requirement for pre-registered payment methods."
+            ],
+            "compliance_examples": [
+                "Example 1: A reservation is made using a single credit card that is already registered in the user's profile. This is compliant with the policy, as it uses one credit card and matches the profile information.",
+                "Example 2: The user books a flight using one travel certificate and two gift cards (all pre-registered in their profile). There's no attempt to exceed the maximum allowed number of cards, ensuring compliance.",
+                "Example 3: A user uses one credit card and one gift card that are already stored in their user profile. This adheres to the payment method restriction policy as the number of payment types remains within allowed limits.",
+                "Example 4: The user completes a reservation with one registered travel certificate and one prior-listed credit card. The combination meets the policy requirements by not exceeding the tool's constraints.",
+                "Example 5: A booking is processed using three pre-registered gift cards and a credited credit card, without any travel certificate. This follows the policy by not surpassing the stipulated payment methods.",
+                "Example 6: A user successfully books a flight using one travel certificate and one credit card, both of which are pre-registered in their profile. This complies with the policy as it uses the allowed types and numbers of payment methods.",
+                "Example 7: A reservation is completed using only two gift cards and no travel certificate or credit card. Both gift cards are pre-existing in the user's profile, ensuring adherence to the policy's guidelines.",
+                "Example 8: The booking transaction involves a credit card and up to three gift cards, with all selected payment methods pre-registered in the user's profile, staying compliant with the policy.",
+                "Example 9: The user books a reservation using one pre-registered travel certificate and one pre-registered gift card. This is compliant as it adheres to the allowed limit of each payment method type.",
+                "Example 10: A booking is successfully made using a single pre-registered credit card with no travel certificates, ensuring policy compliance by not exceeding the maximum number of credit cards.",
+                "Example 11: The reservation goes through with one pre-registered gift card and two additional pre-registered gift cards, staying within the policy limit of three gift cards maximum."
+            ]
+        }
+    ],
+
+    "archive": [
+        {
+            "policy_name": "Tool Call and User Response Coordination",
+            "description": "When using the UpdateReservationFlights tool or any other tool, ensure that each tool invocation is performed independently and singularly, without simultaneous communication responses to the user. This helps maintain clear and structured operations.",
+            "references": [
+                "You should only make one tool call at a time, and if you make a tool call, you should not respond to the user simultaneously. If you respond to the user, you should not make a tool call at the same time."
+            ],
+            "iteration_added": 0,
+            "comments": "The policy is relevant to ToolX, as it involves the coordination of tool usage, which ToolX requires. However, it is not specific to ToolX since it applies broadly to all tools. It cannot be easily validated before invoking ToolX because the policy describes behavior during tool operations rather than specific preconditions. The policy is actionable since it describes a behavior pattern that can be enforced during tool usage. It's not fully self-contained as it assumes implicit knowledge about the broader coordination process, which might not be clear in isolation. The alternative description provides clarity and context missing in the original description.\nThe policy is relevant to the usage of the UpdateReservationFlights tool as it emphasizes the sequential invocation of tools and handling of user interactions, which is applicable when updating reservation flights. However, it is not specific to this tool alone; it applies to any tool usage scenario within the airline agent's role. It can be validated by checking logs for overlapping tool calls or simultaneous user responses. The policy is actionable by adhering to communication protocols of interaction. The policy is not self-contained because, while it lays out a specific procedure, it lacks details specific to the context within the entire tool operation framework. Thus, it could be improved with a more focused description relating specifically to the sequence of operation and interactions for clarity.\nThe policy is relevant to ToolX (UpdateReservationFlights) as it coordinates the execution of tool operations, ensuring they are independent and sequential, which is vital for maintaining task order. However, the policy is broad because it applies to any tool, not just ToolX. Compliance can be validated by ensuring tool invocations and user responses do not overlap. The policy is actionable, as it guides agent behavior using existing parameters and procedures. The policy lacks self-containment because it references a practice (sequential tool calls) that requires contextual understanding from the policy document. An improved version provides clarity on its application without needing the additional context.\nThe policy is relevant to the tool 'UpdateReservationFlights', as it describes the protocol for invoking tools and interacting with users, which is essential for this tool's operation. However, the policy is not specifically tailored to ToolX alone, as it applies to any tool invocation and user interaction scenario, making it not tool-specific. The policy can be validated and is actionable with available parameters and communication protocols. It was not entirely self-contained because the explanation in its current form was too generic and would benefit from explicitly mentioning ToolX and the actions it pertains to, which led to providing an improved version. Overall, the policy's enforceability and clarity are strong, but the lack of tool-specific focus reduces its applicability slightly.\nThis policy is relevant to ToolX (UpdateReservationFlights) as it involves tool invocation. It is not tool-specific because it applies to all tools, not just UpdateReservationFlights, as mentioned in the reference passage. Validation can occur by checking tool logs and user response timestamps to ensure compliance. The policy is actionable since it involves clear operational steps concerning tool invocation and user communication. The description is self-contained, providing a clear and complete guidance without requiring additional context.\n"
+        }
+    ]
+}

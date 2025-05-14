@@ -1,0 +1,48 @@
+{
+    "policies": [
+        {
+            "policy_name": "list action details and confirm user consent",
+            "description": "Before updating the reservation's flight information in the database, list the action details clearly and obtain explicit user confirmation (yes) to proceed.",
+            "references": [
+                "before taking any actions that update the booking database (booking, modifying flights, editing baggage, upgrading cabin class, or updating passenger information), you must list the action details and obtain explicit user confirmation (yes) to proceed."
+            ]
+        },
+        {
+            "policy_name": "flight status check",
+            "description": "Validate that the flights to be updated have a status of 'available' as flights with status 'delayed', 'on time', or 'flying' cannot be booked or modified.",
+            "references": [
+                "if the status is \"available\", the flight has not taken off, available seats and prices are listed.",
+                "if the status is \"delayed\" or \"on time\", the flight has not taken off, cannot be booked.",
+                "if the status is \"flying\", the flight has taken off but not landed, cannot be booked."
+            ]
+        },
+        {
+            "policy_name": "basic economy flight non-modification",
+            "description": "Ensure that basic economy flights are not modified. Only other reservations can be modified, without changing the origin, destination, and trip type.",
+            "references": [
+                "change flights: basic economy flights cannot be modified. other reservations can be modified without changing the origin, destination, and trip type. some flight segments can be kept, but their prices will not be updated based on the current price. the api does not check these for the agent, so the agent must make sure the rules apply before calling the api!"
+            ]
+        },
+        {
+            "policy_name": "user identity verification",
+            "description": "Obtain and verify the user id and reservation id before calling UpdateReservationFlights tool to modify the reservation's flight details.",
+            "references": [
+                "the agent must first obtain the user id and the reservation id."
+            ]
+        },
+        {
+            "policy_name": "consistent cabin class change",
+            "description": "Validate that any request for cabin class changes involves changing the cabin across all flights in the same reservation. Users must pay for the difference between their current cabin and the new cabin class. Partial cabin changes are not allowed.",
+            "references": [
+                "change cabin: all reservations, including basic economy, can change cabin without changing the flights. cabin changes require the user to pay for the difference between their current cabin and the new cabin class. cabin class must be the same across all the flights in the same reservation; changing cabin for just one flight segment is not possible."
+            ]
+        },
+        {
+            "policy_name": "payment method provision",
+            "description": "Ask for one gift card or credit card as the payment or refund method if the user's flights are being changed.",
+            "references": [
+                "payment: if the flights are changed, the user needs to provide one gift card or credit card for payment or refund method. the agent should ask for the payment or refund method instead."
+            ]
+        }
+    ]
+}
