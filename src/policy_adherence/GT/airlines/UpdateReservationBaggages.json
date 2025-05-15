@@ -88,7 +88,7 @@
          "policy_name":"Only Add Checked Bags",
          "description":"ToolX can update the baggage information of an existing reservation, allowing users to add additional checked bags. Removing checked bags from the reservation is not permitted. Ensure the payment method for any additional non-free baggage is provided at invocation.",
          "references":[
-            "The user can add but not remove checked bags."
+            "Change baggage and insurance: The user can add but not remove checked bags."
          ],
          "iteration_added":1,
          "violating_examples":[
