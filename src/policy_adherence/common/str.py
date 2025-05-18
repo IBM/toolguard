@@ -1,5 +1,5 @@
 def to_camel_case(snake_str: str) -> str:
-    return snake_str.replace("_", " ").title().replace(" ", "")
+    return snake_str.replace("_", " ").title().replace(" ", "").replace("-","_")
 
 def to_snake_case(human_name: str)->str:
-    return human_name.replace(" ", "_")
+    return human_name.replace(" ", "_").replace("-","_")

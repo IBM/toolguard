@@ -67,6 +67,7 @@ class ChatHistory:
         """
         return bool(ask_llm(question, self.messages, self.llm))
     
+
     def tool_was_called(self, tool_name:str)->bool:
         """Checks whether a specific tool was called in the chat history.
 
@@ -80,6 +81,7 @@ class ChatHistory:
             if msg.get('role') == 'tool' and msg.get('name') == tool_name:
                 return True
         return False
+
 
 class PolicyViolationException(Exception):
     _msg: str
