@@ -6,6 +6,7 @@ Instructions:
     * Search the Policy Document for text that explicitly or implicitly supports the given policy description.
     * Extract only the relevant passages that provide direct support for enforcing this policy.
 
+
 2. Ensure Contiguous Verbatim References:
     * Each reference must be an exact excerpt from the Policy Document, without alterations.
     * If the supportive text appears in multiple non-contiguous segments, extract them separately as distinct items in the list.
