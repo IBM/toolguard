@@ -1,5 +1,0 @@
-[
-    "if the status is \"available\", the flight has not taken off, available seats and prices are listed.",
-    "if the status is \"delayed\" or \"on time\", the flight has not taken off, cannot be booked.",
-    "if the status is \"flying\", the flight has taken off but not landed, cannot be booked."
-]

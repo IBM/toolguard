@@ -1,6 +1,0 @@
-[
-    "before taking any actions that update the booking database (booking, modifying flights, editing baggage, upgrading cabin class, or updating passenger information), you must list the action details and obtain explicit user confirmation (yes) to proceed.",
-    "the user can add but not remove checked bags.",
-    "payment: each reservation can use at most one travel certificate, at most one credit card, and at most three gift cards. the remaining amount of a travel certificate is not refundable. all payment methods must already be in user profile for safety reasons.",
-    "checked bag allowance: if the booking user is a regular member, 0 free checked bag for each basic economy passenger, 1 free checked bag for each economy passenger, and 2 free checked bags for each business passenger. if the booking user is a silver member, 1 free checked bag for each basic economy passenger, 2 free checked bag for each economy passenger, and 3 free checked bags for each business passenger. if the booking user is a gold member, 2 free checked bag for each basic economy passenger, 3 free checked bag for each economy passenger, and 3 free checked bags for each business passenger. each extra baggage is 50 dollars."
-]
