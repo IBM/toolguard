@@ -1,27 +1,28 @@
 import os
 import re
-import nltk
+from collections import defaultdict
 
+import nltk
 
 nltk.download('punkt')
 import json
-
-
-
 
 
 class ReferenceEval:
 	
 	def __init__(self,gt_dir: str, generated_dir: str):
 		avgs = [0,0,0]
+		p_avgs = [0,0,0]
+
 		ntools = 0
 		for tool_file in os.listdir(gt_dir):
 			if tool_file.endswith(".json") :
 				gtool_file = self.pascal_to_snake(tool_file)
 				generated_path = os.path.join(generated_dir,gtool_file)
 				ground_truth_path = os.path.join(gt_dir, tool_file)
-				ground_truth_spans = self.references_to_sent_spans(ground_truth_path)
-				generated_spans = self.references_to_sent_spans(generated_path)
+
+				ground_truth_spans, gt_span2policy, num_gt_policies = self.references_to_sent_spans(ground_truth_path)
+				generated_spans, gen_span2policy, num_gen_policies = self.references_to_sent_spans(generated_path)
 				# self.print_sorted_strings(ground_truth_spans)
 				# print()
 				# self.print_sorted_strings(generated_spans)
@@ -29,9 +30,15 @@ class ReferenceEval:
 				if len(ground_truth_spans)==0:
 					continue
 				ntools += 1
+
+				covered_in_gt_policies = set()
+				correctly_identified_policies = set()
 				for s in ground_truth_spans:
 					if s in generated_spans:
+						covered_in_gt_policies.update(gt_span2policy[s])
+						correctly_identified_policies.update(gen_span2policy[s])
 						true_positives+=1
+
 				precision = true_positives / len(generated_spans) if generated_spans else 0.0
 				recall = true_positives / len(ground_truth_spans) if ground_truth_spans else 0.0
 				f1 = (
@@ -39,13 +46,29 @@ class ReferenceEval:
 					if (precision + recall) > 0
 					else 0.0
 				)
-	
+
 				avgs[0]+=precision
 				avgs[1]+=recall
 				avgs[2]+=f1
-				print(f"Tool: {tool_file} Precision: {precision:.2f}, Recall: {recall:.2f}, F1: {f1:.2f}")
+
+				p_precision = len(correctly_identified_policies)/num_gen_policies if num_gen_policies>0 else 0.0
+				p_recall = len(covered_in_gt_policies)/num_gt_policies if num_gt_policies>0 else 0.0
+				p_f1 = (
+					2 * p_precision * p_recall / (p_precision + p_recall)
+					if (p_precision + p_recall) > 0
+					else 0.0
+				)
+
+				p_avgs[0]+=p_precision
+				p_avgs[1]+=p_recall
+				p_avgs[2]+=p_f1
+
+				print(f"Tool: {tool_file} Precision: {precision:.2f}, Recall: {recall:.2f}, F1: {f1:.2f} *** "
+					  f"policy-level results: Precision: {p_precision:.2f}, Recall: {p_recall:.2f}, F1: {p_f1:.2f}")
 				
-		print(f"Avg Precision: { avgs[0]/ntools:.2f} Avg Recall: { avgs[1]/ntools:.2f} Avg F1: { avgs[2]/ntools:.2f}")
+		print(f"Avg Precision: { avgs[0]/ntools:.2f} Avg Recall: { avgs[1]/ntools:.2f} Avg F1: { avgs[2]/ntools:.2f} *** "
+			  f"policy-level stats: Avg Precision: {p_avgs[0]/ntools:.2f} Avg Recall: {p_avgs[1]/ntools:.2f} "
+			  f"Avg F1: {p_avgs[2]/ntools:.2f}")
 	
 	def pascal_to_snake(self,name):
 		# Insert underscore before capital letters and convert to lowercase
@@ -71,30 +94,44 @@ class ReferenceEval:
 		sentences = []
 		references = []
 		if not os.path.isfile(filepath):
-			print('file doe not exist: '+filepath)
-			return []
-			
+			print('file does not exist: '+filepath)
+			return list(), dict(), 0
+
+		ref2policy = defaultdict(set)
 		with open(filepath, 'r') as file:
 			policies = json.load(file)
-			for p in policies["policies"]:
-				references.extend([r.lower().replace("<p>", "").replace("</p>","") for r in p["references"]])
-		for r in references:
-			sentences.extend(sent_tokenize(r))
+			for p_id, p in enumerate(policies["policies"]):
+				p_references = [r.lower().replace("<p>", "").replace("</p>","") for r in p["references"]]
+				references.extend(p_references)
+				for r in p_references:
+					ref2policy[r].add(p_id)
+
+			total_policies = len(policies["policies"])
+
+		sent2policy = defaultdict(set)
+		for r, p_ids in ref2policy.items():  #references:
+			r_sentences = sent_tokenize(r)
+			sentences.extend(r_sentences)
+			for s in r_sentences:
+				sent2policy[s].update(p_ids)
 		tset = set(sentences)
-		return list(tset)
-		
+
+		return list(tset), sent2policy, total_policies
 		
 
-		
 if __name__ == '__main__':
 	
-	gtdir = '/Users/naamazwerdling/Documents/OASB/policy_validation/airline/GroundTruth'
-	#gendir = '/Users/naamazwerdling/Documents/OASB/policy_validation/airline/final'
-	gendir = '/Users/naamazwerdling/Documents/OASB/policy_validation/airline/final copy 4'
-	#gendir = '/Users/naamazwerdling/Documents/OASB/policy_validation/airline/final with salesforce'
-	#gendir = '/Users/naamazwerdling/Documents/OASB/policy_validation/airline/final_non-existing-tools-rev'
-	#gendir = '/Users/naamazwerdling/Documents/OASB/policy_validation/airline/final copy 5'
-	#gendir = '/Users/naamazwerdling/Documents/OASB/policy_validation/airline/final oas'
-	gendir = '/Users/naamazwerdling/Documents/OASB/policy_validation/airline/final my json'
+	# gtdir = '/Users/naamazwerdling/Documents/OASB/policy_validation/airline/GroundTruth'
+	# #gendir = '/Users/naamazwerdling/Documents/OASB/policy_validation/airline/final'
+	# gendir = '/Users/naamazwerdling/Documents/OASB/policy_validation/airline/final copy 4'
+	# #gendir = '/Users/naamazwerdling/Documents/OASB/policy_validation/airline/final with salesforce'
+	# #gendir = '/Users/naamazwerdling/Documents/OASB/policy_validation/airline/final_non-existing-tools-rev'
+	# #gendir = '/Users/naamazwerdling/Documents/OASB/policy_validation/airline/final copy 5'
+	# #gendir = '/Users/naamazwerdling/Documents/OASB/policy_validation/airline/final oas'
+	# gendir = '/Users/naamazwerdling/Documents/OASB/policy_validation/airline/final my json'
+
+	gtdir = os.path.join('GT', 'airlines')
+	#gendir = os.path.join('output', 'llama-3-3-70b-instruct', 'Step1')
+	gendir = os.path.join('output', 'gpt-4o-2024-08-06', 'Step1')
 
 	ReferenceEval(gtdir, gendir)
