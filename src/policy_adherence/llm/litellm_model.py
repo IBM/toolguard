@@ -6,6 +6,8 @@ import time
 from litellm import completion
 from litellm.types.utils import ModelResponse
 from litellm.exceptions import RateLimitError
+import json
+from jsonschema import validate, ValidationError
 
 from src.policy_adherence.llm.llm_model import LLM_model
 import dotenv
@@ -99,6 +101,23 @@ class LitellmModel(LLM_model):
 				custom_llm_provider= "azure")
 		return response["choices"][0]["message"]["content"]
 	
+	def valid_json_gen(self,messages: List[Dict],schema:Dict):
+		for attempt in range(5):
+			try:
+				response = self.chat_json(messages)
+				validate(instance=response, schema=schema)
+				return response
+			except ValidationError as e:
+				print(f"Attempt {attempt + 1} failed schema validation: {e.message}")
+				# messages.append({
+				# 	"role": "system",
+				# 	"content": f"Your previous response did not match the schema. Please ensure the response follows this schema strictly: {json.dumps(schema)}"
+				# })
+			except Exception as e:
+				print(f"Attempt {attempt + 1} failed due to error: {str(e)}")
+		
+		raise ValueError("Failed to get a valid response after 5 attempts.")
+	
 	
 	def chat_json(self, messages: List[Dict], max_retries: int = 5, backoff_factor: float = 1.5) -> Dict:
 		retries = 0
@@ -171,6 +190,8 @@ class LitellmModel(LLM_model):
 			print("No JSON found in the string.")
 			print(s)
 			return None
+		
+		
 		
 	
 	

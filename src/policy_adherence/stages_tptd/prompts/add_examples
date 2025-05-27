@@ -5,7 +5,7 @@ Input Data:
 Policy Document: A text containing policies, rules, or constraints governing tool usage. It may be a full document or a partial excerpt if the document is too long.
 Tools Descriptions: A list of tools along with descriptions explaining their functionality and constraints.
 Target Tool (ToolX): The specific tool for which relevant policies need to be identified.
-Policy: The policy to write additional the examples for
+Policy: The policy to write additional the examples for with extracted examples from previous stages
 
 Steps:
 1.Identify Missing Examples:
@@ -32,16 +32,16 @@ Only include newly generated examples. Make sure examples are written in natural
 Maintain the correct structure:
 
 {
-    { "violating_examples": [
+    "violating_examples": [
         "A user attempts to call ToolX without providing the required authentication token. Since the policy mandates that an authentication token must be present, this violates the rule.",
         "The input parameters for ToolX exceed the allowed character limit of 500, but the request is still made. This violates the policy, as inputs must comply with the character constraints.",
         "A request to ToolX includes a restricted keyword that is explicitly mentioned in the policy as disallowed. This makes the request non-compliant."
-    ]},
-    { "compliance_examples": [
+    ],
+     "compliance_examples": [
         "A user successfully provides a valid authentication token before calling ToolX, ensuring compliance with the policy.",
         "The input parameters for ToolX remain within the allowed character limit, following the policy requirements.",
         "A request is made to ToolX with a properly formatted and authorized query, containing no restricted keywords."
-    ]}
+    ]
 
 }
 

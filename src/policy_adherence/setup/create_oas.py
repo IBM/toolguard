@@ -3,17 +3,24 @@ import os
 
 from policy_adherence.llm.litellm_model import LitellmModel
 from policy_adherence.stages_tptd.utils import read_prompt_file, generate_messages
-
+import dotenv
+dotenv.load_dotenv()
 
 
 
 class CreateOAS:
-	def __init__(self,tools_dir,out_file):
+	def __init__(self,tools_dir,out_file,oas_outfile):
 		self.tools_dir = tools_dir
 		self.out_file = out_file
 		model = 'gpt-4o-2024-08-06'
 		self.llm = LitellmModel(model)
-	
+		oas = {"openapi": "3.0.3",
+			   "info": {
+				   "title": "Flight Booking API",
+				   "version": "1.0.0"
+			   },
+			   "paths": {}}
+		
 		operations = {}
 		with open(os.path.join(os.path.dirname(__file__), "prompt"), "r") as f:
 			system_prompt = f.read()
@@ -27,8 +34,13 @@ class CreateOAS:
 				user_content = "Records: "+records +"\n"+"Code: "+function_code
 				response = self.llm.chat_json(generate_messages(system_prompt, user_content))
 				operations[name] = response
+				oas["paths"].update(response["paths"])
+		
 				
-		#TODO: CREATE ONE OAS
+
+		
+		with open(oas_outfile, "w") as outfile:
+			json.dump(oas, outfile, indent=4)
 		with open(out_file, "w") as outfile:
 			json.dump(operations, outfile, indent=4)
 		
@@ -42,5 +54,6 @@ class CreateOAS:
 
 
 code_dir = "/Users/naamazwerdling/workspace/tau-bench/tau_bench/envs/airline/tools"
-outfile = "/Users/naamazwerdling/Documents/OASB/policy_validation/airline/operations.json"
-CreateOAS(code_dir,outfile)
+outfile = "/Users/naamazwerdling/Documents/OASB/policy_validation/airline/operations2.json"
+oas_outfile = "/Users/naamazwerdling/Documents/OASB/policy_validation/airline/oas2.json"
+CreateOAS(code_dir,outfile,oas_outfile)

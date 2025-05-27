@@ -68,17 +68,36 @@ class ChatHistory:
         return bool(ask_llm(question, self.messages, self.llm))
     
 
-    def tool_was_called(self, tool_name:str)->bool:
-        """Checks whether a specific tool was called in the chat history.
+    def did_tool_return_value(self, tool_name:str,expected_value)->bool:
+        """Checks whether a specific tool was called in the chat history and validates if the expected value was returned
+            Example: "did_tool_return_value("book_hotel",True) checks if the history shows calling the function book_hotel and if the returned value was true did_tool_return_value will return true else false
+       
 
         Args:
             tool_name (str): The name of the tool to check for in the message history.
+            expected_value: The expected value of the tool call.
+            
+            
 
         Returns:
-            bool: True if the tool was called, False otherwise.
+            bool: True if the tool was called returning expected_value, False otherwise.
         """
         for msg in self.messages:
-            if msg.get('role') == 'tool' and msg.get('name') == tool_name:
+            if msg.get('tool_name') == tool_name and msg.get('content') == expected_value:
+                return True
+        return False
+
+    def was_tool_called(self, tool_name: str) -> bool:
+        """Checks whether a specific tool was called in the chat history.
+        
+		Args:
+			tool_name (str): The name of the tool to check for in the message history.
+
+		Returns:
+			bool: True if the tool was called, False otherwise.
+		"""
+        for msg in self.messages:
+            if msg.get('tool_name') == tool_name:
                 return True
         return False
 

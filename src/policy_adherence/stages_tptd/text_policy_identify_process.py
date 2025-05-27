@@ -22,15 +22,18 @@ class PolicyIdentifier:
 		self.llm = LitellmModel(model)
 		workflow = StateGraph(TPTDState)
 		workflow.add_node("policy_creator", self.policy_creator_node)
+		workflow.add_node("add_policies", self.add_policies)
 		#workflow.add_node("merge_and_split",self.merge_and_split)
 		workflow.add_node("split", self.split)
 		workflow.add_node("merge", self.merge)
 		workflow.add_node("review_policy",self.review_policy)
-		workflow.add_node("add_policies", self.add_policies)
 		workflow.add_node("add_references",self.add_references)
 		workflow.add_node("reference_correctness", self.reference_correctness)
 		workflow.add_node("example_creator", self.example_creator)
 		workflow.add_node("add_examples",self.add_examples)
+		workflow.add_node("merge_examples", self.merge_examples)
+		workflow.add_node("fix_examples",self.fix_examples)
+		workflow.add_node("review_examples", self.review_examples)
 		workflow.add_node("final", lambda state: state)
 		
 		workflow.set_entry_point("policy_creator")
@@ -43,9 +46,18 @@ class PolicyIdentifier:
 		workflow.add_edge("merge", "review_policy")
 		workflow.add_edge("review_policy", "add_references")
 		workflow.add_edge("add_references", "reference_correctness")
-		workflow.add_edge("reference_correctness", "example_creator")
-		workflow.add_edge("example_creator", "add_examples")
-		workflow.add_conditional_edges("add_examples",lambda state: "final" if state.get("stop", False) else "add_examples")
+		
+		workflow.add_edge("reference_correctness", "final")
+		
+		
+		# workflow.add_edge("reference_correctness", "example_creator")
+		# workflow.add_edge("example_creator", "add_examples")
+		# workflow.add_conditional_edges("add_examples",lambda state: "merge_examples" if state.get("stop", False) else "add_examples")
+		# # workflow.add_edge("merge_examples", "fix_examples")
+		# # workflow.add_edge("fix_examples","review_examples")
+		# workflow.add_edge("merge_examples", "review_examples")
+		# workflow.add_edge("review_examples", "final")
+		
 		self.executor = workflow.compile()
 		
 		
@@ -250,10 +262,93 @@ class PolicyIdentifier:
 					policy["compliance_examples"].append(cexample)
 				
 		state.update({"TPTD": TPTD, "iteration": state["iteration"] + 1})
-		if state["iteration"] > 3:
+		if state["iteration"] > 5:
 			state.update({"stop": True})
 		save_output(state["outdir"], f"{state['target_tool']}_ADD_examples{state['iteration']}.json", TPTD)
 		return state
+	
+	def merge_examples(self, state: TPTDState) -> TPTDState:
+		print("merge_examples")
+		system_prompt = read_prompt_file("merge_examples")
+		system_prompt = system_prompt.replace("ToolX", state["target_tool"])
+		TPTD = state["TPTD"]
+		for policy in TPTD["policies"]:
+			user_content = f"Policy Document:{state['policy_text']}\nTools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nPolicy Name:{policy['policy_name']}\nPolicy Description:{policy['description']}"
+			user_content+= f"\n\nViolating Examples: {policy['violating_examples']}"
+			user_content+= f"\n\nCompliance Examples: {policy['compliance_examples']}"
+			response = self.llm.chat_json(generate_messages(system_prompt, user_content))
+			policy["violating_examples"] = response["violating_examples"]
+			policy["compliance_examples"] = response["compliance_examples"]
+			
+		
+		state.update({"TPTD": TPTD})
+		save_output(state["outdir"], f"{state['target_tool']}_merge_examples{state['iteration']}.json", TPTD)
+		return state
+	
+	def fix_examples(self, state: TPTDState) -> TPTDState:
+		print("fix_examples")
+		orig_prompt = read_prompt_file("fix_example")
+		TPTD = state["TPTD"]
+		for policy in TPTD["policies"]:
+			for etype in ["violating","compliance"]:
+				fixed_examples = []
+				for example in policy[etype + "_examples"]:
+					system_prompt = orig_prompt.replace("ToolX", state["target_tool"])
+					system_prompt = system_prompt.replace("__EXAMPLE_TYPE__", "")
+			
+					user_content = f"Policy Document:{state['policy_text']}\nTools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nPolicy Name:{policy['policy_name']}\nPolicy Description:{policy['description']}\nExample:{example}"
+					
+				
+					response = self.llm.chat_json(generate_messages(system_prompt, user_content))
+					fixed_examples.append(response["revised_example"])
+				policy[etype + "_examples"] = fixed_examples
+		
+		state.update({"TPTD": TPTD})
+		save_output(state["outdir"], f"{state['target_tool']}_fix_examples.json", TPTD)
+		return state
+	
+	#todo: change to revew examples, write prompts
+	def review_examples(self, state: TPTDState) -> TPTDState:
+		print("review_examples")
+		system_prompt = read_prompt_file("examples_reviewer")
+		TPTD = state["TPTD"]
+		for policy in TPTD["policies"]:
+			print(policy['policy_name'])
+			for etype in ["violating","compliance"]:
+				print(etype)
+				passed_examples = []
+				for example in policy[etype + "_examples"]:
+					print(example)
+					reviews = []
+					for iteration in range(5):
+						user_content = f"Policy Document:{state['policy_text']}\nTools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nPolicy Name:{policy['policy_name']}\nPolicy Description:{policy['description']}\nExample:{example}"
+						response = self.llm.chat_json(generate_messages(system_prompt, user_content))
+						reviews.append(response)
+					keep = self.keep_example(reviews)
+					if keep:
+						passed_examples.append(example)
+				
+				policy[etype + "_examples"] = passed_examples
+		
+		state.update({"TPTD": TPTD})
+		save_output(state["outdir"], f"{state['target_tool']}_example_rev.json", TPTD)
+		return state
+	
+	def keep_example(self, reviews) -> bool:
+		bads = 0
+		totals = 0
+		for r in reviews:
+			for vals in r.values():
+				totals+=1
+				if "value" not in vals:
+					print(reviews)
+				if not vals["value"]:
+					bads += 1
+		if bads/totals > 0.8:
+			return False
+		return True
+		
+		
 	
 
 def step1_main(policy_text:str, fsummary:Dict, fdetails:Dict, step1_output_dir:str,model, tools:Optional[List[str]]=None):
@@ -263,6 +358,7 @@ def step1_main(policy_text:str, fsummary:Dict, fdetails:Dict, step1_output_dir:s
 	process_dir = os.path.join(step1_output_dir, "process")
 	if not os.path.isdir(process_dir):
 		os.makedirs(process_dir)
+	
 	for fname, detail in fdetails.items():
 		if tools is None or fname in tools:
 			print(fname)
@@ -288,15 +384,15 @@ def step1_main(policy_text:str, fsummary:Dict, fdetails:Dict, step1_output_dir:s
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='parser')
 	#parser.add_argument('--model-type', type=str,default='ASURE')
-	#parser.add_argument('--model-name', type=str,default='gpt-4o-2024-08-06')
-	parser.add_argument("--model-name",type=str,default='meta-llama/llama-3-3-70b-instruct')
+	parser.add_argument('--model-name', type=str,default='gpt-4o-2024-08-06')
+	#parser.add_argument("--model-name",type=str,default='meta-llama/llama-3-3-70b-instruct')
 	#parser.add_argument('--policy-path', type=str, default='/Users/naamazwerdling/Documents/OASB/policy_validation/airline/wiki-with-policies-for-non-existing-tools-rev.md')
 	#parser.add_argument('--policy-path',type=str,default='/Users/naamazwerdling/Documents/OASB/policy_validation/airline/wiki-with-policies-for-non-existing-tools.md')
 	parser.add_argument('--policy-path', type=str,default='/Users/naamazwerdling/Documents/OASB/policy_validation/airline/wiki.md')
-	parser.add_argument('--outdir', type=str,default='/Users/naamazwerdling/Documents/OASB/policy_validation/airline/output1')
+	parser.add_argument('--outdir', type=str,default='/Users/naamazwerdling/Documents/OASB/policy_validation/airline/outdir2/oas2')
 
 	parser.add_argument('--oas', type=str, default='/Users/naamazwerdling/Documents/OASB/policy_validation/airline/airline.json')
-	parser.add_argument('--functions-schema', type=str,default='/Users/naamazwerdling/Documents/OASB/policy_validation/airline/fc_schema.json')
+	parser.add_argument('--functions-schema', type=str,default=None)
 	parser.add_argument('--tools', nargs='+', default=['book_reservation.py'], help='Optional list of tool names. These are a subset of the tools in the openAPI operation ids.')
 
 	args = parser.parse_args()
@@ -305,7 +401,7 @@ if __name__ == '__main__':
 	#model_type = args.model_type
 	#model_name = args.model_name
 	functions_schema = args.functions_schema
-	oas = args.oas
+	
 
 	policy_text = open(policy_path, 'r',encoding='utf-8').read()
 	policy_text = markdown.markdown(policy_text)
@@ -320,6 +416,7 @@ if __name__ == '__main__':
 		print(json.dumps(fsummary))
 		fdetails = functions
 	else:
+		oas = args.oas
 		with open(oas,'r',encoding='utf-8') as file:
 			functions = json.load(file)
 

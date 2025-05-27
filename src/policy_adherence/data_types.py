@@ -37,6 +37,16 @@ class ToolPolicyItem(BaseModel):
     compliance_examples: Optional[List[str]] = Field(..., description="Case example that complies with the policy")
     violation_examples: Optional[List[str]] = Field(..., description="Case example that violates the policy")
 
+    def __str__(self) -> str:
+        s = f"#### Policy item " + self.name + "\n"
+        s += f"{self.description}\n"
+        if self.compliance_examples:
+            s += f"##### Positive examples\n{to_md_bulltets(self.compliance_examples)}"
+        if self.violation_examples:
+            s += f"##### Negative examples\n{to_md_bulltets(self.violation_examples)}"
+        return s
+        
+
 class ToolPolicy(BaseModel):
     name: str
     policy_items: List[ToolPolicyItem]

@@ -30,6 +30,8 @@ def validate_files_exist(oas, step1_path):
 			for method, details in methods.items():
 				if isinstance(details, dict) and "operationId" in details:
 					operation_id = details["operationId"]
+					if operation_id.startswith("internal_"):
+						continue
 					fname = os.path.join(step1_path,operation_id +'.json')
 					if not os.path.isfile(fname):
 						return False
