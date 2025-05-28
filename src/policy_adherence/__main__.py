@@ -13,7 +13,8 @@ from loguru import logger
 
 #important to load the env variables BEFORE policy_adherence library (so programmatic_ai configuration will take place)
 import dotenv
-dotenv.load_dotenv() 
+
+dotenv.load_dotenv()
 
 from policy_adherence.common.open_api import OpenAPI
 from policy_adherence.data_types import ToolPolicy, ToolPolicyItem, ToolChecksCodeGenerationResult
@@ -139,7 +140,6 @@ if __name__ == '__main__':
 	parser.add_argument('--step1-model-name', type=str, default='gpt-4o-2024-08-06', help='Model to use for generating in step 1')
 	parser.add_argument('--step2-model-name', type=str, default='gpt-4o-2024-08-06', help='Model to use for generating in step 2')
 	parser.add_argument('--tools', nargs='+', default=None, help='Optional list of tool names. These are a subset of the tools in the openAPI operation ids.')
-
 
 	args = parser.parse_args()
 	policy_path = args.policy_path

@@ -13,7 +13,7 @@ import policy_adherence.prompts as prompts
 from policy_adherence.data_types import FileTwin, ToolChecksCodeResult, ToolPolicy, ToolPolicyItem, ToolPolicyItem
 import policy_adherence.tools.pyright as pyright
 import policy_adherence.tools.pytest as pytest
-from policy_adherence.utils import extract_code_from_llm_response
+from policy_adherence.utils import extract_code_from_llm_response, post_process_llm_response
 
 import asyncio
 from pathlib import Path
@@ -176,9 +176,10 @@ class ToolCheckPolicyGenerator:
                 res_content = await prompts.generate_tool_item_tests(fn_name, check_fn, item, self.common, self.domain, dep_tools)
             else:
                 res_content = await prompts.improve_tool_tests(tests, self.domain, item, errors)
-            test_content = extract_code_from_llm_response(res_content)
+
+            test_content = post_process_llm_response(res_content)
             tests = FileTwin(
-                file_name= join(TESTS_DIR, self.tool.name, f"{test_fn_module_name(item.name)}.py"), 
+                file_name= join(TESTS_DIR, self.tool.name, f"{test_fn_module_name(item.name)}.py"),
                 content=test_content
             )
             tests.save(self.py_path)
@@ -194,9 +195,12 @@ class ToolCheckPolicyGenerator:
             logger.debug(f"Generated Tests... (trial={trial_no})")
             report_file_name = join(DEBUG_DIR, f"{trial_no}_{to_snake_case(item.name)}_report.json")
             test_report = pytest.run(self.py_path, tests.file_name, report_file_name)
-            if test_report.all_tests_collected_successfully():
+            if test_report.all_tests_collected_successfully() and test_report.non_empty_tests():
                 return tests
-            errors = test_report.list_errors()
+            if not test_report.non_empty_tests():  # empty test set
+                errors = ['empty set of generated unit tests is not allowed']
+            else:
+                errors = test_report.list_errors()
         
         raise Exception("Generated tests contain errors")
     
@@ -222,7 +226,8 @@ class ToolCheckPolicyGenerator:
         for trial in range(MAX_TOOL_IMPROVEMENTS):
             logger.debug(f"Improving check function {module_name}... (trial = {trial})")
             res_content = await prompts.improve_tool_check_fn(prev_version, self.domain, item, review_comments + errors)
-            body = extract_code_from_llm_response(res_content)
+
+            body = post_process_llm_response(res_content)
             check_fn = FileTwin(
                 file_name=prev_version.file_name,
                 content=body

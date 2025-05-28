@@ -76,7 +76,10 @@ class TestReport(BaseModel):
     
     def all_tests_collected_successfully(self)->bool:
         return all([col.outcome == TestOutcome.passed for col in self.collectors])
-    
+
+    def non_empty_tests(self)->bool:
+        return self.summary.total > 0
+
     def list_errors(self)->List[str]:
         errors = set()
 

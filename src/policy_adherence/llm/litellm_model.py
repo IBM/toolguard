@@ -16,7 +16,7 @@ import dotenv
 model_name_to_endpoint_list=[
 	{"endpoint":"https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com/avengers-jamba-9b","model_name":"ibm-fms/avengers-jamba-9b"},
 	{"endpoint":"https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com/codellama-34b-instruct-hf","model_name":"codellama/CodeLlama-34b-Instruct-hf"},
-	{"endpoint":"https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com/deepseek-coder-33b-instruct","model_name":"deepseek-ai/deepseek-coder-33b-instruct"},
+	{"endpoint":"https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com/deepseek-coder-33b-instruct","model_name":"deepseek-ai/DeepSeek-V2.5"},
 	{"endpoint":"https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com/deepseek-v2-5/v1","model_name":"deepseek-ai/DeepSeek-V2.5"},
 	{"endpoint":"https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com/deepseek-v3/v1","model_name":"deepseek-ai/DeepSeek-V3"},
 	{"endpoint":"https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com/gemma-2-9b-it","model_name":"google/gemma-2-9b-it"},
@@ -72,13 +72,18 @@ model_to_endpoint = {
     for entry in model_name_to_endpoint_list
 }
 
+anthropic_models = ['claude-3-5-sonnet-20240620', 'claude-3-haiku-20240307']
+
 
 class LitellmModel(LLM_model):
 	def __init__(self,model_name):
 		super().__init__(model_name)
 		self.rits = False
+		self.anthropic = False
 		if self.model_name in model_to_endpoint:
 			self.rits = True
+		if self.model_name in anthropic_models:
+			self.anthropic = True
 		
 
 	def generate(self, messages: List[Dict])->ModelResponse:
@@ -93,12 +98,15 @@ class LitellmModel(LLM_model):
 				},
 			)
 			return response.choices[0].message.content
-			
+
 		else:
+			llm_provider = "anthropic" if self.anthropic else "azure"
 			response = completion(
 				messages=messages,
 				model=self.model_name,
-				custom_llm_provider= "azure")
+				custom_llm_provider=llm_provider)
+
+		# the same format for OpenAI and Anthropic
 		return response["choices"][0]["message"]["content"]
 	
 	def valid_json_gen(self,messages: List[Dict],schema:Dict):
@@ -139,17 +147,19 @@ class LitellmModel(LLM_model):
 					if res is None:
 						wait_time = backoff_factor ** retries
 						print(f"Error: not json format. Retrying in {wait_time:.1f} seconds... (attempt {retries + 1}/{max_retries})")
+						print(f"Error: not json format. Retrying in {wait_time:.1f} seconds... (attempt {retries + 1}/{max_retries})")
 						print(response["choices"][0]["message"]["content"])
 						time.sleep(wait_time)
 						retries += 1
 					else:
 						return res
 				else:
+					llm_provider = "anthropic" if self.anthropic else "azure"
 					response = completion(
 						messages=messages,
 						model=self.model_name,
 						response_format={"type": "json_object"},
-						custom_llm_provider="azure"
+						custom_llm_provider=llm_provider
 					)
 					res = response["choices"][0]["message"]["content"]
 					return json.loads(res)
@@ -197,12 +207,12 @@ class LitellmModel(LLM_model):
 	
 if __name__ == '__main__':
 	dotenv.load_dotenv()
-	model = "gpt-4o-2024-08-06"
+	#model = "gpt-4o-2024-08-06"
+	model = "claude-3-5-sonnet-20240620"
 	#model = "meta-llama/llama-3-3-70b-instruct"
 	aw = LitellmModel(model)
-	resp = aw.generate([{"role": "user", "content": "what is the wheather?"}])
+	resp = aw.generate([{"role": "user", "content": "what is the weather?"}])
 	print(resp)
-	resp = aw.chat_json([{"role": "user", "content": "what is the wheather? please answer in json format"}])
+	resp = aw.chat_json([{"role": "user", "content": "what is the weather? please answer in json format"}])
 	print(resp)
-	
 	

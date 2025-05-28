@@ -7,8 +7,13 @@ def extract_code_from_llm_response(resp:str)->str:
         start = resp.find(start_code_token) + len(start_code_token)
         end = resp.rfind(end_code_token)
         return resp[start:end]
+
     return resp
 
+def post_process_llm_response(resp:str)->str:
+    response = extract_code_from_llm_response(resp)
+    response = response.replace("\\n", "\n")
+    return response
 
 def to_md_bulltets(items: List[str])->str:
     s = ""

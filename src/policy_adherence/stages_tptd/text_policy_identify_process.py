@@ -82,7 +82,9 @@ class PolicyIdentifier:
 		TPTD = state['TPTD']
 		user_content = f"Policy Document:{state['policy_text']}\nTools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nTPTD: {json.dumps(TPTD)}"
 		response = self.llm.chat_json(generate_messages(system_prompt, user_content))
+
 		for policy in response["policies"]:
+		#for policy in response["additionalProperties"]["policies"]:  # todo: handle via prompt?
 			policy["iteration"] = state["iteration"]
 			TPTD["policies"].append(policy)
 			
@@ -148,7 +150,7 @@ class PolicyIdentifier:
 		for r in reviews:
 			print(f"{r['is_relevant'] if 'is_relevant' in r else ''}\t{r['is_tool_specific'] if 'is_tool_specific' in r else ''}\t{r['can_be_validated'] if 'can_be_validated' in r else ''}\t{r['is_actionable'] if 'is_actionable' in r else ''}\t{r['is_self_contained'] if 'is_self_contained' in r else ''}\t{r['score'] if 'score' in r else ''}\t")
 
-			counts["is_relevant"] += r["is_relevant"]
+			counts["is_relevant"] += (r["is_relevant"] if 'is_relevant' in r else 0)
 			counts["is_tool_specific"] += r["is_tool_specific"]
 			counts["can_be_validated"] += r["can_be_validated"]
 			counts["is_actionable"] += r["is_actionable"]
@@ -164,6 +166,10 @@ class PolicyIdentifier:
 		system_prompt = read_prompt_file("policy_reviewer")
 		TPTD = state["TPTD"]
 		newTPTD = {"policies":[]}
+
+		if 'policies' not in TPTD:
+			TPTD['policies'] = []
+
 		for policy in TPTD["policies"]:
 			reviews = []
 			for iteration in range(5):
