@@ -131,8 +131,13 @@ if __name__ == '__main__':
 	# gendir = '/Users/naamazwerdling/Documents/OASB/policy_validation/airline/final my json'
 
 	gtdir = os.path.join('GT', 'airlines')
-	gendir = os.path.join('output', 'llama-3-3-70b-instruct', 'Step1')
+
+	#gendir = os.path.join('output', 'llama-3-3-70b-instruct', 'Step1')
+	gendir = os.path.join('output', 'gpt-4o-2024-08-06', 'Step1')
+	gendir = '/Users/naamazwerdling/Documents/OASB/policy_validation/airline/outdir2/wiki_sf_rev'
+	#gendir = os.path.join('output', 'llama-3-3-70b-instruct', 'Step1')
 	#gendir = os.path.join('output', 'gpt-4o-mini-2024-07-18', 'Step1')
 	#gendir = os.path.join('output', 'gpt-4o-2024-08-06', 'Step1')
+
 
 	ReferenceEval(gtdir, gendir)

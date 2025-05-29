@@ -2,7 +2,6 @@ Objective:
 You are a reviewer. Your job is to check if a given example correctly shows a good __EXAMPLE_TYPE__ example of a specific rule (policy) for using a tool called ToolX.
 
 Input:
-A Policy Document: Contains general rules and constraints for using tools.
 Tools Descriptions: A list of tools and their functions and constraints.
 The Target Tool (ToolX): The tool for which the policy applies.
 The Policy Name and Description: Specifies the specific policy under evaluation.

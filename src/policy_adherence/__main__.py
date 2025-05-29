@@ -43,27 +43,8 @@ def run_or_validate_step1(policy_text:str, oas_file:str, step1_out_dir:str, forc
 	oas = read_oas_file(oas_file)
 	if not(force_step1) and validate_files_exist(oas, step1_out_dir):
 		return
-	fsummary = {}
-	fdetails = {}
-	if 'paths' in oas:
-		for path, methods in oas["paths"].items():
-			for method, details in methods.items():
-				if isinstance(details, dict) and "operationId" in details:
-					operation_id = details["operationId"]
-					description = details.get("description", "No description available.")
-					fsummary[operation_id] = description
-		
-		for path, methods in oas["paths"].items():
-			for method, details in methods.items():
-				if isinstance(details, dict) and "operationId" in details:
-					fname = details["operationId"]
-					oas = OpenAPI.model_validate(oas)
-					op_oas = op_only_oas(oas, fname)
-					print(fname)
-					fdetails[fname] = op_oas
-
-
-	step1_main(policy_text, fsummary, fdetails, step1_out_dir,model_name, tools)
+	
+	step1_main(policy_text, oas, step1_out_dir,model_name, tools)
 
 
 

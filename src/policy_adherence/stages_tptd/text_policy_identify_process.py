@@ -10,6 +10,7 @@ from langgraph.graph import StateGraph
 from policy_adherence.common.open_api import OpenAPI
 from policy_adherence.llm.litellm_model import LitellmModel
 from policy_adherence.llm.llm_model import LLM_model
+from policy_adherence.stages_tptd.create_oas_summary import OASSummarizer
 from policy_adherence.stages_tptd.utils import read_prompt_file, generate_messages, save_output, TPTDState, \
 	find_mismatched_references
 from tests.op_only_oas import op_only_oas
@@ -235,7 +236,9 @@ class PolicyIdentifier:
 		system_prompt = system_prompt.replace("ToolX", state["target_tool"])
 		TPTD = state["TPTD"]
 		for policy in TPTD["policies"]:
-			user_content = f"Policy Document:{state['policy_text']}\nTools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nPolicy:{policy}"
+			#user_content = f"Policy Document:{state['policy_text']}\nTools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nPolicy:{policy}"
+			user_content = f"Tools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nPolicy:{policy}"
+			
 			response = self.llm.chat_json(generate_messages(system_prompt, user_content))
 			if 'violating_examples' in response:
 				policy["violating_examples"] = response["violating_examples"]
@@ -252,7 +255,8 @@ class PolicyIdentifier:
 		system_prompt = system_prompt.replace("ToolX", state["target_tool"])
 		TPTD = state["TPTD"]
 		for policy in TPTD["policies"]:
-			user_content = f"Policy Document:{state['policy_text']}\nTools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nPolicy:{policy}"
+			#user_content = f"Policy Document:{state['policy_text']}\nTools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nPolicy:{policy}"
+			user_content = f"Tools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nPolicy:{policy}"
 			response = self.llm.chat_json(generate_messages(system_prompt, user_content))
 			if 'violating_examples' in response:
 				for vexample in response["violating_examples"]:
@@ -279,7 +283,8 @@ class PolicyIdentifier:
 		system_prompt = system_prompt.replace("ToolX", state["target_tool"])
 		TPTD = state["TPTD"]
 		for policy in TPTD["policies"]:
-			user_content = f"Policy Document:{state['policy_text']}\nTools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nPolicy Name:{policy['policy_name']}\nPolicy Description:{policy['description']}"
+			#user_content = f"Policy Document:{state['policy_text']}\nTools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nPolicy Name:{policy['policy_name']}\nPolicy Description:{policy['description']}"
+			user_content = f"Tools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nPolicy Name:{policy['policy_name']}\nPolicy Description:{policy['description']}"
 			user_content+= f"\n\nViolating Examples: {policy['violating_examples']}"
 			user_content+= f"\n\nCompliance Examples: {policy['compliance_examples']}"
 			response = self.llm.chat_json(generate_messages(system_prompt, user_content))
@@ -302,9 +307,9 @@ class PolicyIdentifier:
 					system_prompt = orig_prompt.replace("ToolX", state["target_tool"])
 					system_prompt = system_prompt.replace("__EXAMPLE_TYPE__", "")
 			
-					user_content = f"Policy Document:{state['policy_text']}\nTools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nPolicy Name:{policy['policy_name']}\nPolicy Description:{policy['description']}\nExample:{example}"
+					#user_content = f"Policy Document:{state['policy_text']}\nTools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nPolicy Name:{policy['policy_name']}\nPolicy Description:{policy['description']}\nExample:{example}"
+					user_content = f"Tools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nPolicy Name:{policy['policy_name']}\nPolicy Description:{policy['description']}\nExample:{example}"
 					
-				
 					response = self.llm.chat_json(generate_messages(system_prompt, user_content))
 					fixed_examples.append(response["revised_example"])
 				policy[etype + "_examples"] = fixed_examples
@@ -327,7 +332,8 @@ class PolicyIdentifier:
 					print(example)
 					reviews = []
 					for iteration in range(5):
-						user_content = f"Policy Document:{state['policy_text']}\nTools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nPolicy Name:{policy['policy_name']}\nPolicy Description:{policy['description']}\nExample:{example}"
+						#user_content = f"Policy Document:{state['policy_text']}\nTools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nPolicy Name:{policy['policy_name']}\nPolicy Description:{policy['description']}\nExample:{example}"
+						user_content = f"Tools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nPolicy Name:{policy['policy_name']}\nPolicy Description:{policy['description']}\nExample:{example}"
 						response = self.llm.chat_json(generate_messages(system_prompt, user_content))
 						reviews.append(response)
 					keep = self.keep_example(reviews)
@@ -357,7 +363,7 @@ class PolicyIdentifier:
 		
 	
 
-def step1_main(policy_text:str, fsummary:Dict, fdetails:Dict, step1_output_dir:str,model, tools:Optional[List[str]]=None):
+def step1_main(policy_text:str, oas:Dict, step1_output_dir:str,model, tools:Optional[List[str]]=None):
 	if not os.path.isdir(step1_output_dir):
 		os.makedirs(step1_output_dir)
 		
@@ -365,7 +371,11 @@ def step1_main(policy_text:str, fsummary:Dict, fdetails:Dict, step1_output_dir:s
 	if not os.path.isdir(process_dir):
 		os.makedirs(process_dir)
 	
-	for fname, detail in fdetails.items():
+	summarizer = OASSummarizer(oas)
+	summary = summarizer.summarize()
+	fsummary = {k:v["description"] for k,v in summary.items()}
+	
+	for fname, detail in summary.items():
 		if tools is None or fname in tools:
 			print(fname)
 			input_state = {
@@ -389,59 +399,27 @@ def step1_main(policy_text:str, fsummary:Dict, fdetails:Dict, step1_output_dir:s
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='parser')
-	#parser.add_argument('--model-type', type=str,default='ASURE')
 	parser.add_argument('--model-name', type=str,default='gpt-4o-2024-08-06')
 	#parser.add_argument("--model-name",type=str,default='meta-llama/llama-3-3-70b-instruct')
 	#parser.add_argument('--policy-path', type=str, default='/Users/naamazwerdling/Documents/OASB/policy_validation/airline/wiki-with-policies-for-non-existing-tools-rev.md')
 	#parser.add_argument('--policy-path',type=str,default='/Users/naamazwerdling/Documents/OASB/policy_validation/airline/wiki-with-policies-for-non-existing-tools.md')
 	parser.add_argument('--policy-path', type=str,default='/Users/naamazwerdling/Documents/OASB/policy_validation/airline/wiki.md')
+	parser.add_argument('--oas', type=str,default='/Users/naamazwerdling/Documents/OASB/policy_validation/airline/airline.json')
 	parser.add_argument('--outdir', type=str,default='/Users/naamazwerdling/Documents/OASB/policy_validation/airline/outdir2/oas2')
-
-	parser.add_argument('--oas', type=str, default='/Users/naamazwerdling/Documents/OASB/policy_validation/airline/airline.json')
-	parser.add_argument('--functions-schema', type=str,default=None)
 	parser.add_argument('--tools', nargs='+', default=['book_reservation.py'], help='Optional list of tool names. These are a subset of the tools in the openAPI operation ids.')
 
 	args = parser.parse_args()
 	policy_path = args.policy_path
+	oas_file = args.oas
 	outdir = args.outdir
-	#model_type = args.model_type
-	#model_name = args.model_name
-	functions_schema = args.functions_schema
 	
-
 	policy_text = open(policy_path, 'r',encoding='utf-8').read()
 	policy_text = markdown.markdown(policy_text)
 
-	fsummary = {}
-	fdetails = {}
-	if functions_schema:
-		with open(functions_schema,'r',encoding='utf-8') as file:
-			functions = json.load(file)
-		for k, v in functions.items():
-			fsummary[k] = v['description']
-		print(json.dumps(fsummary))
-		fdetails = functions
-	else:
-		oas = args.oas
-		with open(oas,'r',encoding='utf-8') as file:
-			functions = json.load(file)
+	with open(oas_file,'r',encoding='utf-8') as file:
+		oas = json.load(file)
 
-		if 'paths' in functions:
-			for path, methods in functions["paths"].items():
-				for method, details in methods.items():
-					if isinstance(details, dict) and "operationId" in details:
-						operation_id = details["operationId"]
-						description = details.get("description", "No description available.")
-						fsummary[operation_id] = description
-	
-			for path, methods in functions["paths"].items():
-				for method, details in methods.items():
-					if isinstance(details, dict) and "operationId" in details:
-						fname = details["operationId"]
-						oas = OpenAPI.model_validate(functions)
-						op_oas = op_only_oas(oas, fname)
-						fdetails[fname] = op_oas
-						
-	step1_main(policy_text,fsummary,fdetails,outdir,args.model_name,args.tools)
+		
+	step1_main(policy_text,oas,outdir,args.model_name,args.tools)
 	
 
