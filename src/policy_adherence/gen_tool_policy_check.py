@@ -168,6 +168,7 @@ class ToolCheckPolicyGenerator:
         dep_tools = set(dep_tools) #workaround. generative AI
         logger.debug(f"Dependencies of {item.name}: {dep_tools}")
 
+        test_file_name = join(TESTS_DIR, self.tool.name, f"{test_fn_module_name(item.name)}.py")
         errors = []
         for trial_no in range(MAX_TEST_GEN_TRIALS):
             logger.debug(f"Generating tool {item.name} tests. iteration {trial_no}")
@@ -175,28 +176,28 @@ class ToolCheckPolicyGenerator:
             if first_time:
                 res_content = await prompts.generate_tool_item_tests(fn_name, check_fn, item, self.common, self.domain, dep_tools)
             else:
-                res_content = await prompts.improve_tool_tests(tests, self.domain, item, errors)
+                res_content = await prompts.improve_tool_tests(test_file, self.domain, item, errors)
 
             test_content = post_process_llm_response(res_content)
-            tests = FileTwin(
-                file_name= join(TESTS_DIR, self.tool.name, f"{test_fn_module_name(item.name)}.py"),
+            test_file = FileTwin(
+                file_name= test_file_name,
                 content=test_content
             )
-            tests.save(self.py_path)
-            tests.save_as(self.py_path, join(DEBUG_DIR, f"{trial_no}_{test_fn_module_name(item.name)}.py"))
+            test_file.save(self.py_path)
+            test_file.save_as(self.py_path, join(DEBUG_DIR, f"{trial_no}_{test_fn_module_name(item.name)}.py"))
 
-            lint_report = pyright.run(self.py_path, tests.file_name, PY_ENV)
+            lint_report = pyright.run(self.py_path, test_file.file_name, PY_ENV)
             if lint_report.summary.errorCount>0:
-                logger.warning(f"Generated tests with {lint_report.summary.errorCount} Python errors {tests.file_name}.")
+                logger.warning(f"Generated tests with {lint_report.summary.errorCount} Python errors {test_file.file_name}.")
                 errors = lint_report.list_error_messages()
                 continue
 
             #syntax ok, try to run it...
             logger.debug(f"Generated Tests... (trial={trial_no})")
             report_file_name = join(DEBUG_DIR, f"{trial_no}_{to_snake_case(item.name)}_report.json")
-            test_report = pytest.run(self.py_path, tests.file_name, report_file_name)
+            test_report = pytest.run(self.py_path, test_file.file_name, report_file_name)
             if test_report.all_tests_collected_successfully() and test_report.non_empty_tests():
-                return tests
+                return test_file
             if not test_report.non_empty_tests():  # empty test set
                 errors = ['empty set of generated unit tests is not allowed']
             else:
@@ -244,6 +245,8 @@ class ToolCheckPolicyGenerator:
                 logger.warning(f"Generated function {module_name} with {lint_report.summary.errorCount} errors.")
                 
                 errors = lint_report.list_error_messages()
+                continue
+            
             return check_fn
         
         raise Exception(f"Generation failed for tool {item.name}")

@@ -49,12 +49,12 @@ def symlink_force(target, link_name):
         os.symlink(target, link_name)
 
 async def gen_all():
-    oas_path = "/Users/davidboaz/Documents/GitHub/tau_airline/input/openapi.yaml"
+    oas_path = "/Users/davidboaz/Documents/GitHub/gen_policy_validator/src/policy_adherence/eval/airline/input/oas3.json"
     tool_policy_paths = {
         # "cancel_reservation": "/Users/davidboaz/Documents/GitHub/tau_airline/input/CancelReservation.json",
-        "book_reservation": "/Users/davidboaz/Documents/GitHub/tau_airline/input/book_reservation.json"
+        "book_reservation": "/Users/davidboaz/Documents/GitHub/gen_policy_validator/src/policy_adherence/eval/airline/input/book_reservation.json"
     }
-    output_dir = "/Users/davidboaz/Documents/GitHub/tau_airline/output"
+    output_dir = "/Users/davidboaz/Documents/GitHub/gen_policy_validator/src/policy_adherence/eval/airline/output"
     now = datetime.now()
     out_folder = os.path.join(output_dir, now.strftime("%Y-%m-%d_%H_%M_%S"))
     os.makedirs(out_folder, exist_ok=True)
@@ -69,7 +69,10 @@ async def gen_all():
     for tool_name, tool in result.tools.items():
         print(f"\t{tool_name}\t{tool.tool_check_file.file_name}")
         for test in tool.test_files:
-            print(f"\t{test.file_name}")
+            if test:
+                print(f"\t{test.file_name}")
+            else:
+                print(f"\tFAILED")
     
 if __name__ == '__main__':
     logger.remove()
