@@ -37,13 +37,13 @@ HISTORY_PARAM_TYPE = "ChatHistory"
 API_PARAM = "api"
 
 def check_fn_name(name:str)->str:
-    return to_snake_case(f"check_{name}")
+    return to_snake_case(f"guard_{name}")
 
 def check_fn_module_name(name:str)->str:
     return to_snake_case(check_fn_name(name))
 
 def test_fn_name(name:str)->str:
-    return to_snake_case(f"test_check_{name}")
+    return to_snake_case(f"test_guard_{name}")
 
 def test_fn_module_name(name:str)->str:
     return to_snake_case(test_fn_name(name))
@@ -184,6 +184,10 @@ class ToolCheckPolicyGenerator:
             lint_report = pyright.run(self.py_path, test_file.file_name, PY_ENV)
             if lint_report.summary.errorCount>0:
                 logger.warning(f"Generated tests with {lint_report.summary.errorCount} Python errors {test_file.file_name}.")
+                FileTwin(
+                        file_name=join(DEBUG_DIR, f"{trial_no}_{test_fn_module_name(item.name)}_errors.json"), 
+                        content=lint_report.model_dump_json(indent=2)
+                    ).save(self.py_path, )
                 errors = lint_report.list_error_messages()
                 continue
 

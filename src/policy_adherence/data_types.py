@@ -51,19 +51,6 @@ class ToolPolicyItem(BaseModel):
 class ToolPolicy(BaseModel):
     name: str
     policy_items: List[ToolPolicyItem]
-    
-    def __str__(self) -> str:
-        s = ""
-        for i, item in enumerate(self.policy_items):
-            s+= f"#### Policy item {i+1}\n"
-            s+=f"{item.description}\n"
-            if item.compliance_examples:
-                s+=f"##### Positive examples\n{to_md_bulltets(item.compliance_examples)}"
-            if item.violation_examples:
-                s+=f"##### Negative examples\n{to_md_bulltets(item.violation_examples)}"
-            s+="\n"
-        return s
-
 
 class ToolChecksCodeResult(BaseModel):
     tool: ToolPolicy

@@ -35,8 +35,8 @@ from domain import *
         - Failure message should describe the test scenario that failed, the expected and the actual outcomes.
 
     **Data population and references:**
-    - populate all request object fields that are required by Pydantic or that are required according to the policy.
-    - When populating domain objects, use pydantic `.model_construct()`.
+    - When populating domain objects, use pydantic `.model_construct()`. 
+    - If the class extends `pydantic.RootModel`, always pass the `root` argument.
     - You should mock the return_value from **ALL tools listed in `dependent_tool_names`**.
     - You should mock the chat_history services. 
     
