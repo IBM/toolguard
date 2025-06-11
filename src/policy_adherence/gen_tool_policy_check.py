@@ -63,8 +63,10 @@ def get_annotation_str(annotation):
 def fn_doc_string(args: list[ast.arg], history_arg, api_arg):
     app_args_doc = "\n    ".join([f"{arg.arg} ({get_annotation_str(arg.annotation)})" for arg in args])
     
-    return f"""
-Checks that a tool call complies with a policy.
+    def add_policy(policy:str):
+        return f"""
+Checks that a tool call complies with the following policy:
+>{policy}
 
 Args:
     {app_args_doc}
@@ -74,6 +76,8 @@ Args:
 Raises:
     PolicyViolationException: If the request violates the policy.
 """
+    return add_policy
+    
 
 async def generate_tools_check_fns(app_name: str, tools: List[ToolPolicy], py_root:str, openapi_path:str)->ToolChecksCodeGenerationResult:
     logger.debug(f"Starting... will save into {py_root}")
@@ -279,12 +283,12 @@ class ToolCheckPolicyGenerator:
         history_arg = ast.arg(arg=HISTORY_PARAM, annotation=ast.Name(id=HISTORY_PARAM_TYPE, ctx=ast.Load()))
         api_arg = ast.arg(arg=API_PARAM, annotation=ast.Name(id=api_cls.name, ctx=ast.Load()))
         
-        fn_docstring = fn_doc_string(args, history_arg, api_arg)
+        docstring_fn = fn_doc_string(args, history_arg, api_arg)
         fn_args.args.extend([history_arg, api_arg])
 
         py.create_init_py(join(self.py_path, to_snake_case(self.app_name), to_snake_case(self.tool.name)))
         
-        item_files = [self._create_item_module(item, fn_args, fn_docstring) 
+        item_files = [self._create_item_module(item, fn_args, docstring_fn(item.description)) 
             for item in self.tool.policy_items]
         
         body = [
@@ -297,7 +301,7 @@ class ToolCheckPolicyGenerator:
                 check_fn_name(item.name)
             ))
         
-        fn_body = [ast.Expr(value=ast.Constant(value=fn_docstring, kind=None))]
+        fn_body = [ast.Expr(value=ast.Constant(value=docstring_fn(self.tool.name), kind=None))]
         for item in self.tool.policy_items:
             params = [arg.arg for arg in args]+[HISTORY_PARAM, API_PARAM]
             fn_body.append(
