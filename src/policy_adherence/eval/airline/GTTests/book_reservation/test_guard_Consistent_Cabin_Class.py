@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 # Importing the function under test and necessary modules
-from my_app.book_reservation.check_Consistent_Cabin_Class import check_Consistent_Cabin_Class
+from my_app.book_reservation.guard_book_reservation import guard_book_reservation
 from my_app.common import *
 from my_app.domain import *
 
@@ -14,8 +14,6 @@ class TestConsistentCabinClassPolicy(unittest.TestCase):
         """
         Test case for: Maria Gonzalez and Luis Perez both fly economy from LAX to JFK, complying with the consistent cabin class policy.
         """
-        # Mocking the API and history
-        api = MockApi()
         history = MagicMock()
         history.ask_bool.return_value = True
 
@@ -38,12 +36,22 @@ class TestConsistentCabinClassPolicy(unittest.TestCase):
         )
 
         # Mocking dependent tool
-        api.get_reservation_details.return_value = GetReservationDetailsResponse(
-            cabin='economy'
+        # api.get_reservation_details.return_value = GetReservationDetailsResponse(
+        #     cabin='economy'
+        # )
+        user = GetUserDetailsResponse.model_construct(
+            name=Name(first_name="Alice", last_name="Smith"),
+            email="alice.smith@example.com",
+            membership="gold",
+            payment_methods={
+                'credit_card_123': PaymentMethods(source='credit_card', brand='Visa', last_four='1234'),
+            }
         )
+        api = MagicMock()
+        api.get_user_details.return_value = user
 
         # Invoke the function under test
-        check_Consistent_Cabin_Class(args, history, api)
+        guard_book_reservation(args, history, api)
 
 
 if __name__ == '__main__':

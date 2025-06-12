@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 # Importing necessary modules
-from my_app.book_reservation.check_Checked_Bag_Allowance import check_Checked_Bag_Allowance
+from my_app.book_reservation.guard_book_reservation import guard_book_reservation
 from my_app.common import *
 from my_app.domain import *
 
@@ -13,7 +13,12 @@ class TestCheckedBagAllowance(unittest.TestCase):
     def test_regular_member_economy_class_one_free_bag(self, mock_get_user_details):
         """A regular member books a reservation in economy class, correctly claiming 1 free checked bag as per policy."""
         # Mocking user details
-        user_details = GetUserDetailsResponse(membership='regular')
+        user_details = GetUserDetailsResponse(
+            payment_methods={
+                'asas': PaymentMethods(source='credit_card', brand='Visa', last_four='1234'),
+            },
+            membership = "regular"
+        )
         mock_get_user_details.return_value = user_details
 
         # Creating request object
@@ -25,7 +30,7 @@ class TestCheckedBagAllowance(unittest.TestCase):
             cabin='economy',
             flights=[Flight(flight_number='FL123', date='2024-05-01')],
             passengers=[Passenger(first_name='John', last_name='Doe', dob='1990-01-01')],
-            payment_methods=[PaymentMethod(payment_id='credit_card_123', amount=200.0)],
+            payment_methods=[PaymentMethod(payment_id='asas', amount=200.0)],
             total_baggages=1,
             nonfree_baggages=0,
             insurance='no'
@@ -40,7 +45,7 @@ class TestCheckedBagAllowance(unittest.TestCase):
         api.get_user_details.return_value = user_details
 
         # Invoke function under test
-        check_Checked_Bag_Allowance(args, history, api)
+        guard_book_reservation(args, history, api)
 
     def test_regular_member_business_two_bags(self):
         """
@@ -54,7 +59,11 @@ class TestCheckedBagAllowance(unittest.TestCase):
         user = GetUserDetailsResponse(
             name=Name(first_name="John", last_name="Doe"),
             email="john.doe@example.com",
-            membership="regular"
+            membership="regular",
+            payment_methods={
+                'credit_card_1234': PaymentMethods(source='credit_card', brand='Visa', last_four='1234'),
+            }
+        
         )
         api = MagicMock()
         api.get_user_details.return_value = user
@@ -69,13 +78,13 @@ class TestCheckedBagAllowance(unittest.TestCase):
             passengers=[Passenger(first_name="John", last_name="Doe", dob="1990-01-01")],
             total_baggages=2,
             nonfree_baggages=0,
-            insurance=False,
+            insurance="no",
             flights=[Flight(flight_number="HAT001", date="2024-05-01")],
-            payment_methods=[PaymentMethod(payment_id="credit_card_1234", amount=0.0)]
+            payment_methods=[PaymentMethod(payment_id="credit_card_1234", amount=10.0)]
         )
 
         # Invoke function under test
-        check_Checked_Bag_Allowance(request, history, api)
+        guard_book_reservation(request, history, api)
 
     def test_silver_member_business_three_bags(self):
         """
@@ -89,7 +98,10 @@ class TestCheckedBagAllowance(unittest.TestCase):
         user = GetUserDetailsResponse.model_construct(
             name=Name(first_name="Jane", last_name="Doe"),
             email="jane.doe@example.com",
-            membership="silver"
+            membership="silver",
+            payment_methods={
+                'credit_card_5678': PaymentMethods(source='credit_card', brand='Visa', last_four='1234'),
+            }
         )
         api = MagicMock()
         api.get_user_details.return_value = user
@@ -104,12 +116,12 @@ class TestCheckedBagAllowance(unittest.TestCase):
             passengers=[Passenger(first_name="Jane", last_name="Doe", dob="1992-02-02")],
             total_baggages=3,
             nonfree_baggages=0,
-            insurance=False,
+            insurance="no",
             flights=[Flight(flight_number="HAT002", date="2024-05-02")],
-            payment_methods=[PaymentMethod(payment_id="credit_card_5678", amount=0.0)]
+            payment_methods=[PaymentMethod(payment_id="credit_card_5678", amount=30.0)]
         )
 
-        check_Checked_Bag_Allowance(request, history, api)
+        guard_book_reservation(request, history, api)
 
     def test_gold_member_business_three_bags(self):
         """
@@ -123,7 +135,10 @@ class TestCheckedBagAllowance(unittest.TestCase):
         user = GetUserDetailsResponse.model_construct(
             name=Name(first_name="Alice", last_name="Smith"),
             email="alice.smith@example.com",
-            membership="gold"
+            membership="gold",
+            payment_methods={
+                'credit_card_9101': PaymentMethods(source='credit_card', brand='Visa', last_four='1234'),
+            }
         )
         api = MagicMock()
         api.get_user_details.return_value = user
@@ -138,12 +153,12 @@ class TestCheckedBagAllowance(unittest.TestCase):
             passengers=[Passenger(first_name="Alice", last_name="Smith", dob="1993-03-03")],
             total_baggages=3,
             nonfree_baggages=0,
-            insurance=False,
+            insurance="no",
             flights=[Flight(flight_number="HAT003", date="2024-05-03")],
-            payment_methods=[PaymentMethod(payment_id="credit_card_9101", amount=0.0)]
+            payment_methods=[PaymentMethod(payment_id="credit_card_9101", amount=20.0)]
         )
 
-        check_Checked_Bag_Allowance(request, history, api)
+        guard_book_reservation(request, history, api)
 
 
     def test_regular_member_business_three_bags(self):
@@ -158,7 +173,10 @@ class TestCheckedBagAllowance(unittest.TestCase):
         user = GetUserDetailsResponse.model_construct(
             name=Name(first_name="Bob", last_name="Brown"),
             email="bob.brown@example.com",
-            membership="regular"
+            membership="regular",
+            payment_methods={
+                'credit_card_1121': PaymentMethods(source='credit_card', brand='Visa', last_four='1234'),
+            }
         )
         api = MagicMock()
         api.get_user_details.return_value = user
@@ -173,14 +191,14 @@ class TestCheckedBagAllowance(unittest.TestCase):
             passengers=[Passenger(first_name="Bob", last_name="Brown", dob="1994-04-04")],
             total_baggages=3,
             nonfree_baggages=0,
-            insurance=False,
+            insurance="no",
             flights=[Flight(flight_number="HAT004", date="2024-05-04")],
             payment_methods=[PaymentMethod(payment_id="credit_card_1121", amount=0.0)]
         )
 
         # Invoke function under test
         with self.assertRaises(PolicyViolationException):
-            check_Checked_Bag_Allowance(request, history, api)
+            guard_book_reservation(request, history, api)
 
     def test_silver_member_business_four_bags(self):
         """
@@ -194,7 +212,10 @@ class TestCheckedBagAllowance(unittest.TestCase):
         user = GetUserDetailsResponse.model_construct(
             name=Name(first_name="Charlie", last_name="Davis"),
             email="charlie.davis@example.com",
-            membership="silver"
+            membership="silver",
+            payment_methods={
+                'credit_card_3141': PaymentMethods(source='credit_card', brand='Visa', last_four='1234'),
+            }
         )
         api = MagicMock()
         api.get_user_details.return_value = user
@@ -209,20 +230,23 @@ class TestCheckedBagAllowance(unittest.TestCase):
             passengers=[Passenger(first_name="Charlie", last_name="Davis", dob="1995-05-05")],
             total_baggages=4,
             nonfree_baggages=0,
-            insurance=False,
+            insurance="no",
             flights=[Flight(flight_number="HAT005", date="2024-05-05")],
             payment_methods=[PaymentMethod(payment_id="credit_card_3141", amount=0.0)]
         )
 
         # Invoke function under test
         with self.assertRaises(PolicyViolationException):
-            check_Checked_Bag_Allowance(request, history, api)
+            guard_book_reservation(request, history, api)
 
     @patch('my_app.domain.FlightBookingApi.get_user_details')
     def test_regular_member_business_class_three_free_bags_violation(self, mock_get_user_details):
         """A regular member booking a flight in business class claims 3 free checked bags instead of the allowed 2, resulting in a policy violation."""
         # Mocking user details
-        user_details = GetUserDetailsResponse(membership='regular')
+        user_details = GetUserDetailsResponse(membership='regular',
+            payment_methods={
+                'credit_card_123': PaymentMethods(source='credit_card', brand='Visa', last_four='1234'),
+            })
         mock_get_user_details.return_value = user_details
 
         # Creating request object
@@ -250,7 +274,7 @@ class TestCheckedBagAllowance(unittest.TestCase):
 
         # Invoke function under test and expect exception
         with self.assertRaises(PolicyViolationException):
-            check_Checked_Bag_Allowance(args, history, api)
+            guard_book_reservation(args, history, api)
 
 
 # Additional tests for other compliance and violation examples can be added following the same pattern.

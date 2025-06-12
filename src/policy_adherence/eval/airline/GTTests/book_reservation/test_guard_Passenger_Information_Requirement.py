@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import MagicMock
-from my_app.book_reservation.check_Passenger_Information_Requirement import check_Passenger_Information_Requirement
+from my_app.book_reservation.guard_book_reservation import guard_book_reservation
 from my_app.common import *
 from my_app.domain import *
 
@@ -13,8 +13,16 @@ class TestPassengerInformationRequirementCompliance(unittest.TestCase):
         self.history.ask_bool.return_value = True
 
         # Mock the API
+        user = GetUserDetailsResponse.model_construct(
+            name=Name(first_name="Alice", last_name="Smith"),
+            email="alice.smith@example.com",
+            membership="gold",
+            payment_methods={
+                'credit_card_123': PaymentMethods(source='credit_card', brand='Visa', last_four='1234'),
+            }
+        )
         self.api = MagicMock()
-        self.api.get_user_details.return_value = GetUserDetailsResponse()
+        self.api.get_user_details.return_value = user
         self.api.list_all_airports.return_value = ListAllAirportsResponse()
         self.api.search_direct_flight.return_value = []
         self.api.search_onestop_flight.return_value = []
@@ -41,13 +49,13 @@ class TestPassengerInformationRequirementCompliance(unittest.TestCase):
                 Passenger(first_name="Jack", last_name="Daniels", dob="1993-04-04"),
                 Passenger(first_name="Jill", last_name="Valentine", dob="1994-05-05")
             ],
-            payment_methods=[],
+            payment_methods=[PaymentMethod(payment_id='credit_card_123', amount=500.0)],
             total_baggages=0,
             nonfree_baggages=0,
             insurance="no"
         )
         # No exception should be raised
-        check_Passenger_Information_Requirement(args, self.history, self.api)
+        guard_book_reservation(args, self.history, self.api)
 
     def test_2passaengers_missing_date_of_birth_violation(self):
         """
@@ -69,11 +77,11 @@ class TestPassengerInformationRequirementCompliance(unittest.TestCase):
             nonfree_baggages=1,
             insurance=True,
             flights=[],
-            payment_methods=[]
+            payment_methods=[PaymentMethod(payment_id='credit_card_123', amount=500.0)]
         )
 
         with self.assertRaises(PolicyViolationException):
-            check_Passenger_Information_Requirement(args, self.history, self.api)
+            guard_book_reservation(args, self.history, self.api)
 
     def test_missing_first_name_violation(self):
         """
@@ -95,11 +103,11 @@ class TestPassengerInformationRequirementCompliance(unittest.TestCase):
             nonfree_baggages=1,
             insurance=True,
             flights=[],
-            payment_methods=[]
+            payment_methods=[PaymentMethod(payment_id='credit_card_123', amount=500.0)]
         )
 
         with self.assertRaises(PolicyViolationException):
-            check_Passenger_Information_Requirement(request, self.history, self.api)
+            guard_book_reservation(request, self.history, self.api)
 
     def test_exceeding_passenger_limit_violation(self):
         """
@@ -125,11 +133,11 @@ class TestPassengerInformationRequirementCompliance(unittest.TestCase):
             nonfree_baggages=1,
             insurance=True,
             flights=[],
-            payment_methods=[]
+            payment_methods=[PaymentMethod(payment_id='credit_card_123', amount=500.0)]
         )
 
         with self.assertRaises(PolicyViolationException):
-            check_Passenger_Information_Requirement(request, self.history, self.api)
+            guard_book_reservation(request, self.history, self.api)
 
 
     def test_single_passenger_with_complete_information(self):
@@ -146,13 +154,13 @@ class TestPassengerInformationRequirementCompliance(unittest.TestCase):
             passengers=[
                 Passenger(first_name="John", last_name="Doe", dob="1990-01-01")
             ],
-            payment_methods=[],
+            payment_methods=[PaymentMethod(payment_id='credit_card_123', amount=500.0)],
             total_baggages=0,
             nonfree_baggages=0,
             insurance="no"
         )
         # No exception should be raised
-        check_Passenger_Information_Requirement(args, self.history, self.api)
+        guard_book_reservation(args, self.history, self.api)
 
     # Violation Tests
     def test_six_passengers_violation(self):
@@ -174,13 +182,13 @@ class TestPassengerInformationRequirementCompliance(unittest.TestCase):
                 Passenger(first_name="Jill", last_name="Valentine", dob="1994-05-05"),
                 Passenger(first_name="Jake", last_name="Snake", dob="1995-06-06")
             ],
-            payment_methods=[],
+            payment_methods=[PaymentMethod(payment_id='credit_card_123', amount=500.0)],
             total_baggages=0,
             nonfree_baggages=0,
             insurance="no"
         )
         with self.assertRaises(PolicyViolationException, msg="Expected PolicyViolationException for six passengers, but none was raised."):
-            check_Passenger_Information_Requirement(args, self.history, self.api)
+            guard_book_reservation(args, self.history, self.api)
 
     def test_missing_date_of_birth_violation(self):
         """
@@ -200,13 +208,13 @@ class TestPassengerInformationRequirementCompliance(unittest.TestCase):
                 Passenger.model_construct(first_name="Jack", last_name="Daniels", dob="1993-04-04"),
                 Passenger.model_construct(first_name="Jill", last_name="Valentine", dob=None)
             ],
-            payment_methods=[],
+            payment_methods=[PaymentMethod(payment_id='credit_card_123', amount=500.0)],
             total_baggages=0,
             nonfree_baggages=0,
             insurance="no"
         )
         with self.assertRaises(PolicyViolationException, msg="Expected PolicyViolationException for missing date of birth, but none was raised."):
-            check_Passenger_Information_Requirement(args, self.history, self.api)
+            guard_book_reservation(args, self.history, self.api)
 
 
 if __name__ == '__main__':

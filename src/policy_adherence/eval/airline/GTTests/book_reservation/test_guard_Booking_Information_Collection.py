@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 # Importing necessary modules
-from my_app.book_reservation.check_Booking_Information_Collection import check_Booking_Information_Collection
+from my_app.book_reservation.guard_book_reservation import guard_book_reservation
 from my_app.common import *
 from my_app.domain import *
 
@@ -18,7 +18,12 @@ class TestBookingInformationCollectionCompliance(unittest.TestCase):
         history = MagicMock()
         history.ask_bool.return_value = True
 
-        user_details = GetUserDetailsResponse.model_construct()
+        user_details = GetUserDetailsResponse.model_construct(
+            payment_methods={
+                'asas': PaymentMethods(source='credit_card', brand='Visa', last_four='1234'),
+            },
+            membership = "regular"
+        )
         airports = ListAllAirportsResponse.model_construct(root={"SFO": "San Francisco", "JFK": "New York"})
 
         api = MagicMock()
@@ -45,7 +50,7 @@ class TestBookingInformationCollectionCompliance(unittest.TestCase):
         )
 
         # Invoke function under test
-        check_Booking_Information_Collection(args, history, api)
+        guard_book_reservation(args, history, api)
 
 
 class TestBookingInformationCollectionViolation(unittest.TestCase):
@@ -87,7 +92,7 @@ class TestBookingInformationCollectionViolation(unittest.TestCase):
 
         # Invoke function under test and expect exception
         with self.assertRaises(PolicyViolationException):
-            check_Booking_Information_Collection(args, history, api)
+            guard_book_reservation(args, history, api)
 
 
     def test_violation_missing_trip_type(self):
@@ -126,7 +131,7 @@ class TestBookingInformationCollectionViolation(unittest.TestCase):
 
         # Invoke function under test and expect exception
         with self.assertRaises(PolicyViolationException):
-            check_Booking_Information_Collection(args, history, api)
+            guard_book_reservation(args, history, api)
 
 
     def test_violation_missing_origin_iata_code(self):
@@ -165,7 +170,7 @@ class TestBookingInformationCollectionViolation(unittest.TestCase):
 
         # Invoke function under test and expect exception
         with self.assertRaises(PolicyViolationException):
-            check_Booking_Information_Collection(args, history, api)
+            guard_book_reservation(args, history, api)
 
 
     def test_violation_non_iata_origin_code(self):
@@ -204,7 +209,7 @@ class TestBookingInformationCollectionViolation(unittest.TestCase):
 
         # Invoke function under test and expect exception
         with self.assertRaises(PolicyViolationException):
-            check_Booking_Information_Collection(args, history, api)
+            guard_book_reservation(args, history, api)
 
 
 if __name__ == '__main__':

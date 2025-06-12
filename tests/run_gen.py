@@ -51,8 +51,8 @@ def symlink_force(target, link_name):
 async def gen_all():
     oas_path = "/Users/davidboaz/Documents/GitHub/gen_policy_validator/src/policy_adherence/eval/airline/input/oas3.json"
     tool_policy_paths = {
-        # "cancel_reservation": "/Users/davidboaz/Documents/GitHub/tau_airline/input/CancelReservation.json",
-        "book_reservation": "/Users/davidboaz/Documents/GitHub/gen_policy_validator/src/policy_adherence/eval/airline/input/book_reservation.json"
+        "cancel_reservation": "/Users/davidboaz/Documents/GitHub/gen_policy_validator/src/policy_adherence/eval/airline/input/cancel_reservation.json"
+        # "book_reservation": "/Users/davidboaz/Documents/GitHub/gen_policy_validator/src/policy_adherence/eval/airline/input/book_reservation.json"
     }
     output_dir = "/Users/davidboaz/Documents/GitHub/gen_policy_validator/src/policy_adherence/eval/airline/output"
     now = datetime.now()

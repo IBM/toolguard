@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 # Importing necessary modules from the application
-from my_app.book_reservation.check_Payment_Method_Limitation import check_Payment_Method_Limitation
+from my_app.book_reservation.guard_book_reservation import guard_book_reservation
 from my_app.common import *
 from my_app.domain import *
 
@@ -18,9 +18,11 @@ class TestPaymentMethodLimitationCompliance(unittest.TestCase):
 
     def test_compliance_one_credit_card(self):
         """The user books a flight using one credit card and two gift cards, all listed in their profile, adhering to the payment method limitation policy."""
-        user_details = GetUserDetailsResponse.model_construct(payment_methods={
-            'credit_card_7815826': PaymentMethods(source='credit_card', brand='Visa', last_four='1234'),
-        })
+        user_details = GetUserDetailsResponse.model_construct(
+            payment_methods={
+                'credit_card_7815826': PaymentMethods(source='credit_card', brand='Visa', last_four='1234'),
+            },
+            membership="gold")
         self.api.get_user_details.return_value = user_details
 
         args = BookReservationRequest(
@@ -40,7 +42,7 @@ class TestPaymentMethodLimitationCompliance(unittest.TestCase):
         )
 
         # Invoke the function under test
-        check_Payment_Method_Limitation(args, self.history, self.api)
+        guard_book_reservation(args, self.history, self.api)
 
     def test_compliance_one_credit_card_two_gift_cards(self):
         """The user books a flight using one credit card and two gift cards, all listed in their profile, adhering to the payment method limitation policy."""
@@ -48,7 +50,8 @@ class TestPaymentMethodLimitationCompliance(unittest.TestCase):
             'credit_card_7815826': PaymentMethods(source='credit_card', brand='Visa', last_four='1234'),
             'gift_card_7815826': PaymentMethods(source='gift_card', amount=50),
             'gift_card_7815827': PaymentMethods(source='gift_card', amount=75)
-        })
+        },
+        membership="gold")
         self.api.get_user_details.return_value = user_details
 
         args = BookReservationRequest(
@@ -70,7 +73,7 @@ class TestPaymentMethodLimitationCompliance(unittest.TestCase):
         )
 
         # Invoke the function under test
-        check_Payment_Method_Limitation(args, self.history, self.api)
+        guard_book_reservation(args, self.history, self.api)
 
 
     def test_violation_two_credit_cards_one_gift_card(self):
@@ -124,7 +127,7 @@ class TestPaymentMethodLimitationCompliance(unittest.TestCase):
         )
 
         with self.assertRaises(PolicyViolationException):
-            check_Payment_Method_Limitation(args, self.history, self.api)
+            guard_book_reservation(args, self.history, self.api)
 
     def test_violation_gift_card_not_in_profile(self):
         """A reservation with a credit card not defined in the user profile."""
@@ -149,7 +152,7 @@ class TestPaymentMethodLimitationCompliance(unittest.TestCase):
         )
 
         with self.assertRaises(PolicyViolationException):
-            check_Payment_Method_Limitation(args, self.history, self.api)
+            guard_book_reservation(args, self.history, self.api)
 
     def test_violation_no_payment_methods(self):
         """A reservation with no payment methods"""
@@ -176,7 +179,7 @@ class TestPaymentMethodLimitationCompliance(unittest.TestCase):
 
         # Expecting PolicyViolationException
         with self.assertRaises(PolicyViolationException):
-            check_Payment_Method_Limitation(args, self.history, self.api)
+            guard_book_reservation(args, self.history, self.api)
 
 
     def test_violation_two_credit_cards(self):
@@ -206,7 +209,7 @@ class TestPaymentMethodLimitationCompliance(unittest.TestCase):
 
         # Expecting PolicyViolationException
         with self.assertRaises(PolicyViolationException):
-            check_Payment_Method_Limitation(args, self.history, self.api)
+            guard_book_reservation(args, self.history, self.api)
 
     def test_violation_four_gift_cards(self):
         """A user employs four gift cards as payment methods, exceeding the policy's limit of three gift cards per reservation."""
@@ -239,7 +242,7 @@ class TestPaymentMethodLimitationCompliance(unittest.TestCase):
 
         # Expecting PolicyViolationException
         with self.assertRaises(PolicyViolationException):
-            check_Payment_Method_Limitation(args, self.history, self.api)
+            guard_book_reservation(args, self.history, self.api)
 
     def test_violation_unlisted_payment_method(self):
         """During the booking process, the user tries to use a travel certificate along with a credit card that is not listed in their profile, violating the requirement that payment methods must be pre-listed in the user's profile."""
@@ -267,7 +270,7 @@ class TestPaymentMethodLimitationCompliance(unittest.TestCase):
 
         # Expecting PolicyViolationException
         with self.assertRaises(PolicyViolationException):
-            check_Payment_Method_Limitation(args, self.history, self.api)
+            guard_book_reservation(args, self.history, self.api)
 
     def test_violation_exceeding_gift_card_limit(self):
         """The reservation involves one credit card, one travel certificate, and four gift cards, breaching the policy limits on gift card usage."""
@@ -304,7 +307,7 @@ class TestPaymentMethodLimitationCompliance(unittest.TestCase):
 
         # Expecting PolicyViolationException
         with self.assertRaises(PolicyViolationException):
-            check_Payment_Method_Limitation(args, self.history, self.api)
+            guard_book_reservation(args, self.history, self.api)
 
     def test_violation_two_travel_certificates(self):
         """The user attempts to use two travel certificates for booking a flight, breaching the rule that allows the use of only one travel certificate per reservation."""
@@ -333,7 +336,7 @@ class TestPaymentMethodLimitationCompliance(unittest.TestCase):
 
         # Expecting PolicyViolationException
         with self.assertRaises(PolicyViolationException):
-            check_Payment_Method_Limitation(args, self.history, self.api)
+            guard_book_reservation(args, self.history, self.api)
 
 if __name__ == '__main__':
     unittest.main()
