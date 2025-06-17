@@ -1,6 +1,5 @@
 from policy_adherence.common.jschema import JSchema
-from policy_adherence.dmn import dmn
-
+from dmn import dmn
 
 user_schema = JSchema.model_validate({
     "type": "object",
@@ -27,8 +26,8 @@ def main():
         )
     defs.itemDefinition.append(dmn.map_schema('User', user_schema))
     defs.inputs.append(dmn.InputData(name="User", id="inUser",
-        variable=dmn.InformationItem(typeRef="User", name="User")
-    ))
+									 variable=dmn.InformationItem(typeRef="User", name="User")
+									 ))
     defs.decisions.append(dmn.Decision(
         name="young",
         decisionLogic=dmn.LiteralExpression(text="User.age &lt;= 18"),

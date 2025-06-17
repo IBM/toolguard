@@ -5,8 +5,8 @@ from typing import List
 
 from policy_adherence.common.open_api import OpenAPI, RequestBody, JSchema
 from policy_adherence.common.str import to_snake_case
-from policy_adherence.dmn import dmn
-from policy_adherence.dmn.prompt import improve_tool_rules
+from dmn import dmn
+from dmn.prompt import improve_tool_rules
 from policy_adherence.data_types import FileTwin, ToolPolicy
 
 async def generate_tools_check_rules(app_name:str, tools:List[ToolPolicy], out_folder:str, op_only_oas:OpenAPI):
@@ -33,8 +33,8 @@ async def generate_tools_check_rules(app_name:str, tools:List[ToolPolicy], out_f
             dfs.itemDefinition.append(in_def)
             dfs.inputs.append(
                 dmn.InputData(name="req", id="req",
-                    variable=dmn.InformationItem(typeRef="request", name="request")
-                ))
+							  variable=dmn.InformationItem(typeRef="request", name="request")
+							  ))
             
             # decision_logic = dmn.LiteralExpression(text="FIXME")
             decision_logic = dmn.DecisionTable(

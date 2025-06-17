@@ -115,5 +115,5 @@ if __name__ == '__main__':
     spec_path = "/Users/naamazwerdling/Documents/OASB/policy_validation/airline/oas3.json"
     openapi_spec = load_openapi_spec(spec_path)
     code = generate_functions_from_openapi(openapi_spec)
-    Path("typed_api_functions.py").write_text(code)
+    Path("../policy_adherence/code_gen/typed_api_functions.py").write_text(code)
     print("Function signatures written to typed_api_functions.py")

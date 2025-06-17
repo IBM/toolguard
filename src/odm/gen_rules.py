@@ -6,7 +6,7 @@ import uuid
 
 
 from policy_adherence.common.open_api import OpenAPI, RequestBody, JSchema
-from policy_adherence.odm.prompt import improve_tool_rules
+from odm.prompt import improve_tool_rules
 from policy_adherence.data_types import FileTwin, ToolPolicy
 DOMAIN_PY = "domain.py"
 

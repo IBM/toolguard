@@ -7,7 +7,7 @@ from loguru import logger
 
 from op_only_oas import op_only_oas
 from policy_adherence.common.open_api import read_openapi
-from policy_adherence.odm.gen_rules import generate_tools_check_rules
+from odm.gen_rules import generate_tools_check_rules
 from run_gen import load_tool_policy
 
 
