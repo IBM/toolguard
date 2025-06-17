@@ -8,9 +8,30 @@ from my_app.domain import *
 
 
 class TestCheckedBagAllowance(unittest.TestCase):
-    
-    @patch('my_app.domain.FlightBookingApi.get_user_details')
-    def test_regular_member_economy_class_one_free_bag(self, mock_get_user_details):
+    def setUp(self):
+        # Mocking the chat history
+        self.history = MagicMock()
+        self.history.ask_bool.return_value = True
+
+        # Mocking the FlightBookingApi
+        self.api = MagicMock()
+        self.api.get_flight_on_date_details.return_value = GetFlightOnDateDetailsResponse(
+            status="available",
+            available_seats=AvailableSeats(
+                basic_economy= 9,
+                economy= 9,
+                business= 9
+            ),
+            prices=Prices(
+                basic_economy= 900,
+                economy= 912,
+                business= 649
+            )
+        )
+
+        self.api.list_all_airports.return_value = ListAllAirportsResponse(root={"SFO": "San Francisco", "JFK": "New York"})
+
+    def test_regular_member_economy_class_one_free_bag(self):
         """A regular member books a reservation in economy class, correctly claiming 1 free checked bag as per policy."""
         # Mocking user details
         user_details = GetUserDetailsResponse(
@@ -19,7 +40,7 @@ class TestCheckedBagAllowance(unittest.TestCase):
             },
             membership = "regular"
         )
-        mock_get_user_details.return_value = user_details
+        self.api.get_user_details.return_value = user_details
 
         # Creating request object
         args = BookReservationRequest(
@@ -36,26 +57,9 @@ class TestCheckedBagAllowance(unittest.TestCase):
             insurance='no'
         )
 
-        # Mocking chat history
-        history = MagicMock()
-        history.ask_bool.return_value = True
-
-        # Mocking API
-        api = MagicMock()
-        api.get_user_details.return_value = user_details
-
-        # Invoke function under test
-        guard_book_reservation(args, history, api)
+        guard_book_reservation(args, self.history, self.api)
 
     def test_regular_member_business_two_bags(self):
-        """
-        A reservation with 1 passenger, in business cabin. The user membership is regular. The reservation contains total 2 bags. The user did not pay for any extra bag
-        """
-        # Mock the history service
-        history = MagicMock()
-        history.ask_bool.return_value = True
-
-        # Mock the API
         user = GetUserDetailsResponse(
             name=Name(first_name="John", last_name="Doe"),
             email="john.doe@example.com",
@@ -65,8 +69,7 @@ class TestCheckedBagAllowance(unittest.TestCase):
             }
         
         )
-        api = MagicMock()
-        api.get_user_details.return_value = user
+        self.api.get_user_details.return_value = user
 
         # Create request
         request = BookReservationRequest.model_construct(
@@ -83,16 +86,12 @@ class TestCheckedBagAllowance(unittest.TestCase):
             payment_methods=[PaymentMethod(payment_id="credit_card_1234", amount=10.0)]
         )
 
-        # Invoke function under test
-        guard_book_reservation(request, history, api)
+        guard_book_reservation(request, self.history, self.api)
 
     def test_silver_member_business_three_bags(self):
         """
         A reservation with 1 passenger, in business cabin. The user membership is silver. The reservation contains total 3 bags. The user did not pay for any extra bag
         """
-        # Mock the history service
-        history = MagicMock()
-        history.ask_bool.return_value = True
 
         # Mock the API
         user = GetUserDetailsResponse.model_construct(
@@ -103,8 +102,7 @@ class TestCheckedBagAllowance(unittest.TestCase):
                 'credit_card_5678': PaymentMethods(source='credit_card', brand='Visa', last_four='1234'),
             }
         )
-        api = MagicMock()
-        api.get_user_details.return_value = user
+        self.api.get_user_details.return_value = user
 
         # Create request
         request = BookReservationRequest.model_construct(
@@ -121,17 +119,12 @@ class TestCheckedBagAllowance(unittest.TestCase):
             payment_methods=[PaymentMethod(payment_id="credit_card_5678", amount=30.0)]
         )
 
-        guard_book_reservation(request, history, api)
+        guard_book_reservation(request, self.history, self.api)
 
     def test_gold_member_business_three_bags(self):
         """
         A reservation with 1 passenger, in business cabin. The user membership is gold. The reservation contains total 3 bags. The user did not pay for any extra bag
         """
-        # Mock the history service
-        history = MagicMock()
-        history.ask_bool.return_value = True
-
-        # Mock the API
         user = GetUserDetailsResponse.model_construct(
             name=Name(first_name="Alice", last_name="Smith"),
             email="alice.smith@example.com",
@@ -140,8 +133,7 @@ class TestCheckedBagAllowance(unittest.TestCase):
                 'credit_card_9101': PaymentMethods(source='credit_card', brand='Visa', last_four='1234'),
             }
         )
-        api = MagicMock()
-        api.get_user_details.return_value = user
+        self.api.get_user_details.return_value = user
 
         # Create request
         request = BookReservationRequest.model_construct(
@@ -158,18 +150,13 @@ class TestCheckedBagAllowance(unittest.TestCase):
             payment_methods=[PaymentMethod(payment_id="credit_card_9101", amount=20.0)]
         )
 
-        guard_book_reservation(request, history, api)
+        guard_book_reservation(request, self.history, self.api)
 
 
     def test_regular_member_business_three_bags(self):
         """
         A reservation with 1 passenger, in business cabin. The user membership is regular. The reservation contains total 3 bags. The user did not pay for any extra bag
         """
-        # Mock the history service
-        history = MagicMock()
-        history.ask_bool.return_value = True
-
-        # Mock the API
         user = GetUserDetailsResponse.model_construct(
             name=Name(first_name="Bob", last_name="Brown"),
             email="bob.brown@example.com",
@@ -178,8 +165,7 @@ class TestCheckedBagAllowance(unittest.TestCase):
                 'credit_card_1121': PaymentMethods(source='credit_card', brand='Visa', last_four='1234'),
             }
         )
-        api = MagicMock()
-        api.get_user_details.return_value = user
+        self.api.get_user_details.return_value = user
 
         # Create request
         request = BookReservationRequest.model_construct(
@@ -198,17 +184,12 @@ class TestCheckedBagAllowance(unittest.TestCase):
 
         # Invoke function under test
         with self.assertRaises(PolicyViolationException):
-            guard_book_reservation(request, history, api)
+            guard_book_reservation(request, self.history, self.api)
 
     def test_silver_member_business_four_bags(self):
         """
         A reservation with 1 passenger, in business cabin. The user membership is silver. The reservation contains total 4 bags. The user did not pay for any extra bag
         """
-        # Mock the history service
-        history = MagicMock()
-        history.ask_bool.return_value = True
-
-        # Mock the API
         user = GetUserDetailsResponse.model_construct(
             name=Name(first_name="Charlie", last_name="Davis"),
             email="charlie.davis@example.com",
@@ -217,8 +198,7 @@ class TestCheckedBagAllowance(unittest.TestCase):
                 'credit_card_3141': PaymentMethods(source='credit_card', brand='Visa', last_four='1234'),
             }
         )
-        api = MagicMock()
-        api.get_user_details.return_value = user
+        self.api.get_user_details.return_value = user
 
         # Create request
         request = BookReservationRequest.model_construct(
@@ -237,17 +217,16 @@ class TestCheckedBagAllowance(unittest.TestCase):
 
         # Invoke function under test
         with self.assertRaises(PolicyViolationException):
-            guard_book_reservation(request, history, api)
+            guard_book_reservation(request, self.history, self.api)
 
-    @patch('my_app.domain.FlightBookingApi.get_user_details')
-    def test_regular_member_business_class_three_free_bags_violation(self, mock_get_user_details):
+    def test_regular_member_business_class_three_free_bags_violation(self):
         """A regular member booking a flight in business class claims 3 free checked bags instead of the allowed 2, resulting in a policy violation."""
         # Mocking user details
         user_details = GetUserDetailsResponse(membership='regular',
             payment_methods={
                 'credit_card_123': PaymentMethods(source='credit_card', brand='Visa', last_four='1234'),
             })
-        mock_get_user_details.return_value = user_details
+        self.api.get_user_details.return_value = user_details
 
         # Creating request object
         args = BookReservationRequest(
@@ -264,17 +243,9 @@ class TestCheckedBagAllowance(unittest.TestCase):
             insurance='no'
         )
 
-        # Mocking chat history
-        history = MagicMock()
-        history.ask_bool.return_value = True
-
-        # Mocking API
-        api = MagicMock()
-        api.get_user_details.return_value = user_details
-
         # Invoke function under test and expect exception
         with self.assertRaises(PolicyViolationException):
-            guard_book_reservation(args, history, api)
+            guard_book_reservation(args, self.history, self.api)
 
 
 # Additional tests for other compliance and violation examples can be added following the same pattern.

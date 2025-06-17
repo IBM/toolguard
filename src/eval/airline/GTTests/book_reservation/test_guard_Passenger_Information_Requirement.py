@@ -4,7 +4,19 @@ from my_app.book_reservation.guard_book_reservation import guard_book_reservatio
 from my_app.common import *
 from my_app.domain import *
 
-
+flight = GetFlightOnDateDetailsResponse.model_construct(
+    status="available",
+    available_seats=AvailableSeats.model_construct(
+        basic_economy= 9,
+        economy= 9,
+        business= 9
+    ),
+    prices=Prices.model_construct(
+        basic_economy= 900,
+        economy= 9,
+        business= 9
+    )
+)
 class TestPassengerInformationRequirementCompliance(unittest.TestCase):
     
     def setUp(self):
@@ -28,7 +40,7 @@ class TestPassengerInformationRequirementCompliance(unittest.TestCase):
         self.api.search_onestop_flight.return_value = []
         self.api.get_flight_details.return_value = ""
         self.api.get_reservation_details.return_value = GetReservationDetailsResponse()
-        self.api.get_flight_on_date_details.return_value = GetFlightOnDateDetailsResponse()
+        self.api.get_flight_on_date_details.return_value = flight
 
     # Compliance Tests
     def test_five_passengers_with_complete_information(self):

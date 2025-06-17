@@ -15,6 +15,19 @@ class TestPaymentMethodLimitationCompliance(unittest.TestCase):
 
         # Mocking the FlightBookingApi
         self.api = MagicMock()
+        self.api.get_flight_on_date_details.return_value = GetFlightOnDateDetailsResponse.model_construct(
+            status="available",
+            available_seats=AvailableSeats.model_construct(
+                basic_economy= 9,
+                economy= 9,
+                business= 9
+            ),
+            prices=Prices.model_construct(
+                basic_economy= 900,
+                economy= 9,
+                business= 9
+            )
+        )
 
     def test_compliance_one_credit_card(self):
         """The user books a flight using one credit card and two gift cards, all listed in their profile, adhering to the payment method limitation policy."""

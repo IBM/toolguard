@@ -6,29 +6,40 @@ from my_app.book_reservation.guard_book_reservation import guard_book_reservatio
 from my_app.common import *
 from my_app.domain import *
 
-
 class TestBookingInformationCollectionCompliance(unittest.TestCase):
+
     """Tests for compliance with the Booking Information Collection policy."""
+    def setUp(self):
+        # Mocking the chat history
+        self.history = MagicMock()
+        self.history.ask_bool.return_value = True
+
+        # Mocking the FlightBookingApi
+        self.api = MagicMock()
+        self.api.get_flight_on_date_details.return_value = GetFlightOnDateDetailsResponse(
+            status="available",
+            available_seats=AvailableSeats(
+                basic_economy= 9,
+                economy= 9,
+                business= 9
+            ),
+            prices=Prices(
+                basic_economy= 900,
+                economy= 912,
+                business= 649
+            )
+        )
+
+        self.api.list_all_airports.return_value = ListAllAirportsResponse(root={"SFO": "San Francisco", "JFK": "New York"})
 
     def test_compliance_user_id_trip_type_iata_codes(self):
-        """
-        The agent properly collects the user's ID 'john_doe_123', specifies the trip type as 'one_way', and uses the IATA codes 'SFO' for origin and 'JFK' for destination before initiating the reservation.
-        """
-        # Mocking dependencies
-        history = MagicMock()
-        history.ask_bool.return_value = True
-
         user_details = GetUserDetailsResponse.model_construct(
             payment_methods={
                 'asas': PaymentMethods(source='credit_card', brand='Visa', last_four='1234'),
             },
             membership = "regular"
         )
-        airports = ListAllAirportsResponse.model_construct(root={"SFO": "San Francisco", "JFK": "New York"})
-
-        api = MagicMock()
-        api.get_user_details.return_value = user_details
-        api.list_all_airports.return_value = airports
+        self.api.get_user_details.return_value = user_details
 
         # Function call arguments
         args = BookReservationRequest(
@@ -49,27 +60,14 @@ class TestBookingInformationCollectionCompliance(unittest.TestCase):
             insurance='no'
         )
 
-        # Invoke function under test
-        guard_book_reservation(args, history, api)
-
-
-class TestBookingInformationCollectionViolation(unittest.TestCase):
-    """Tests for violation of the Booking Information Collection policy."""
+        guard_book_reservation(args, self.history, self.api)
 
     def test_violation_missing_user_id(self):
         """
         An agent attempts to book a reservation without collecting the user ID, providing only the origin and destination, resulting in an incomplete reservation request.
         """
-        # Mocking dependencies
-        history = MagicMock()
-        history.ask_bool.return_value = True
-
         user_details = GetUserDetailsResponse.model_construct()
-        airports = ListAllAirportsResponse.model_construct(root={"SFO": "San Francisco", "JFK": "New York"})
-
-        api = MagicMock()
-        api.get_user_details.return_value = user_details
-        api.list_all_airports.return_value = airports
+        self.api.get_user_details.return_value = user_details
 
         # Function call arguments
         args = BookReservationRequest(
@@ -90,25 +88,16 @@ class TestBookingInformationCollectionViolation(unittest.TestCase):
             insurance='no'
         )
 
-        # Invoke function under test and expect exception
         with self.assertRaises(PolicyViolationException):
-            guard_book_reservation(args, history, api)
+            guard_book_reservation(args, self.history, self.api)
 
 
     def test_violation_missing_trip_type(self):
         """
         The agent does not specify the trip type, whether one-way or round-trip, and proceeds to book a flight with only the user's ID, origin, and destination.
         """
-        # Mocking dependencies
-        history = MagicMock()
-        history.ask_bool.return_value = True
-
         user_details = GetUserDetailsResponse.model_construct()
-        airports = ListAllAirportsResponse.model_construct(root={"SFO": "San Francisco", "JFK": "New York"})
-
-        api = MagicMock()
-        api.get_user_details.return_value = user_details
-        api.list_all_airports.return_value = airports
+        self.api.get_user_details.return_value = user_details
 
         # Function call arguments
         args = BookReservationRequest.model_construct(
@@ -129,26 +118,16 @@ class TestBookingInformationCollectionViolation(unittest.TestCase):
             insurance='no'
         )
 
-        # Invoke function under test and expect exception
         with self.assertRaises(PolicyViolationException):
-            guard_book_reservation(args, history, api)
+            guard_book_reservation(args, self.history, self.api)
 
 
     def test_violation_missing_origin_iata_code(self):
         """
         An agent initiates a reservation with the user_id and destination but forgets to provide the IATA code for the origin, thus failing to comply with the requirement to specify both departure and arrival locations.
         """
-        # Mocking dependencies
-        history = MagicMock()
-        history.ask_bool.return_value = True
-
         user_details = GetUserDetailsResponse.model_construct()
-        airports = ListAllAirportsResponse.model_construct(root={"SFO": "San Francisco", "JFK": "New York"})
-
-        api = MagicMock()
-        api.get_user_details.return_value = user_details
-        api.list_all_airports.return_value = airports
-
+        self.api.get_user_details.return_value = user_details
         # Function call arguments
         args = BookReservationRequest(
             user_id='john_doe_123',
@@ -170,23 +149,12 @@ class TestBookingInformationCollectionViolation(unittest.TestCase):
 
         # Invoke function under test and expect exception
         with self.assertRaises(PolicyViolationException):
-            guard_book_reservation(args, history, api)
+            guard_book_reservation(args, self.history, self.api)
 
 
     def test_violation_non_iata_origin_code(self):
-        """
-        The agent attempts to book a flight reservation but provides a non-IATA code for the origin, like 'San Francisco' instead of 'SFO', resulting in an invalid input format.
-        """
-        # Mocking dependencies
-        history = MagicMock()
-        history.ask_bool.return_value = True
-
         user_details = GetUserDetailsResponse.model_construct()
-        airports = ListAllAirportsResponse.model_construct(root={"SFO": "San Francisco", "JFK": "New York"})
-
-        api = MagicMock()
-        api.get_user_details.return_value = user_details
-        api.list_all_airports.return_value = airports
+        self.api.get_user_details.return_value = user_details
 
         # Function call arguments
         args = BookReservationRequest(
@@ -209,7 +177,7 @@ class TestBookingInformationCollectionViolation(unittest.TestCase):
 
         # Invoke function under test and expect exception
         with self.assertRaises(PolicyViolationException):
-            guard_book_reservation(args, history, api)
+            guard_book_reservation(args, self.history, self.api)
 
 
 if __name__ == '__main__':
