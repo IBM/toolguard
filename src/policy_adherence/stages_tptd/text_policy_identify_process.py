@@ -408,7 +408,7 @@ if __name__ == '__main__':
 	#parser.add_argument('--policy-path',type=str,default='/Users/naamazwerdling/Documents/OASB/policy_validation/airline/wiki-with-policies-for-non-existing-tools.md')
 	parser.add_argument('--policy-path', type=str,default='/Users/naamazwerdling/Documents/OASB/policy_validation/airline/wiki.md')
 	parser.add_argument('--oas', type=str,default='/Users/naamazwerdling/Documents/OASB/policy_validation/airline/airline.json')
-	parser.add_argument('--outdir', type=str,default='/Users/naamazwerdling/Documents/OASB/policy_validation/airline/outdir2/oas2')
+	parser.add_argument('--outdir', type=str,default='/Users/naamazwerdling/Documents/OASB/policy_validation/airline/outdir2/step1_out')
 	parser.add_argument('--tools', nargs='+', default=None, help='Optional list of tool names. These are a subset of the tools in the openAPI operation ids.')
 
 	args = parser.parse_args()

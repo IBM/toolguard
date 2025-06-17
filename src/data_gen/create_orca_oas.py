@@ -8,7 +8,7 @@ from policy_adherence.llm.litellm_model import LitellmModel
 dotenv.load_dotenv()
 model = "gpt-4o-2024-08-06"
 aw = LitellmModel(model)
-input_file = "/Users/naamazwerdling/Documents/OASB/policy_validation/orca/init.json"
+input_file = "/Users/naamazwerdling/Documents/OASB/policy_validation/orca/orca_tools.json"
 output_dir = "/Users/naamazwerdling/Documents/OASB/policy_validation/orca/"
 prompt = """
 Instructions: Generate OpenAPI paths JSON from the given information below.
@@ -76,5 +76,5 @@ for domain,actions in data.items():
 			print(json.dumps(a))
 			
 		
-	with open(os.path.join(output_dir,domain,"oas2.json"), "w") as outfile:
+	with open(os.path.join(output_dir,domain,"oas.json"), "w") as outfile:
 		json.dump(oas, outfile, indent=4)

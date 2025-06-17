@@ -135,6 +135,9 @@ if __name__ == '__main__':
 	#gendir = os.path.join('output', 'llama-3-3-70b-instruct', 'Step1')
 	gendir = os.path.join('output', 'gpt-4o-2024-08-06', 'Step1')
 	gendir = '/Users/naamazwerdling/Documents/OASB/policy_validation/airline/outdir2/wiki_sf_rev'
+	gendir = '/Users/naamazwerdling/Documents/OASB/policy_validation/airline/outdir2/wiki_full_gpt4'
+	gendir = "/Users/naamazwerdling/Documents/OASB/policy_validation/airline/outdir2/full_wiki_gpt4_second"
+	gendir = "/Users/naamazwerdling/Documents/OASB/policy_validation/airline/outdir2/full_wiki_gpt4_short_oas3"
 	#gendir = os.path.join('output', 'llama-3-3-70b-instruct', 'Step1')
 	#gendir = os.path.join('output', 'gpt-4o-mini-2024-07-18', 'Step1')
 	#gendir = os.path.join('output', 'gpt-4o-2024-08-06', 'Step1')
