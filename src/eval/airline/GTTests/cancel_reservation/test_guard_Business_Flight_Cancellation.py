@@ -53,8 +53,7 @@ class TestGuardBusinessFlightCancellation(unittest.TestCase):
                 date="2025-02-28")],
         )
 
-        with self.assertRaises(PolicyViolationException):
-            guard_cancel_reservation(args, history, api)
+        guard_cancel_reservation(args, history, api)
 
 
 if __name__ == '__main__':

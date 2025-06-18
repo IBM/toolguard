@@ -47,12 +47,12 @@
             ],
             "iteration_added": 1,
             "violating_examples": [
-                "The agent attempts to use BookReservation but enters an incorrect user ID that does not match any system records. As per policy, the user ID must be verified before proceeding, making this a violation.",
+                "The agent attempts to use BookReservation but enters an incorrect user ID that does not exist in the system records.",
                 "After obtaining the user ID, the agent makes a call to BookReservation without confirming the trip type, thereby not gathering necessary booking information. This violates the policy requirement of collecting all necessary details before invoking the tool.",
                 "Upon receiving an ID query from a user, the agent assumes the ID is correct without verifying it against system records and proceeds to book a reservation, breaching the mandate for ID confirmation."
             ],
             "compliance_examples": [
-                "An agent receives a user request to book a flight, first verifies the user's ID matches those in the record, and subsequently collects information on trip type, origin, and destination before proceeding with BookReservation."
+                "An agent receives a user request to book a flight, first verifies the user's ID exists in the system records, and subsequently collects information on trip type, origin, and destination before proceeding with BookReservation."
             ]
         },
         {
@@ -132,20 +132,20 @@
             ],
             "iteration_added": 0,
             "violating_examples": [
-                "Example 1: An agent proceeds to book a reservation using the BookReservation tool without asking the user if they want to purchase travel insurance. This violates the policy as the agent must offer the user the option to buy travel insurance.",
-                "Example 2: The agent books a flight for a user who wanted to cancel a previous booking due to a health issue, without ever offering travel insurance at the time of booking, thereby not aligning with policy requirements.",
-                "Example 3: During the booking process, the agent does not mention travel insurance availability at any point to a user who previously expressed concern about potential trip interruptions due to weather conditions, thereby breaching the policy.",
-                "Example 4: An agent books a flight reservation after a user mentions they are traveling during hurricane season but neglects to offer travel insurance, which would cover cancellations due to weather-related events, thus violating the policy.",
-                "Example 5: The agent finalizes a booking for a family of four without discussing travel insurance, which is crucial for coverage in unforeseen health or weather-related situations, therefore breaching the policy requirements.",
-                "Example 6: During a rapid booking process, an agent skips the travel insurance offer, even when the user is traveling to a location known for weather disruptions, thus failing to comply with the policy."
+                "An agent proceeds to book a reservation using the BookReservation tool without asking the user if they want to purchase travel insurance. This violates the policy as the agent must offer the user the option to buy travel insurance.",
+                "The agent books a flight for a user who wanted to cancel a previous booking due to a health issue, without ever offering travel insurance at the time of booking, thereby not aligning with policy requirements.",
+                "During the booking process, the agent does not mention travel insurance availability at any point to a user who previously expressed concern about potential trip interruptions due to weather conditions, thereby breaching the policy.",
+                "An agent books a flight reservation after a user mentions they are traveling during hurricane season but neglects to offer travel insurance, which would cover cancellations due to weather-related events, thus violating the policy.",
+                "The agent finalizes a booking for a family of four without discussing travel insurance, which is crucial for coverage in unforeseen health or weather-related situations, therefore breaching the policy requirements.",
+                "During a rapid booking process, an agent skips the travel insurance offer, even when the user is traveling to a location known for weather disruptions, thus failing to comply with the policy."
             ],
             "compliance_examples": [
-                "Example 1: During a reservation process, the agent explicitly asks the user if they would like to add travel insurance for $30 per passenger, explaining its benefits such as full refunds in cases of health or weather-related cancellations, and includes this option in the booking.",
-                "Example 2: As the agent gathers details for flight booking, they clearly inform the user about the option to purchase travel insurance at $30 per passenger and ensure the user\u2019s decision (either purchase or decline) is documented before proceeding with the reservation.",
-                "Example 3: Before finalizing the flight reservation, the agent updates the user about the travel insurance offer, elaborating on its utility in cases of cancellations due to health or weather, and proceeds based on the user\u2019s informed decision.",
-                "Example 4: As part of booking a flight, the agent offers each passenger the opportunity to add travel insurance for $30, highlighting its benefit for weather or health-related cancellations, and ensures the user's decision is recorded before proceeding.",
-                "Example 5: The agent, when asked about flight booking by a user, proactively explains the travel insurance option and related benefits, confirming whether the user wants it before finalizing the booking process.",
-                "Example 6: An agent makes sure to ask a user about adding travel insurance, clearly discussing its potential usefulness, and thoroughly documents the user's choice along with their reason for either accepting or declining."
+                "During a reservation process, the agent explicitly asks the user if they would like to add travel insurance for $30 per passenger, explaining its benefits such as full refunds in cases of health or weather-related cancellations, and includes this option in the booking.",
+                "As the agent gathers details for flight booking, they clearly inform the user about the option to purchase travel insurance at $30 per passenger and ensure the user\u2019s decision (either purchase or decline) is documented before proceeding with the reservation.",
+                "Before finalizing the flight reservation, the agent updates the user about the travel insurance offer, elaborating on its utility in cases of cancellations due to health or weather, and proceeds based on the user\u2019s informed decision.",
+                "As part of booking a flight, the agent offers each passenger the opportunity to add travel insurance for $30, highlighting its benefit for weather or health-related cancellations, and ensures the user's decision is recorded before proceeding.",
+                "The agent, when asked about flight booking by a user, proactively explains the travel insurance option and related benefits, confirming whether the user wants it before finalizing the booking process.",
+                "An agent makes sure to ask a user about adding travel insurance, clearly discussing its potential usefulness, and thoroughly documents the user's choice along with their reason for either accepting or declining."
             ]
         },
         {

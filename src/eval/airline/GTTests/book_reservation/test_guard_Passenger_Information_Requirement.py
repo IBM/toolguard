@@ -35,7 +35,7 @@ class TestPassengerInformationRequirementCompliance(unittest.TestCase):
         )
         self.api = MagicMock()
         self.api.get_user_details.return_value = user
-        self.api.list_all_airports.return_value = ListAllAirportsResponse()
+        self.api.list_all_airports.return_value = ListAllAirportsResponse(root={'JFK': 'JFK AR', 'SFO': 'SFO AR'})
         self.api.search_direct_flight.return_value = []
         self.api.search_onestop_flight.return_value = []
         self.api.get_flight_details.return_value = ""

@@ -82,7 +82,7 @@ class TestGuardCancellationConditions(unittest.TestCase):
 
         api = MagicMock()
         reservation = GetReservationDetailsResponse.model_construct(
-            flights=[Flight3.model_construct()],
+            flights=[Flight3.model_construct(flight_number='fl123', date='Apr 12 2025')],
             created_at=(datetime.now() - timedelta(hours=48)).strftime("%Y-%m-%d %H:%M:%S")
         )
         api.get_reservation_details.return_value = reservation
@@ -100,7 +100,7 @@ class TestGuardCancellationConditions(unittest.TestCase):
 
         api = MagicMock()
         reservation = GetReservationDetailsResponse.model_construct(
-            flights=[Flight3.model_construct()],
+            flights=[Flight3.model_construct(flight_number='fl123', date='Apr 12 2025')],
             created_at=(datetime.now() - timedelta(hours=48)).strftime("%Y-%m-%d %H:%M:%S"),
             cabin="economy", 
             insurance="no"
