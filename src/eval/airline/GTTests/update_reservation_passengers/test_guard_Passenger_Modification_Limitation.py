@@ -20,7 +20,8 @@ class TestPassengerModificationLimitationCompliance(unittest.TestCase):
                 Passenger2(first_name="John", last_name="Doe", dob="1990-01-01"),
                 Passenger2.model_construct(first_name='Jane', last_name='Doe', dob='1992-02-02'),
                 Passenger2.model_construct(first_name='Jim', last_name='Beam', dob='1985-05-05')
-            ]
+            ],
+            cabin="economy"
         )
 
         history = MagicMock()
@@ -33,7 +34,8 @@ class TestPassengerModificationLimitationCompliance(unittest.TestCase):
                 Passenger3.model_construct(first_name='Jon', last_name='Doe', dob='1990-01-01'),
                 Passenger3.model_construct(first_name='Jane', last_name='Doe', dob='1992-02-02'),
                 Passenger3.model_construct(first_name='Jim', last_name='Beam', dob='1985-05-05')
-            ]
+            ],
+            cabin="economy"
         )
 
         guard_update_reservation_passengers(args, history, api)
@@ -49,7 +51,8 @@ class TestPassengerModificationLimitationCompliance(unittest.TestCase):
                 Passenger2.model_construct(first_name="John", last_name="Doe", dob="1990-01-01"),
                 Passenger2.model_construct(first_name='Jane', last_name='Doe', dob='1992-02-02'),
                 Passenger2.model_construct(first_name='Jim', last_name='Beam', dob='1985-05-05')
-            ]
+            ],
+            cabin="economy"
         )
 
         history = MagicMock()
@@ -62,7 +65,8 @@ class TestPassengerModificationLimitationCompliance(unittest.TestCase):
                 Passenger3.model_construct(first_name='John', last_name='Doer', dob='1990-01-01'),
                 Passenger3.model_construct(first_name='Jane', last_name='Doe', dob='1992-02-02'),
                 Passenger3.model_construct(first_name='Jim', last_name='Beam', dob='1985-05-05')
-            ]
+            ],
+            cabin="economy"
         )
 
         # Invoking the function under test
@@ -81,7 +85,8 @@ class TestPassengerModificationLimitationViolation(unittest.TestCase):
             passengers=[
                 Passenger2.model_construct(first_name="John", last_name="Doe", dob="1990-01-01"),
                 Passenger2.model_construct(first_name='Jane', last_name='Doe', dob='1992-02-02')
-            ]
+            ],
+            cabin="economy"
         )
 
         history = MagicMock()
@@ -94,7 +99,8 @@ class TestPassengerModificationLimitationViolation(unittest.TestCase):
                 Passenger3.model_construct(first_name='John', last_name='Doe', dob='1990-01-01'),
                 Passenger3.model_construct(first_name='Jane', last_name='Doe', dob='1992-02-02'),
                 Passenger3.model_construct(first_name='Lisa', last_name='Smith', dob='1995-05-05')
-            ]
+            ],
+            cabin="economy"
         )
 
         # Invoking the function under test and expecting an exception
@@ -109,7 +115,8 @@ class TestPassengerModificationLimitationViolation(unittest.TestCase):
             reservation_id="DJE45F",
             passengers=[
                 Passenger2.model_construct(first_name='Jane', last_name='Doe', dob='1992-02-02')
-            ]
+            ],
+            cabin="economy"
         )
         history = MagicMock()
         history.ask_bool.return_value = True
@@ -120,7 +127,8 @@ class TestPassengerModificationLimitationViolation(unittest.TestCase):
             passengers=[
                 Passenger3.model_construct(first_name="John", last_name="Doe", dob="1990-01-01"),
                 Passenger3.model_construct(first_name='Jane', last_name='Doe', dob='1992-02-02')
-            ]
+            ],
+            cabin="economy"
         )
 
         # Invoking the function under test and expecting an exception

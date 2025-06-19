@@ -16,7 +16,8 @@ class TestGuardObtainUserConfirmationForUpdatingReservationDatabase(unittest.Tes
         api = MagicMock()
         api.get_reservation_details.return_value = GetReservationDetailsResponse.model_construct(
             reservation_id="ZFA04Y",
-            passengers=[Passenger2(first_name="John", last_name="Doe", dob="1990-01-01")]
+            passengers=[Passenger2(first_name="John", last_name="Doe", dob="1990-01-01")],
+            cabin="economy"
         )
 
         # Mocking the chat history
@@ -26,7 +27,8 @@ class TestGuardObtainUserConfirmationForUpdatingReservationDatabase(unittest.Tes
         # Constructing the request
         args = UpdateReservationPassengersRequest.model_construct(
             reservation_id="ZFA04Y",
-            passengers=[Passenger3(first_name="John", last_name="Doe", dob="1990-01-02")]
+            passengers=[Passenger3(first_name="John", last_name="Doe", dob="1990-01-02")],
+            cabin="economy"
         )
 
         # Call the function under test
