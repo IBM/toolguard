@@ -15,80 +15,135 @@ class TestReservationModificationLimitationCompliance(unittest.TestCase):
         history = MagicMock()
         history.ask_bool.return_value = True
 
-        api:FlightBookingApi = MagicMock()
+        self.api:FlightBookingApi = MagicMock()
 
-        api.get_flight_details = MagicMock() 
+        self.api.list_all_airports.return_value = ListAllAirportsResponse(root={
+            "SFO": "San Francisco", 
+            "JFK": "New York",
+            "BLA":"aete",
+            "BLU": "AAD"
+        })
+
         def get_flight_side_effect(args, **kwargs):
-            if args.flight_id == "SFO_JFK":
-                return GetFlightDetailsResponse.model_construct(
+            return {
+                "SFO_JFK": GetFlightDetailsResponse.model_construct(
+                    flight_number="SFO_JFK",
                     origin="SFO",
                     destination="JFK"
-                )
-            if args.flight_id == "JFK_BLA":
-                return GetFlightDetailsResponse.model_construct(
+                ),
+                "JFK_BLA": GetFlightDetailsResponse.model_construct(
+                    flight_number="JFK_BLA",
                     origin="JFK",
                     destination="BLA"
-                )
-            if args.flight_id == "LAX_JFK":
-                return GetFlightDetailsResponse.model_construct(
+                ),
+                "LAX_JFK": GetFlightDetailsResponse.model_construct(
+                    flight_number="LAX_JFK",
                     origin="LAX",
                     destination="JFK"
-                )
-            if args.flight_id == "LAX_BLU":
-                return GetFlightDetailsResponse.model_construct(
+                ),
+                "LAX_BLU": GetFlightDetailsResponse.model_construct(
+                    flight_number="LAX_BLU",
                     origin="LAX",
                     destination="BLU"
-                )
-            if args.flight_id == "BLU_BLA":
-                return GetFlightDetailsResponse.model_construct(
+                ),
+                "BLU_BLA": GetFlightDetailsResponse.model_construct(
+                    flight_number="BLU_BLA",
                     origin="BLU",
                     destination="BLA"
-                )
-            if args.flight_id == "JFK_BLA":
-                return GetFlightDetailsResponse.model_construct(
+                ),
+                "JFK_BLA": GetFlightDetailsResponse.model_construct(
+                    flight_number="JFK_BLA",
                     origin="JFK",
                     destination="BLA"
-                )
-        api.get_flight_details.side_effect = get_flight_side_effect
+                ),
+            }\
+        .get(args.flight_id)
+        
+        self.api.get_flight_details.side_effect = get_flight_side_effect
 
-        user_details = GetUserDetailsResponse.model_construct(
+        self.api.get_flight_on_date_details.return_value = GetFlightOnDateDetailsResponse(
+            status="available",
+            available_seats=AvailableSeats(
+                basic_economy= 9,
+                economy= 9,
+                business= 9
+            ),
+            prices=Prices(
+                basic_economy= 900,
+                economy= 912,
+                business= 649
+            )
+        )
+
+        user_details = GetUserDetailsResponse(
             payment_methods={
                 'credit_card_7815826': PaymentMethods(source='credit_card', brand='Visa', last_four='1234'),
             },
             membership = "regular"
         )
-        api.get_user_details.return_value = user_details
+        self.api.get_user_details.return_value = user_details
 
         def get_reservation_side_effect(args, **kwargs):
             if args.reservation_id=='RSRV1':
-                return GetReservationDetailsResponse.model_construct(
+                return GetReservationDetailsResponse(
                     reservation_id='RSRV1',
+                    user_id="dav",
                     origin='SFO',
                     destination='JFK',
                     cabin='economy',
                     flight_type='round_trip',
+                    passengers=[
+                        Passenger2(first_name="john", last_name="smith", dob="2000"),
+                        Passenger2(first_name="maria", last_name="smith", dob="1900"),
+                    ],
+                    flights=[Flight3(flight_number='SFO_JFK', 
+                                    date='2024-06-01', #change date
+                                    origin='SFO', destination='JFK')],
+                )
+            if args.reservation_id=='RSRV1BUSINESS':
+                return GetReservationDetailsResponse(
+                    reservation_id='RSRV1',
+                    user_id="dav",
+                    origin='SFO',
+                    destination='JFK',
+                    cabin='business',
+                    flight_type='round_trip',
+                    passengers=[
+                        Passenger2(first_name="john", last_name="smith", dob="2000"),
+                        Passenger2(first_name="maria", last_name="smith", dob="1900"),
+                    ],
                     flights=[Flight3(flight_number='SFO_JFK', 
                                     date='2024-06-01', #change date
                                     origin='SFO', destination='JFK')],
                 )
             if args.reservation_id=='RSRV2':
-                return GetReservationDetailsResponse.model_construct(
+                return GetReservationDetailsResponse(
                     reservation_id='RSRV2',
+                    user_id="dav",
                     origin='LAX',
                     destination='JFK',
                     cabin='economy',
                     flight_type='round_trip',
+                    passengers=[
+                        Passenger2(first_name="john", last_name="smith", dob="2000"),
+                        Passenger2(first_name="maria", last_name="smith", dob="1900"),
+                    ],
                     flights=[Flight3(flight_number='LAX_JFK', 
                                     date='2024-06-01',
                                     origin='LAX', destination='JFK')],
                 )
             if args.reservation_id=='RSRV2LEGS':
-                return GetReservationDetailsResponse.model_construct(
+                return GetReservationDetailsResponse(
                     reservation_id='RSRV2LEGS',
+                    user_id="dav",
                     origin='LAX',
                     destination='BLA',
                     cabin='economy',
                     flight_type='round_trip',
+                    passengers=[
+                        Passenger2(first_name="john", last_name="smith", dob="2000"),
+                        Passenger2(first_name="maria", last_name="smith", dob="1900"),
+                    ],
                     flights=[Flight3(flight_number='LAX_JFK', 
                                     date='2024-06-01',
                                     origin='LAX', destination='JFK'),
@@ -97,19 +152,23 @@ class TestReservationModificationLimitationCompliance(unittest.TestCase):
                                     origin='JFK', destination='BLA')],
                 )
             if args.reservation_id=='RSRV_BASIC_ECONMY':
-                return GetReservationDetailsResponse.model_construct(
+                return GetReservationDetailsResponse(
                     reservation_id='RSRV_BASIC_ECONMY',
+                    user_id="dav",
                     origin='SFO',
                     destination='JFK',
                     cabin='basic_economy',
                     flight_type='round_trip',
+                    passengers=[
+                        Passenger2(first_name="john", last_name="smith", dob="2000"),
+                        Passenger2(first_name="maria", last_name="smith", dob="1900"),
+                    ],
                     flights=[Flight3(flight_number='SFO_JFK', 
                                     date='2024-06-01',
                                     origin='SFO', destination='JFK')],
                 )
-        api.get_reservation_details.side_effect = get_reservation_side_effect
+        self.api.get_reservation_details.side_effect = get_reservation_side_effect
 
-        self.api = api
         self.history = history
 
     def test_update_reservation_without_changing_origin_destination_trip_type(self):
@@ -170,7 +229,7 @@ class TestReservationModificationLimitationCompliance(unittest.TestCase):
         An agent updates a reservation while ensuring the origin 'SFO', destination 'JFK', and 'round-trip' type remain unchanged, adhering to policy limitations.
         """
         args = UpdateReservationFlightsRequest.model_construct(
-            reservation_id='RSRV1',
+            reservation_id='RSRV1BUSINESS',
             cabin='business',
             flights=[Flight2(flight_number='SFO_JFK', date='2024-05-01')],
             payment_id='credit_card_7815826'

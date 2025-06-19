@@ -49,15 +49,15 @@ def symlink_force(target, link_name):
         os.symlink(target, link_name)
 
 async def gen_all():
-    oas_path = "/Users/davidboaz/Documents/GitHub/gen_policy_validator/src/policy_adherence/eval/airline/input/oas3.json"
+    oas_path = "src/eval/airline/oas.json"
     tool_policy_paths = {
-        # "cancel_reservation": "/Users/davidboaz/Documents/GitHub/gen_policy_validator/src/policy_adherence/eval/airline/input/cancel_reservation.json"
-        # "book_reservation": "/Users/davidboaz/Documents/GitHub/gen_policy_validator/src/policy_adherence/eval/airline/input/book_reservation_back.json",
-        # "update_reservation_passengers": "/Users/davidboaz/Documents/GitHub/gen_policy_validator/src/policy_adherence/eval/airline/input/update_reservation_passengers.json",
-        # "update_reservation_flights": "/Users/davidboaz/Documents/GitHub/gen_policy_validator/src/policy_adherence/eval/airline/input/update_reservation_flights.json",
-        "update_reservation_baggages": "/Users/davidboaz/Documents/GitHub/gen_policy_validator/src/policy_adherence/eval/airline/input/update_reservation_baggages.json"
+        # "cancel_reservation": "src/policy_adherence/eval/airline/input/cancel_reservation.json"
+        # "book_reservation": "src/policy_adherence/eval/airline/input/book_reservation_back.json",
+        "update_reservation_passengers": "src/eval/airline/GT/airlines-examples-verified/UpdateReservationPassengers-verified.json",
+        "update_reservation_flights": "src/eval/airline/GT/airlines-examples-verified/UpdateReservationFlights-verified.json",
+        "update_reservation_baggages": "src/eval/airline/GT/airlines-examples-verified/UpdateReservationBaggages-verified.json"
     }
-    output_dir = "/Users/davidboaz/Documents/GitHub/gen_policy_validator/src/policy_adherence/eval/airline/output"
+    output_dir = "src/eval/airline/output"
     now = datetime.now()
     out_folder = os.path.join(output_dir, now.strftime("%Y-%m-%d_%H_%M_%S"))
     os.makedirs(out_folder, exist_ok=True)
