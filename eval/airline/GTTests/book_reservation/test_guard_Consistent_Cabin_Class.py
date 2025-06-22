@@ -15,20 +15,20 @@ class TestConsistentCabinClassPolicy(unittest.TestCase):
 
         # Mocking the FlightBookingApi
         self.api = MagicMock()
-        self.api.get_flight_on_date_details.return_value = GetFlightOnDateDetailsResponse.model_construct(
+        self.api.get_flight_on_date_details.return_value = GetFlightOnDateDetailsResponse(
             status="available",
-            available_seats=AvailableSeats.model_construct(
+            available_seats=AvailableSeats(
                 basic_economy= 9,
                 economy= 1, #<-last seat
                 business= 9
             ),
-            prices=Prices.model_construct(
+            prices=Prices(
                 basic_economy= 900,
                 economy= 9,
                 business= 9
             )
         )
-        self.api.get_user_details.return_value = GetUserDetailsResponse.model_construct(
+        self.api.get_user_details.return_value = GetUserDetailsResponse(
             name=Name(first_name="Alice", last_name="Smith"),
             email="alice.smith@example.com",
             membership="gold",
@@ -61,7 +61,7 @@ class TestConsistentCabinClassPolicy(unittest.TestCase):
 
     def test_2passengers_no_avail_seats(self):
         """
-        Test case for: Maria Gonzalez and Luis Perez both fly economy from LAX to JFK, complying with the consistent cabin class policy.
+        Test case for: Ma§ria Gonzalez and Luis Perez both fly economy from LAX to JFK, complying with the consistent cabin class policy.
         """
         # Constructing the request
         args = BookReservationRequest(

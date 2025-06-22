@@ -24,7 +24,13 @@ class TestGuardAddOnlyCheckedBaggages(unittest.TestCase):
             cabin="business",
             payment_history=[
                 PaymentHistoryItem2(payment_id='credit_card_7815826', amount=50*num_of_payed_bags)
-            ]
+            ],
+            passengers=[
+                Passenger2(first_name="John", last_name="Doe", dob="1990-01-01")
+            ],
+            flights=[
+                Flight3( flight_number="ANOTHER ONE", date="2025-02-28"),
+            ],
         )
         
         history = MagicMock()
@@ -43,7 +49,7 @@ class TestGuardAddOnlyCheckedBaggages(unittest.TestCase):
         history, api, reservation, user = self.normal_story(1)
 
         # Creating function call arguments
-        args = UpdateReservationBaggagesRequest.model_construct(
+        args = UpdateReservationBaggagesRequest(
             reservation_id='ZFA04Y',
             total_baggages=4,
             nonfree_baggages=1,
@@ -58,7 +64,7 @@ class TestGuardAddOnlyCheckedBaggages(unittest.TestCase):
         history, api, reservation, user = self.normal_story(1)
         reservation.cabin = "basic_economy"
         # Creating function call arguments
-        args = UpdateReservationBaggagesRequest.model_construct(
+        args = UpdateReservationBaggagesRequest(
             reservation_id='ZFA04Y',
             total_baggages=3,
             nonfree_baggages=1,
@@ -70,7 +76,7 @@ class TestGuardAddOnlyCheckedBaggages(unittest.TestCase):
         history, api, reservation, user = self.normal_story(0)
 
         # Creating function call arguments
-        args = UpdateReservationBaggagesRequest.model_construct(
+        args = UpdateReservationBaggagesRequest(
             reservation_id='ZFA04Y',
             total_baggages=0,
             nonfree_baggages=0,
@@ -83,7 +89,7 @@ class TestGuardAddOnlyCheckedBaggages(unittest.TestCase):
         history, api, reservation, user = self.normal_story(1)
 
         # Creating function call arguments
-        args = UpdateReservationBaggagesRequest.model_construct(
+        args = UpdateReservationBaggagesRequest(
             reservation_id='ZFA04Y',
             total_baggages=4,
             nonfree_baggages=1,

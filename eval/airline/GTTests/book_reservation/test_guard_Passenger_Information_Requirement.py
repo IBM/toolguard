@@ -4,14 +4,14 @@ from my_app.book_reservation.guard_book_reservation import guard_book_reservatio
 from my_app.common import *
 from my_app.domain import *
 
-flight = GetFlightOnDateDetailsResponse.model_construct(
+flight = GetFlightOnDateDetailsResponse(
     status="available",
-    available_seats=AvailableSeats.model_construct(
+    available_seats=AvailableSeats(
         basic_economy= 9,
         economy= 9,
         business= 9
     ),
-    prices=Prices.model_construct(
+    prices=Prices(
         basic_economy= 900,
         economy= 9,
         business= 9
@@ -25,7 +25,7 @@ class TestPassengerInformationRequirementCompliance(unittest.TestCase):
         self.history.ask_bool.return_value = True
 
         # Mock the API
-        user = GetUserDetailsResponse.model_construct(
+        user = GetUserDetailsResponse(
             name=Name(first_name="Alice", last_name="Smith"),
             email="alice.smith@example.com",
             membership="gold",
@@ -75,10 +75,10 @@ class TestPassengerInformationRequirementCompliance(unittest.TestCase):
         """
         # function call arguments
         passengers = [
-            Passenger.model_construct(first_name="John", last_name="Doe", dob="1990-01-01"),
-            Passenger.model_construct(first_name="Jane", last_name="Smith", dob=None)
+            Passenger(first_name="John", last_name="Doe", dob="1990-01-01"),
+            Passenger(first_name="Jane", last_name="Smith", dob="")
         ]
-        args = BookReservationRequest.model_construct(
+        args = BookReservationRequest(
             user_id="user_123",
             origin="SFO",
             destination="JFK",
@@ -87,7 +87,7 @@ class TestPassengerInformationRequirementCompliance(unittest.TestCase):
             passengers=passengers,
             total_baggages=2,
             nonfree_baggages=1,
-            insurance=True,
+            insurance="yes",
             flights=[],
             payment_methods=[PaymentMethod(payment_id='credit_card_123', amount=500.0)]
         )
@@ -101,10 +101,10 @@ class TestPassengerInformationRequirementCompliance(unittest.TestCase):
         """
         # function call arguments
         passengers = [
-            Passenger.model_construct(first_name=None, last_name="Doe", dob="1990-01-01"),
-            Passenger.model_construct(first_name="Jane", last_name="Smith", dob="1992-02-02")
+            Passenger(first_name="", last_name="Doe", dob="1990-01-01"),
+            Passenger(first_name="Jane", last_name="Smith", dob="1992-02-02")
         ]
-        request = BookReservationRequest.model_construct(
+        request = BookReservationRequest(
             user_id="user_123",
             origin="SFO",
             destination="JFK",
@@ -113,7 +113,7 @@ class TestPassengerInformationRequirementCompliance(unittest.TestCase):
             passengers=passengers,
             total_baggages=2,
             nonfree_baggages=1,
-            insurance=True,
+            insurance="yes",
             flights=[],
             payment_methods=[PaymentMethod(payment_id='credit_card_123', amount=500.0)]
         )
@@ -127,14 +127,14 @@ class TestPassengerInformationRequirementCompliance(unittest.TestCase):
         """
         # function call arguments
         passengers = [
-            Passenger.model_construct(first_name="John", last_name="Doe", dob="1990-01-01"),
-            Passenger.model_construct(first_name="Jane", last_name="Smith", dob="1992-02-02"),
-            Passenger.model_construct(first_name="Alice", last_name="Johnson", dob="1993-03-03"),
-            Passenger.model_construct(first_name="Bob", last_name="Brown", dob="1994-04-04"),
-            Passenger.model_construct(first_name="Charlie", last_name="Davis", dob="1995-05-05"),
-            Passenger.model_construct(first_name="Eve", last_name="Wilson", dob="1996-06-06")
+            Passenger(first_name="John", last_name="Doe", dob="1990-01-01"),
+            Passenger(first_name="Jane", last_name="Smith", dob="1992-02-02"),
+            Passenger(first_name="Alice", last_name="Johnson", dob="1993-03-03"),
+            Passenger(first_name="Bob", last_name="Brown", dob="1994-04-04"),
+            Passenger(first_name="Charlie", last_name="Davis", dob="1995-05-05"),
+            Passenger(first_name="Eve", last_name="Wilson", dob="1996-06-06")
         ]
-        request = BookReservationRequest.model_construct(
+        request = BookReservationRequest(
             user_id="user_123",
             origin="SFO",
             destination="JFK",
@@ -143,7 +143,7 @@ class TestPassengerInformationRequirementCompliance(unittest.TestCase):
             passengers=passengers,
             total_baggages=2,
             nonfree_baggages=1,
-            insurance=True,
+            insurance="yes",
             flights=[],
             payment_methods=[PaymentMethod(payment_id='credit_card_123', amount=500.0)]
         )
@@ -214,11 +214,11 @@ class TestPassengerInformationRequirementCompliance(unittest.TestCase):
             cabin="economy",
             flights=[Flight(flight_number="FL123", date="2024-05-01")],
             passengers=[
-                Passenger.model_construct(first_name="John", last_name="Doe", dob="1990-01-01"),
-                Passenger.model_construct(first_name="Jane", last_name="Doe", dob="1991-02-02"),
-                Passenger.model_construct(first_name="Jim", last_name="Beam", dob="1992-03-03"),
-                Passenger.model_construct(first_name="Jack", last_name="Daniels", dob="1993-04-04"),
-                Passenger.model_construct(first_name="Jill", last_name="Valentine", dob=None)
+                Passenger(first_name="John", last_name="Doe", dob="1990-01-01"),
+                Passenger(first_name="Jane", last_name="Doe", dob="1991-02-02"),
+                Passenger(first_name="Jim", last_name="Beam", dob="1992-03-03"),
+                Passenger(first_name="Jack", last_name="Daniels", dob="1993-04-04"),
+                Passenger(first_name="Jill", last_name="Valentine", dob="")
             ],
             payment_methods=[PaymentMethod(payment_id='credit_card_123', amount=500.0)],
             total_baggages=0,

@@ -72,7 +72,7 @@ class TestCheckedBagAllowance(unittest.TestCase):
         self.api.get_user_details.return_value = user
 
         # Create request
-        request = BookReservationRequest.model_construct(
+        request = BookReservationRequest(
             user_id="john_doe_123",
             origin="SFO",
             destination="JFK",
@@ -94,7 +94,7 @@ class TestCheckedBagAllowance(unittest.TestCase):
         """
 
         # Mock the API
-        user = GetUserDetailsResponse.model_construct(
+        user = GetUserDetailsResponse(
             name=Name(first_name="Jane", last_name="Doe"),
             email="jane.doe@example.com",
             membership="silver",
@@ -105,7 +105,7 @@ class TestCheckedBagAllowance(unittest.TestCase):
         self.api.get_user_details.return_value = user
 
         # Create request
-        request = BookReservationRequest.model_construct(
+        request = BookReservationRequest(
             user_id="jane_doe_456",
             origin="SFO",
             destination="JFK",
@@ -125,7 +125,7 @@ class TestCheckedBagAllowance(unittest.TestCase):
         """
         A reservation with 1 passenger, in business cabin. The user membership is gold. The reservation contains total 3 bags. The user did not pay for any extra bag
         """
-        user = GetUserDetailsResponse.model_construct(
+        user = GetUserDetailsResponse(
             name=Name(first_name="Alice", last_name="Smith"),
             email="alice.smith@example.com",
             membership="gold",
@@ -136,7 +136,7 @@ class TestCheckedBagAllowance(unittest.TestCase):
         self.api.get_user_details.return_value = user
 
         # Create request
-        request = BookReservationRequest.model_construct(
+        request = BookReservationRequest(
             user_id="alice_smith_789",
             origin="SFO",
             destination="JFK",
@@ -157,7 +157,7 @@ class TestCheckedBagAllowance(unittest.TestCase):
         """
         A reservation with 1 passenger, in business cabin. The user membership is regular. The reservation contains total 3 bags. The user did not pay for any extra bag
         """
-        user = GetUserDetailsResponse.model_construct(
+        user = GetUserDetailsResponse(
             name=Name(first_name="Bob", last_name="Brown"),
             email="bob.brown@example.com",
             membership="regular",
@@ -168,7 +168,7 @@ class TestCheckedBagAllowance(unittest.TestCase):
         self.api.get_user_details.return_value = user
 
         # Create request
-        request = BookReservationRequest.model_construct(
+        request = BookReservationRequest(
             user_id="bob_brown_321",
             origin="SFO",
             destination="JFK",
@@ -190,7 +190,7 @@ class TestCheckedBagAllowance(unittest.TestCase):
         """
         A reservation with 1 passenger, in business cabin. The user membership is silver. The reservation contains total 4 bags. The user did not pay for any extra bag
         """
-        user = GetUserDetailsResponse.model_construct(
+        user = GetUserDetailsResponse(
             name=Name(first_name="Charlie", last_name="Davis"),
             email="charlie.davis@example.com",
             membership="silver",
@@ -201,7 +201,7 @@ class TestCheckedBagAllowance(unittest.TestCase):
         self.api.get_user_details.return_value = user
 
         # Create request
-        request = BookReservationRequest.model_construct(
+        request = BookReservationRequest(
             user_id="charlie_davis_654",
             origin="SFO",
             destination="JFK",

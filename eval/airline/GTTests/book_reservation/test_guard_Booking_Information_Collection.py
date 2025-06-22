@@ -33,7 +33,7 @@ class TestBookingInformationCollectionCompliance(unittest.TestCase):
         self.api.list_all_airports.return_value = ListAllAirportsResponse(root={"SFO": "San Francisco", "JFK": "New York"})
 
     def test_compliance_user_id_trip_type_iata_codes(self):
-        user_details = GetUserDetailsResponse.model_construct(
+        user_details = GetUserDetailsResponse(
             payment_methods={
                 'asas': PaymentMethods(source='credit_card', brand='Visa', last_four='1234'),
             },
@@ -66,7 +66,7 @@ class TestBookingInformationCollectionCompliance(unittest.TestCase):
         """
         An agent attempts to book a reservation without collecting the user ID, providing only the origin and destination, resulting in an incomplete reservation request.
         """
-        user_details = GetUserDetailsResponse.model_construct()
+        user_details = GetUserDetailsResponse()
         self.api.get_user_details.return_value = user_details
 
         # Function call arguments
@@ -96,7 +96,7 @@ class TestBookingInformationCollectionCompliance(unittest.TestCase):
         """
         The agent does not specify the trip type, whether one-way or round-trip, and proceeds to book a flight with only the user's ID, origin, and destination.
         """
-        user_details = GetUserDetailsResponse.model_construct()
+        user_details = GetUserDetailsResponse()
         self.api.get_user_details.return_value = user_details
 
         # Function call arguments
@@ -126,7 +126,7 @@ class TestBookingInformationCollectionCompliance(unittest.TestCase):
         """
         An agent initiates a reservation with the user_id and destination but forgets to provide the IATA code for the origin, thus failing to comply with the requirement to specify both departure and arrival locations.
         """
-        user_details = GetUserDetailsResponse.model_construct()
+        user_details = GetUserDetailsResponse()
         self.api.get_user_details.return_value = user_details
         # Function call arguments
         args = BookReservationRequest(
@@ -153,7 +153,7 @@ class TestBookingInformationCollectionCompliance(unittest.TestCase):
 
 
     def test_violation_non_iata_origin_code(self):
-        user_details = GetUserDetailsResponse.model_construct()
+        user_details = GetUserDetailsResponse()
         self.api.get_user_details.return_value = user_details
 
         # Function call arguments
