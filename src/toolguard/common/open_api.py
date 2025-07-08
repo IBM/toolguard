@@ -2,11 +2,11 @@ from enum import StrEnum
 from pydantic import BaseModel, Field, HttpUrl
 from typing import List, Dict, Optional, Any, TypeVar, Union
 
-from policy_adherence.common.array import not_none
-from policy_adherence.common.dict import find_ref
-from policy_adherence.common.http import MEDIA_TYPE_APP_JSON
-from policy_adherence.common.jschema import JSchema
-from policy_adherence.common.ref import Reference
+from toolguard.common.array import not_none
+from toolguard.common.dict import find_ref
+from toolguard.common.http import MEDIA_TYPE_APP_JSON
+from toolguard.common.jschema import JSchema
+from toolguard.common.ref import Reference
 
 
 class Contact(BaseModel):

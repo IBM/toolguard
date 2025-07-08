@@ -9,7 +9,7 @@ from litellm.exceptions import RateLimitError
 import json
 from jsonschema import validate, ValidationError
 
-from src.policy_adherence.llm.llm_model import LLM_model
+from src.toolguard.llm.llm_model import LLM_model
 import dotenv
 
 

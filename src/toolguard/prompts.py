@@ -1,6 +1,6 @@
 
 from typing import List, Set
-from policy_adherence.data_types import FileTwin, ToolPolicyItem
+from toolguard.data_types import FileTwin, ToolPolicyItem
 from programmatic_ai import generative
 
 @generative

@@ -3,7 +3,7 @@
 from typing import List
 from programmatic_ai import generative
 
-from policy_adherence.data_types import FileTwin, ToolPolicyItem
+from toolguard.data_types import FileTwin, ToolPolicyItem
 
 model = "gpt-4o-2024-08-06"
 @generative(model=model, provider="azure", sdk="litellm")

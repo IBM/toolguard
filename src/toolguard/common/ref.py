@@ -2,7 +2,7 @@
 from typing import TypeVar
 from pydantic import BaseModel, Field
 
-from policy_adherence.common.dict import find_ref
+from toolguard.common.dict import find_ref
 
 
 class Reference(BaseModel):

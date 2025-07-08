@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from loguru import logger
 
 from op_only_oas import op_only_oas
-from policy_adherence.common.open_api import read_openapi
+from toolguard.common.open_api import read_openapi
 from dmn.gen_rules import generate_tools_check_rules
 from run_gen import load_tool_policy
 

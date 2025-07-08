@@ -4,8 +4,8 @@ import os
 from typing import List
 import astor
 
-from policy_adherence.common.str import to_snake_case
-from policy_adherence.data_types import FileTwin
+from toolguard.common.str import to_snake_case
+from toolguard.data_types import FileTwin
 
 def py_extension(filename:str)->str:
     return filename if filename.endswith(".py") else filename+".py" 

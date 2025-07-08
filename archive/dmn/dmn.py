@@ -1,8 +1,8 @@
 from enum import StrEnum
 from typing import List, Optional, Union
 from pydantic_xml import BaseXmlModel, attr, element
-from policy_adherence.common.jschema import JSONSchemaTypes, JSchema
-from policy_adherence.common.ref import DocumentWithRef
+from toolguard.common.jschema import JSONSchemaTypes, JSchema
+from toolguard.common.ref import DocumentWithRef
 
 FEEL_URI = "http://www.omg.org/spec/FEEL/20140401" #"https://www.omg.org/spec/DMN/20240513/FEEL/"
 

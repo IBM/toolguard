@@ -5,12 +5,12 @@ import os
 from typing import List, Optional, Union
 
 import astor
-from policy_adherence.common.array import find
-from policy_adherence.common.py import create_class
-from policy_adherence.common.str import to_camel_case, to_snake_case
-from policy_adherence.utils.datamodel_codegen import run as dm_codegen
-from policy_adherence.common.open_api import OpenAPI, Operation, Parameter, ParameterIn, PathItem, Reference, RequestBody, Response, JSchema, read_openapi
-from policy_adherence.data_types import FileTwin
+from toolguard.common.array import find
+from toolguard.common.py import create_class
+from toolguard.common.str import to_camel_case, to_snake_case
+from toolguard.utils.datamodel_codegen import run as dm_codegen
+from toolguard.common.open_api import OpenAPI, Operation, Parameter, ParameterIn, PathItem, Reference, RequestBody, Response, JSchema, read_openapi
+from toolguard.data_types import FileTwin
 
 def primitive_jschema_types_to_py(type:Optional[str], format:Optional[str])->Optional[str]:
     #https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.2.md#data-types

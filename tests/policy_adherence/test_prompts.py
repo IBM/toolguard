@@ -2,9 +2,9 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from policy_adherence.llm.litellm_model import LitellmModel
-from policy_adherence.prompts import tool_information_dependencies
-from policy_adherence.data_types import FileTwin
+from toolguard.llm.litellm_model import LitellmModel
+from toolguard.prompts import tool_information_dependencies
+from toolguard.data_types import FileTwin
 
 load_dotenv()
 

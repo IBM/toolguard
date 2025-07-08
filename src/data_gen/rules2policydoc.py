@@ -3,7 +3,7 @@ import os
 
 import dotenv
 
-from policy_adherence.llm.litellm_model import LitellmModel
+from toolguard.llm.litellm_model import LitellmModel
 
 dotenv.load_dotenv()
 model = "gpt-4o-2024-08-06"

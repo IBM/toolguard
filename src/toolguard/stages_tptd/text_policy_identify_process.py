@@ -7,11 +7,11 @@ import markdown
 
 from langgraph.graph import StateGraph
 
-from policy_adherence.common.open_api import OpenAPI
-from policy_adherence.llm.litellm_model import LitellmModel
-from policy_adherence.llm.llm_model import LLM_model
-from policy_adherence.stages_tptd.create_oas_summary import OASSummarizer
-from policy_adherence.stages_tptd.utils import read_prompt_file, generate_messages, save_output, TPTDState, \
+from toolguard.common.open_api import OpenAPI
+from toolguard.llm.litellm_model import LitellmModel
+from toolguard.llm.llm_model import LLM_model
+from toolguard.stages_tptd.create_oas_summary import OASSummarizer
+from toolguard.stages_tptd.utils import read_prompt_file, generate_messages, save_output, TPTDState, \
 	find_mismatched_references
 from tests.op_only_oas import op_only_oas
 import dotenv

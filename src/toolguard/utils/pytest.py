@@ -7,7 +7,7 @@ import subprocess
 from typing import Any, List, Dict, Literal, Optional, Set
 from pydantic import BaseModel, Field
 
-from policy_adherence.data_types import FileTwin
+from toolguard.data_types import FileTwin
 
 
 class TestOutcome(StrEnum):

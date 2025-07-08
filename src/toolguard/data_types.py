@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 from pydantic import BaseModel, Field
@@ -67,3 +68,20 @@ class ToolChecksCodeGenerationResult(BaseModel):
     output_path: str
     domain_file: str
     tools: Dict[str, ToolChecksCodeResult]
+
+    def save(self, directory: str, filename: str = "result.json") -> None:
+        full_path = os.path.join(directory, filename)
+        with open(full_path, 'w', encoding='utf-8') as f:
+            json.dump(self.model_dump(), f, indent=2)
+    
+    @staticmethod
+    def load(directory: str, filename: str = "result.json") -> "ToolChecksCodeGenerationResult":
+        full_path = os.path.join(directory, filename)
+        with open(full_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return ToolChecksCodeGenerationResult(**data)
+
+    def check_tool_call(self, tool_name:str, args: dict, messages: List):
+        pass
+
+    

@@ -4,7 +4,7 @@ import os
 from typing import List, Dict, Optional
 import markdown
 from langgraph.graph import StateGraph
-from policy_adherence.stages_tptd.create_oas_summary import OASSummarizer
+from toolguard.stages_tptd.create_oas_summary import OASSummarizer
 import dotenv
 from stages_tptd.text_policy_identify_process import PolicyIdentifier
 from stages_tptd.utils import TPTDState

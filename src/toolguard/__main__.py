@@ -16,10 +16,10 @@ import dotenv
 
 dotenv.load_dotenv()
 
-from policy_adherence.common.open_api import OpenAPI
-from policy_adherence.data_types import ToolPolicy, ToolPolicyItem, ToolChecksCodeGenerationResult
-from policy_adherence.gen_tool_policy_check import generate_tools_check_fns
-from policy_adherence.stages_tptd.text_policy_identify_process import step1_main
+from toolguard.common.open_api import OpenAPI
+from toolguard.data_types import ToolPolicy, ToolPolicyItem, ToolChecksCodeGenerationResult
+from toolguard.gen_tool_policy_check import generate_tools_check_fns
+from toolguard.stages_tptd.text_policy_identify_process import step1_main
 from tests.op_only_oas import op_only_oas
 
 

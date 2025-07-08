@@ -5,23 +5,23 @@ import os
 from os.path import join
 from typing import Any, List, Tuple
 from loguru import logger
-from policy_adherence.common.array import find
-from policy_adherence.common import py
-from policy_adherence.common.str import to_snake_case
-from policy_adherence.gen_domain import OpenAPICodeGenerator
-import policy_adherence.prompts as prompts
-from policy_adherence.data_types import FileTwin, ToolChecksCodeResult, ToolPolicy, ToolPolicyItem, ToolPolicyItem
-import policy_adherence.utils.pyright as pyright
-import policy_adherence.utils.pytest as pytest
-from policy_adherence.llm_utils import post_process_llm_response
+from toolguard.common.array import find
+from toolguard.common import py
+from toolguard.common.str import to_snake_case
+from toolguard.gen_domain import OpenAPICodeGenerator
+import toolguard.prompts as prompts
+from toolguard.data_types import FileTwin, ToolChecksCodeResult, ToolPolicy, ToolPolicyItem, ToolPolicyItem
+import toolguard.utils.pyright as pyright
+import toolguard.utils.pytest as pytest
+from toolguard.llm_utils import post_process_llm_response
 
 import asyncio
 from pathlib import Path
 from typing import List
 from loguru import logger
-from policy_adherence.data_types import FileTwin, ToolChecksCodeGenerationResult, ToolPolicy
-import policy_adherence.utils.venv as venv
-import policy_adherence.utils.pyright as pyright
+from toolguard.data_types import FileTwin, ToolChecksCodeGenerationResult, ToolPolicy
+import toolguard.utils.venv as venv
+import toolguard.utils.pyright as pyright
 
 
 MAX_TOOL_IMPROVEMENTS = 5

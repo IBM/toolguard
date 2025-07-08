@@ -3,11 +3,11 @@ import os
 from os.path import join
 from typing import List
 
-from policy_adherence.common.open_api import OpenAPI, RequestBody, JSchema
-from policy_adherence.common.str import to_snake_case
+from toolguard.common.open_api import OpenAPI, RequestBody, JSchema
+from toolguard.common.str import to_snake_case
 from dmn import dmn
 from dmn.prompt import improve_tool_rules
-from policy_adherence.data_types import FileTwin, ToolPolicy
+from toolguard.data_types import FileTwin, ToolPolicy
 
 async def generate_tools_check_rules(app_name:str, tools:List[ToolPolicy], out_folder:str, op_only_oas:OpenAPI):
     app_root = join(out_folder, app_name)

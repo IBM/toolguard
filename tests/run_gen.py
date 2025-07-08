@@ -10,8 +10,8 @@ from loguru import logger
 import dotenv
 dotenv.load_dotenv() 
 
-from policy_adherence.data_types import ToolPolicy, ToolPolicyItem
-from policy_adherence.common.open_api import OpenAPI
+from toolguard.data_types import ToolChecksCodeGenerationResult, ToolPolicy, ToolPolicyItem
+from toolguard.common.open_api import OpenAPI
 
 model = "gpt-4o-2024-08-06"
 # import programmatic_ai
@@ -19,7 +19,7 @@ model = "gpt-4o-2024-08-06"
 # settings.provider = "azure"
 # settings.model = model
 # settings.sdk = "litellm"
-from policy_adherence.gen_tool_policy_check import generate_tools_check_fns
+from toolguard.gen_tool_policy_check import generate_tools_check_fns
     
 def read_oas(file_path:str)->OpenAPI:
     with open(file_path, "r") as file:
@@ -52,10 +52,10 @@ async def gen_all():
     oas_path = "src/eval/airline/oas.json"
     tool_policy_paths = {
         # "cancel_reservation": "src/policy_adherence/eval/airline/input/cancel_reservation.json"
-        # "book_reservation": "src/policy_adherence/eval/airline/input/book_reservation_back.json",
-        "update_reservation_passengers": "src/eval/airline/GT/airlines-examples-verified/UpdateReservationPassengers-verified.json",
-        "update_reservation_flights": "src/eval/airline/GT/airlines-examples-verified/UpdateReservationFlights-verified.json",
-        "update_reservation_baggages": "src/eval/airline/GT/airlines-examples-verified/UpdateReservationBaggages-verified.json"
+        "book_reservation": "src/policy_adherence/eval/airline/input/book_reservation_back.json",
+        # "update_reservation_passengers": "src/eval/airline/GT/airlines-examples-verified/UpdateReservationPassengers-verified.json",
+        # "update_reservation_flights": "src/eval/airline/GT/airlines-examples-verified/UpdateReservationFlights-verified.json",
+        # "update_reservation_baggages": "src/eval/airline/GT/airlines-examples-verified/UpdateReservationBaggages-verified.json"
     }
     output_dir = "src/eval/airline/output"
     now = datetime.now()
@@ -67,15 +67,18 @@ async def gen_all():
         in tool_policy_paths.items()]
     
     result = await generate_tools_check_fns("my_app", tool_policies, out_folder, oas_path)
+    result.save(out_folder)
 
-    print(f"Domain: {result.domain_file}")
-    for tool_name, tool in result.tools.items():
-        print(f"\t{tool_name}\t{tool.tool_check_file.file_name}")
-        for test in tool.test_files:
-            if test:
-                print(f"\t{test.file_name}")
-            else:
-                print(f"\tFAILED")
+    result = ToolChecksCodeGenerationResult.load(out_folder)
+
+    # print(f"Domain: {result.domain_file}")
+    # for tool_name, tool in result.tools.items():
+    #     print(f"\t{tool_name}\t{tool.tool_check_file.file_name}")
+    #     for test in tool.test_files:
+    #         if test:
+    #             print(f"\t{test.file_name}")
+    #         else:
+    #             print(f"\tFAILED")
     
 if __name__ == '__main__':
     logger.remove()

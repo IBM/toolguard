@@ -1,6 +1,6 @@
 
-from policy_adherence.common.dict import substitute_refs
-from policy_adherence.common.open_api import *
+from toolguard.common.dict import substitute_refs
+from toolguard.common.open_api import *
 
 def clean_nulls_and_keys(data):
     if isinstance(data, dict):

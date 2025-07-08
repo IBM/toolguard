@@ -4,7 +4,7 @@ import subprocess
 from pydantic import BaseModel
 from typing import List, Optional
 
-from policy_adherence.data_types import FileTwin
+from toolguard.data_types import FileTwin
 
 ERROR = "error"
 WARNING = "warning"

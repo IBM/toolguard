@@ -1,8 +1,8 @@
 import json
 import os
 
-from policy_adherence.llm.litellm_model import LitellmModel
-from policy_adherence.stages_tptd.utils import generate_messages
+from toolguard.llm.litellm_model import LitellmModel
+from toolguard.stages_tptd.utils import generate_messages
 
 
 class GenPolicyFromRefs:

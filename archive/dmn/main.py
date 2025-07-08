@@ -1,4 +1,4 @@
-from policy_adherence.common.jschema import JSchema
+from toolguard.common.jschema import JSchema
 from dmn import dmn
 
 user_schema = JSchema.model_validate({
