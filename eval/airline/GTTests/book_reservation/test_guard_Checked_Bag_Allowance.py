@@ -142,7 +142,9 @@ class TestCheckedBagAllowance(unittest.TestCase):
             destination="JFK",
             flight_type="one_way",
             cabin="business",
-            passengers=[Passenger(first_name="Alice", last_name="Smith", dob="1993-03-03")],
+            passengers=[
+                Passenger(first_name="Alice", last_name="Smith", dob="1993-03-03")
+            ],
             total_baggages=3,
             nonfree_baggages=0,
             insurance="no",
