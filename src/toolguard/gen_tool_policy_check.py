@@ -10,7 +10,7 @@ from toolguard.common import py
 from toolguard.common.str import to_camel_case, to_snake_case
 from toolguard.gen_domain import OpenAPICodeGenerator
 import toolguard.prompts as prompts
-from toolguard.data_types import Domain, FileTwin, ToolChecksCodeResult, ToolPolicy, ToolPolicyItem, ToolPolicyItem
+from toolguard.data_types import Domain, FileTwin, ToolGuardCodeResult, ToolPolicy, ToolPolicyItem, ToolPolicyItem
 import toolguard.utils.pyright as pyright
 import toolguard.utils.pytest as pytest
 from toolguard.llm_utils import post_process_llm_response
@@ -19,7 +19,7 @@ import asyncio
 from pathlib import Path
 from typing import List
 from loguru import logger
-from toolguard.data_types import FileTwin, ToolChecksCodeGenerationResult, ToolPolicy
+from toolguard.data_types import FileTwin, ToolGuardCodeGenerationResult, ToolPolicy
 import toolguard.utils.venv as venv
 import toolguard.utils.pyright as pyright
 
@@ -79,7 +79,7 @@ Raises:
     return add_policy
     
 
-async def generate_tools_check_fns(app_name: str, tools: List[ToolPolicy], py_root:str, openapi_path:str)->ToolChecksCodeGenerationResult:
+async def generate_tools_check_fns(app_name: str, tools: List[ToolPolicy], py_root:str, openapi_path:str)->ToolGuardCodeGenerationResult:
     logger.debug(f"Starting... will save into {py_root}")
 
     #Setup:
@@ -97,7 +97,7 @@ async def generate_tools_check_fns(app_name: str, tools: List[ToolPolicy], py_ro
         .save_as(py_root, join(app_name, RUNTIME_COMMON_PY))
 
     # domain
-    domain = OpenAPICodeGenerator(app_root)\
+    domain = OpenAPICodeGenerator(app_name, app_root)\
         .generate_domain(openapi_path)
     
     #tools
@@ -111,7 +111,7 @@ async def generate_tools_check_fns(app_name: str, tools: List[ToolPolicy], py_ro
         for tool, res 
         in zip(tools_w_poilicies, tool_results)
     }        
-    return ToolChecksCodeGenerationResult(
+    return ToolGuardCodeGenerationResult(
         output_path=py_root,
         domain=domain,
         tools=tools_result
@@ -134,7 +134,7 @@ class ToolCheckPolicyGenerator:
         os.makedirs(join(py_path, to_snake_case(DEBUG_DIR)), exist_ok=True)
         os.makedirs(join(py_path, to_snake_case(TESTS_DIR)), exist_ok=True)
 
-    async def generate(self)->ToolChecksCodeResult:
+    async def generate(self)->ToolGuardCodeResult:
         tool_check_fn, item_check_fns = self.create_initial_check_fns()
         for item_check_fn in item_check_fns:
             item_check_fn.save_as(self.py_path, join(DEBUG_DIR, f"-1_{Path(item_check_fn.file_name).parts[-1]}"))
@@ -145,10 +145,11 @@ class ToolCheckPolicyGenerator:
             self.generate_tool_item_tests_and_check_fn(item, item_check_fn)
                 for item, item_check_fn in zip(self.tool.policy_items, item_check_fns)
         ])
-        return ToolChecksCodeResult(
+        return ToolGuardCodeResult(
             tool=self.tool,
-            tool_check_file=tool_check_fn,
-            item_check_files = item_check_fns,
+            guard_fn_name=check_fn_name(self.tool.name),
+            guard_file=tool_check_fn,
+            item_guard_files = item_check_fns,
             test_files=items_tests
         )
 

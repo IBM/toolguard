@@ -17,7 +17,7 @@ import dotenv
 dotenv.load_dotenv()
 
 from toolguard.common.open_api import OpenAPI
-from toolguard.data_types import ToolPolicy, ToolPolicyItem, ToolChecksCodeGenerationResult
+from toolguard.data_types import ToolPolicy, ToolPolicyItem, ToolGuardCodeGenerationResult
 from toolguard.gen_tool_policy_check import generate_tools_check_fns
 from toolguard.stages_tptd.text_policy_identify_process import step1_main
 from tests.op_only_oas import op_only_oas
@@ -48,7 +48,7 @@ def run_or_validate_step1(policy_text:str, oas_file:str, step1_out_dir:str, forc
 
 
 
-async def step2(oas_path:str, step1_path:str, step2_path:str, tools:Optional[List[str]]=None)->ToolChecksCodeGenerationResult:
+async def step2(oas_path:str, step1_path:str, step2_path:str, tools:Optional[List[str]]=None)->ToolGuardCodeGenerationResult:
 	os.makedirs(step2_path, exist_ok=True)
 	files = [f for f in os.listdir(step1_path) 
 		  if os.path.isfile(join(step1_path, f)) and f.endswith(".json")]
@@ -69,7 +69,7 @@ def main(policy_text:str, oas_file:str, step1_out_dir:str, step2_out_dir:str, fo
 		result = asyncio.run(step2(oas_file, step1_out_dir, step2_out_dir, tools))
 		print(f"Domain: {result.domain_file}")
 		for tool_name, tool in result.tools.items():
-			print(f"\t{tool_name}\t{tool.tool_check_file.file_name}")
+			print(f"\t{tool_name}\t{tool.guard_file.file_name}")
 			for test in tool.test_files:
 				if test:
 					print(f"\t\t{test.file_name}")

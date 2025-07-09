@@ -30,20 +30,23 @@ def primitive_jschema_types_to_py(type:Optional[str], format:Optional[str])->Opt
 
 class OpenAPICodeGenerator():
     cwd: str
-    def __init__(self, cwd:str) -> None:
+    app_name: str
+
+    def __init__(self, app_name:str, cwd:str) -> None:
         self.cwd = cwd
+        self.app_name = app_name
 
     def generate_domain(self, oas_file:str)->Domain:
         oas = read_openapi(oas_file)
         types = FileTwin(
-                file_name="domain_types.py", 
+                file_name=f"{self.app_name}/domain_types.py", 
                 content= dm_codegen(oas_file)
             ).save(self.cwd)
 
         api_cls_name = to_camel_case(oas.info.title) or "Tools_API"
         methods = self.get_oas_methods(oas)
         api = FileTwin(
-                file_name="api.py", 
+                file_name=f"{self.app_name}/api.py", 
                 content= self.generate_api(methods, api_cls_name)
             ).save(self.cwd)
 
@@ -55,13 +58,15 @@ class OpenAPICodeGenerator():
             impl_cls_name
         )
         api_impl = FileTwin(
-                file_name="api_impl.py", 
+                file_name=f"{self.app_name}/api_impl.py", 
                 content=cls_str
             ).save(self.cwd)
         
         return Domain(
             types= types,
+            api_class_name=api_cls_name,
             api= api,
+            api_impl_class_name=impl_cls_name,
             api_impl= api_impl
         )
 

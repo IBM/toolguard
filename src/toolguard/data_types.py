@@ -61,19 +61,24 @@ class ToolPolicy(BaseModel):
 
 class Domain(BaseModel):
     types: FileTwin
+
+    api_class_name: str
     api: FileTwin
+
+    api_impl_class_name: str
     api_impl: FileTwin
 
-class ToolChecksCodeResult(BaseModel):
+class ToolGuardCodeResult(BaseModel):
     tool: ToolPolicy
-    tool_check_file: FileTwin
-    item_check_files: List[FileTwin|None]
+    guard_fn_name: str
+    guard_file: FileTwin
+    item_guard_files: List[FileTwin|None]
     test_files: List[FileTwin|None]
 
-class ToolChecksCodeGenerationResult(BaseModel):
+class ToolGuardCodeGenerationResult(BaseModel):
     output_path: str
     domain: Domain
-    tools: Dict[str, ToolChecksCodeResult]
+    tools: Dict[str, ToolGuardCodeResult]
 
     def save(self, directory: str, filename: str = "result.json") -> None:
         full_path = os.path.join(directory, filename)
@@ -81,14 +86,19 @@ class ToolChecksCodeGenerationResult(BaseModel):
             json.dump(self.model_dump(), f, indent=2)
     
     @staticmethod
-    def load(directory: str, filename: str = "result.json") -> "ToolChecksCodeGenerationResult":
+    def load(directory: str, filename: str = "result.json") -> "ToolGuardCodeGenerationResult":
         full_path = os.path.join(directory, filename)
         with open(full_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        return ToolChecksCodeGenerationResult(**data)
+        return ToolGuardCodeGenerationResult(**data)
 
     def check_tool_call(self, tool_name:str, args: dict, messages: List):
-        pass
+        tool = self.tools.get(tool_name)
+        assert tool, f"Unknown tool {tool_name}"
+
+        guard_file = os.path.join(self.output_path, tool.guard_file.file_name)
+        guard =load_function_from_file(guard_file, tool.guard_fn_name)
+        print(guard)
 
     
 class LLM(BaseModel):
@@ -200,3 +210,27 @@ class PolicyViolationException(Exception):
     def message(self):
         return self._msg
     
+
+import importlib.util
+import inspect
+import os
+
+def load_function_from_file(file_path: str, function_name: str):
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"Module file not found: {file_path}")
+
+    module_name = os.path.splitext(os.path.basename(file_path))[0]
+
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Could not load spec from: {file_path}")
+
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)  # type: ignore
+
+    # Find the function
+    func = getattr(module, function_name, None)
+    if func is None or not inspect.isfunction(func):
+        raise AttributeError(f"Function '{function_name}' not found in module '{module_name}'")
+
+    return func
