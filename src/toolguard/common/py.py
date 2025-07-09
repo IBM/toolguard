@@ -13,7 +13,7 @@ def py_extension(filename:str)->str:
 def un_py_extension(filename:str)->str:
     return filename[:-3] if filename.endswith(".py") else filename
     
-def create_import(module_name:str, *items: str):
+def create_import(module_name:str, items: List[str]):
     return ast.ImportFrom(
         module=module_name,
         names=[ast.alias(name=item, asname=None) for item in items], 

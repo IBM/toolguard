@@ -299,13 +299,13 @@ class ToolCheckPolicyGenerator:
             for item in self.tool.policy_items]
         
         body = [
-            py.create_import(py.py_module(self.domain.file_name), "*"),
-            py.create_import(py.py_module(self.common.file_name), "*")
+            py.create_import(py.py_module(self.domain.file_name), ["*"]),
+            py.create_import(py.py_module(self.common.file_name), ["*"])
         ]
         for item_module, item in zip(item_files, self.tool.policy_items):
             body.append(py.create_import(
                 py.py_module(item_module.file_name),
-                check_fn_name(item.name)
+                [check_fn_name(item.name)]
             ))
         
         fn_body = [ast.Expr(value=ast.Constant(value=docstring_fn(self.tool.name), kind=None))]
@@ -330,8 +330,8 @@ class ToolCheckPolicyGenerator:
 
     def _create_item_module(self, tool_item: ToolPolicyItem, fn_args:ast.arguments, fn_docstring:str)->FileTwin:
         body = [
-            py.create_import(f"{py.py_module(self.domain.file_name)}", "*"),
-            py.create_import(f"{py.py_module(self.common.file_name)}", "*"),
+            py.create_import(f"{py.py_module(self.domain.file_name)}", ["*"]),
+            py.create_import(f"{py.py_module(self.common.file_name)}", ["*"]),
             py.create_fn(
                 name=check_fn_name(tool_item.name), 
                 args=fn_args,

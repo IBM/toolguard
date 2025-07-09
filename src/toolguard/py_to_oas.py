@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Callable, Dict, List, Literal
 import docstring_parser
 import inspect
 import typing
@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from toolguard.common.http import MEDIA_TYPE_APP_JSON
 from toolguard.common.jschema import JSONSchemaTypes, JSchema
-from toolguard.common.open_api import MediaType, Operation, Parameter, ParameterIn, Response
+from toolguard.common.open_api import Info, MediaType, OpenAPI, Operation, Parameter, ParameterIn, PathItem, Response, Server
 
 PRIMITIVE_PY_TYPES_TO_JSCHMA_TYPES = {
     str: JSONSchemaTypes.string,
@@ -77,11 +77,11 @@ def py_type_to_json_schema(py_type:Any) -> JSchema:
     # Fallback
     return JSchema(type = JSONSchemaTypes.string)
 
-def func_to_oas_operation(func)->Operation:
-    act_fn = func.func if func.func else func #remove the @tool wrapper
+def func_to_oas_operation(func:Callable)->Operation:
+    original_fn = func.func if func.func else func #remove the @tool wrapper
 
-    sig = inspect.signature(act_fn)
-    fn_doc = inspect.getdoc(act_fn) or ""
+    sig = inspect.signature(original_fn)
+    fn_doc = inspect.getdoc(original_fn) or ""
     param_docs = extract_param_docs(fn_doc)
     
     op_params = []
@@ -103,7 +103,7 @@ def func_to_oas_operation(func)->Operation:
     return Operation(
         summary = fn_doc.split('\n')[0],
         description= fn_doc,
-        operationId = act_fn.__name__,
+        operationId = original_fn.__name__,
         parameters = op_params,
         responses = {"200": Response(
             description= "Successful response",
@@ -113,24 +113,49 @@ def func_to_oas_operation(func)->Operation:
         )},
     )
 
+def tools_to_openapi(title:str, tools: List[Callable]) ->OpenAPI:
+    def tool_path(tool:Callable):
+        original_fn = tool.func if tool.func else tool
+        return original_fn.__name__
+    
+    def tool_method(tool:Callable)->Literal["get", "post"]:
+        return "post"
+    
+    return OpenAPI(
+        openapi="3.0.3",
+        info=Info(
+            title=title,
+            description=title,
+            version="1.0.0"
+        ),
+        servers=[
+            Server(url=":python", description="Python functions")
+        ],
+        paths={
+            tool_path(tool):PathItem(
+                **{tool_method(tool): func_to_oas_operation(tool)}
+            ) for tool in tools
+        }
+    )
 
 #----------
-class R(BaseModel):
-    a:int
-    b:str
-    c:'R'
+if __name__ == "__main__":
+    class R(BaseModel):
+        a:int
+        b:str
+        c:'R'
 
-from langchain.tools import tool
-@tool
-def greet(name: str, title: str = "Mr.") -> R:
-    """
-    Greet someone with a title.
+    from langchain.tools import tool
+    @tool
+    def greet(name: str, title: str = "Mr.") -> R:
+        """
+        Greet someone with a title.
 
-    Args:
-        name: The person's name.
-        title: The person's title (default is "Mr.").
-    """
-    pass
+        Args:
+            name: The person's name.
+            title: The person's title (default is "Mr.").
+        """
+        pass
 
-x= func_to_oas_operation(greet)
-print(x.model_dump_json(indent=2, exclude_none=True, by_alias=True))
+    x= tools_to_openapi("Clinic tools", [greet])
+    print(x.model_dump_json(indent=2, exclude_none=True, by_alias=True))

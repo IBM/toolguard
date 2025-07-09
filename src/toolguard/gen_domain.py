@@ -1,12 +1,11 @@
 
 
-import ast
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 
-import astor
 from toolguard.common.array import find
-from toolguard.common.py import create_class
-from toolguard.common.str import to_camel_case, to_snake_case
+from toolguard.common.py import py_module
+from toolguard.common.str import to_camel_case
+from toolguard.common.templates import load_template
 from toolguard.utils.datamodel_codegen import run as dm_codegen
 from toolguard.common.open_api import OpenAPI, Operation, Parameter, ParameterIn, PathItem, Reference, RequestBody, Response, JSchema, read_openapi
 from toolguard.data_types import FileTwin
@@ -34,73 +33,94 @@ class OpenAPICodeGenerator():
     def __init__(self, cwd:str) -> None:
         self.cwd = cwd
 
-    def generate_domain(self, oas_file:str, domain_py_file:str)->FileTwin:
-        #types
-        types_src = dm_codegen(oas_file)
-
-        #apis
-        api_src = self.generate_api(oas_file, types_src)
-
-        content = f"{types_src}\n\n# Tool interfaces\n{api_src}\n"
-        src = FileTwin(file_name=domain_py_file, content=content)
-        src.save(self.cwd)
-        return src
-
-    def generate_api(self, oas_file:str, types_src: str)->str:
+    def generate_domain(self, oas_file:str)->Dict[str,FileTwin]:
         oas = read_openapi(oas_file)
-        
-        new_body = []
-        new_body.append(self.import_typing())
-        new_body.append(self.import_abc())
+        types = FileTwin(
+                file_name="domain_types.py", 
+                content= dm_codegen(oas_file)
+            ).save(self.cwd)
 
-        cls_name = to_camel_case(oas.info.title) or "Tools_API"
-        api_cls = create_class(
-            name=cls_name,
-            base_class_names=["ABC"]
+        api_cls_name = to_camel_case(oas.info.title) or "Tools_API"
+        methods = self.get_oas_methods(oas)
+        api = FileTwin(
+                file_name="api.py", 
+                content= self.generate_api(methods, api_cls_name)
+            ).save(self.cwd)
+
+        impl_cls_name = api_cls_name+"_impl"
+        cls_str = self.generate_api_impl(
+            methods, 
+            py_module(api.file_name),
+            api_cls_name,
+            impl_cls_name
         )
-        new_body.append(api_cls)
+        api_impl = FileTwin(
+                file_name="api_impl.py", 
+                content=cls_str
+            ).save(self.cwd)
+        
+        return {
+            "types": types,
+            "api": api,
+            "api_impl": api_impl
+        }
 
+    def get_oas_methods(self, oas:OpenAPI):
+        methods = []
         for path, path_item in oas.paths.items():
             path_item = oas.resolve_ref(path_item, PathItem)
             for mtd, op in path_item.operations.items():
                 op = oas.resolve_ref(op, Operation)
+                if not op:
+                    continue
                 params = (path_item.parameters or []) + (op.parameters or [])
                 params = [oas.resolve_ref(p, Parameter) for p in params]
-                mtd = self.make_method(op, params, oas)
-                mtd.decorator_list.insert(0, ast.Name(id='abstractmethod', ctx=ast.Load()))
-                api_cls.body.append(mtd)
+                args, ret = self.make_signature(op, params, oas)
+                args_str = ','.join(["self"]+[f"{arg}:{type}" for arg,type in args])
+                sig = f"({args_str})->{ret}"
+                methods.append({
+                    "name": to_camel_case(op.operationId), 
+                    "signature": sig,
+                    "doc": op.description
+                })
+        return methods
+
+    def generate_api(self, methods: List, cls_name: str)->str:
+        template = load_template("api.j2")
+        return template.render(
+            class_name=cls_name,
+            methods=methods
+        )
+    
+    def generate_api_impl(self, methods: List, api_module:str, api_cls_name:str, cls_name: str)->str:
+        template = load_template("api_impl.j2")
+        return template.render(
+            api_cls_name=api_cls_name,
+            api_module=api_module,
+            class_name=cls_name,
+            methods=methods
+        )
+
+    def make_signature(self, op: Operation, params: List[Parameter], oas:OpenAPI)->Tuple[Tuple[str, str], str]:
+        fn_name = to_camel_case(op.operationId)
+        args = []
         
-        module = ast.Module(body=new_body, type_ignores=[])
-        ast.fix_missing_locations(module)
-        return astor.to_source(module)
-
-    def make_method(self, op: Operation, params: List[Parameter], oas:OpenAPI)->ast.FunctionDef:
-        fn_name = op.operationId
-
-        args = [ast.arg(arg="self")]
         for param in params:
             if param.in_ == ParameterIn.path:
-                args.append(self.make_arg(param, oas))
+                args.append((param.name, self.oas_to_py_type(param.schema_, oas) or "Any"))
 
         if find(params, lambda p: p.in_ == ParameterIn.query):
-            query_type = f"{to_camel_case(fn_name)}ParametersQuery"
-            args.append(ast.arg(
-                arg="args", 
-                annotation=ast.Name(id=query_type, ctx=ast.Load())
-            ))
+            query_type = f"{fn_name}ParametersQuery"
+            args.append(("args", query_type))
 
         req_body = oas.resolve_ref(op.requestBody, RequestBody)
         if req_body:
             scm_or_ref = req_body.content_json.schema_
             body_type = self.oas_to_py_type(scm_or_ref, oas)
             if body_type is None:
-                body_type = f"{to_camel_case(fn_name)}Request"
-            args.append(ast.arg(
-                arg="args", 
-                annotation=ast.Name(id=body_type, ctx=ast.Load())
-            ))
+                body_type = f"{fn_name}Request"
+            args.append(("args", body_type))
 
-        return_type = None
         rsp_or_ref = op.responses.get("200")
         rsp = oas.resolve_ref(rsp_or_ref, Response)
         if rsp:
@@ -108,29 +128,9 @@ class OpenAPICodeGenerator():
             if scm_or_ref:
                 rsp_type = self.oas_to_py_type(scm_or_ref, oas)
                 if rsp_type is None:
-                    rsp_type = f"{to_camel_case(fn_name)}Response"
-                return_type = ast.Name(id=rsp_type, ctx=ast.Load())
+                    rsp_type = f"{fn_name}Response"
 
-        mtd = ast.FunctionDef(
-            name=to_snake_case(fn_name),
-            args=ast.arguments(
-                args=args,  # Normal arguments
-                posonlyargs=[],  # No positional-only arguments
-                vararg=None,  # No *args
-                kwonlyargs=[],  # No keyword-only arguments
-                kw_defaults=[],  # No keyword defaults
-                defaults=[]  # No default values
-            ),
-            body=[ast.Pass()],  # Empty function body (for now)
-            decorator_list=[],  # No decorators
-            returns=return_type  # Return type annotation
-        ) # type: ignore
-
-        if op.description:
-            doc = ast.Expr(value=ast.Constant(op.description))
-            mtd.body.insert(0, doc)
-
-        return mtd
+        return args, rsp_type
     
     def oas_to_py_type(self, scm_or_ref:Union[Reference, JSchema], oas:OpenAPI)->str | None:
         if isinstance(scm_or_ref, Reference):
@@ -144,36 +144,9 @@ class OpenAPICodeGenerator():
             # if scm.type == JSONSchemaTypes.array and scm.items:
             #     return f"List[{self.oas_to_py_type(scm.items, oas) or 'Any'}]"
     
-    def make_arg(self, param: Parameter, oas:OpenAPI):
-        py_type = self.oas_to_py_type(param.schema_, oas) or "Any"
-        return ast.arg(
-            arg=param.name, 
-            annotation=ast.Name(id=py_type, ctx=ast.Load()))
-
-    def import_typing(self):
-        return ast.ImportFrom(
-            module="typing",
-            names=[
-                ast.alias(name="Any", asname=None),
-                ast.alias(name="Dict", asname=None),
-                ast.alias(name="List", asname=None),
-            ], 
-            level=0 
-        )
-    def import_abc(self):
-        return ast.ImportFrom(
-            module="abc",
-            names=[
-                ast.alias(name="ABC", asname=None),
-                ast.alias(name="abstractmethod", asname=None),
-            ], 
-            level=0 
-        )
-    
-
 if __name__ == '__main__':
     gen = OpenAPICodeGenerator("eval/airline/output")
     oas_path = "eval/airline/oas.json"
-    domain_path = "domain.py"
-    domain = gen.generate_domain(oas_path, domain_path)
+    # domain_path = "domain.py"
+    domain = gen.generate_domain(oas_path)
     print("Done")

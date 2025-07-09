@@ -1,0 +1,11 @@
+from typing import Any, Dict, List
+from abc import ABC, abstractmethod
+from .domain_types import *
+
+class {{ class_name }}(ABC):
+{% for method in methods %}
+    @abstractmethod
+    def {{ method.name }}{{ method.signature }}:
+        {% if method.doc %}"""{{ method.doc }}"""{% endif %}
+       pass
+{% endfor %}

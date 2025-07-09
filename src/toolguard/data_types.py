@@ -15,12 +15,13 @@ class FileTwin(BaseModel):
     file_name: str
     content: str
 
-    def save(self, folder:str):
+    def save(self, folder:str)->'FileTwin':
         full_path = os.path.join(folder, self.file_name)
         parent = Path(full_path).parent
         os.makedirs(parent, exist_ok=True)
         with open(full_path, "w") as file:
             file.write(self.content)
+        return self
 
     def save_as(self, folder:str, file_name:str)->'FileTwin':
         file_path = os.path.join(folder, file_name)
