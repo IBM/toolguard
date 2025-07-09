@@ -6,3 +6,4 @@ src/.env
 converted_model.dmn
 dmn_item_definitions.xml
 .env
+**/*.egg-info/**

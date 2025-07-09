@@ -93,8 +93,8 @@ async def generate_tools_check_fns(app_name: str, tools: List[ToolPolicy], py_ro
     py.create_init_py(app_root)
 
     #common
-    tmp_common = FileTwin.load_from(str(Path(__file__).parent), "_runtime_common.py")
-    tmp_common.save_as(py_root, join(app_name, RUNTIME_COMMON_PY))
+    FileTwin.load_from(str(Path(__file__).parent), "data_types.py")\
+        .save_as(py_root, join(app_name, RUNTIME_COMMON_PY))
 
     # domain
     domain = OpenAPICodeGenerator(app_root)\

@@ -3,11 +3,15 @@ from datetime import datetime
 import json
 import os
 import sys
+import markdown
 import yaml
 from loguru import logger
 
 #important to load the env variables BEFORE policy_adherence library (so programmatic_ai configuration will take place)
 import dotenv
+
+from toolguard.__main__ import read_oas_file
+from toolguard.stages_tptd.text_policy_identify_process import step1_main
 dotenv.load_dotenv() 
 
 from toolguard.data_types import ToolChecksCodeGenerationResult, ToolPolicy, ToolPolicyItem
@@ -49,27 +53,53 @@ def symlink_force(target, link_name):
         os.symlink(target, link_name)
 
 async def gen_all():
-    oas_path = "src/eval/airline/oas.json"
-    tool_policy_paths = {
-        # "cancel_reservation": "src/policy_adherence/eval/airline/input/cancel_reservation.json"
-        "book_reservation": "src/policy_adherence/eval/airline/input/book_reservation_back.json",
-        # "update_reservation_passengers": "src/eval/airline/GT/airlines-examples-verified/UpdateReservationPassengers-verified.json",
-        # "update_reservation_flights": "src/eval/airline/GT/airlines-examples-verified/UpdateReservationFlights-verified.json",
-        # "update_reservation_baggages": "src/eval/airline/GT/airlines-examples-verified/UpdateReservationBaggages-verified.json"
-    }
-    output_dir = "src/eval/airline/output"
-    now = datetime.now()
-    out_folder = os.path.join(output_dir, now.strftime("%Y-%m-%d_%H_%M_%S"))
-    os.makedirs(out_folder, exist_ok=True)
+    # oas_path = "eval/airline/oas.json"
+    # tool_policy_paths = {
+    #     # "cancel_reservation": "src/policy_adherence/eval/airline/input/cancel_reservation.json"
+    #     "book_reservation": "eval/airline/GT/airlines-examples-verified/BookReservation-verified.json",
+    #     # "update_reservation_passengers": "src/eval/airline/GT/airlines-examples-verified/UpdateReservationPassengers-verified.json",
+    #     # "update_reservation_flights": "src/eval/airline/GT/airlines-examples-verified/UpdateReservationFlights-verified.json",
+    #     # "update_reservation_baggages": "src/eval/airline/GT/airlines-examples-verified/UpdateReservationBaggages-verified.json"
+    # }
+    # output_dir = "eval/airline/output"
 
-    tool_policies = [load_tool_policy(tool_policy_path, tool_name) 
-        for tool_name, tool_policy_path 
-        in tool_policy_paths.items()]
+    oas_path = "../ToolGuardAgent/eval/clinic/oas.json"
+    policy_path = "../ToolGuardAgent/eval/clinic/clinic_policy_doc.md"
+    output_dir = "../ToolGuardAgent/eval/clinic/output"
+    with open(policy_path, 'r', encoding='utf-8') as f:
+        policy_text = markdown.markdown(f.read())
+    oas = read_oas_file(oas_path)
+    step1_main(policy_text, oas, output_dir, 'gpt-4o-2024-08-06')
+    # tool_policy_paths = {
+    #     # "cancel_reservation": "src/policy_adherence/eval/airline/input/cancel_reservation.json"
+    #     "book_reservation": "eval/airline/GT/airlines-examples-verified/BookReservation-verified.json",
+    #     # "update_reservation_passengers": "src/eval/airline/GT/airlines-examples-verified/UpdateReservationPassengers-verified.json",
+    #     # "update_reservation_flights": "src/eval/airline/GT/airlines-examples-verified/UpdateReservationFlights-verified.json",
+    #     # "update_reservation_baggages": "src/eval/airline/GT/airlines-examples-verified/UpdateReservationBaggages-verified.json"
+    # }
     
-    result = await generate_tools_check_fns("my_app", tool_policies, out_folder, oas_path)
-    result.save(out_folder)
 
-    result = ToolChecksCodeGenerationResult.load(out_folder)
+    # now = datetime.now()
+    # out_folder = os.path.join(output_dir, now.strftime("%Y-%m-%d_%H_%M_%S"))
+    # os.makedirs(out_folder, exist_ok=True)
+
+    # tool_policies = [load_tool_policy(tool_policy_path, tool_name) 
+    #     for tool_name, tool_policy_path 
+    #     in tool_policy_paths.items()]
+    
+    # result = await generate_tools_check_fns("my_app", tool_policies, out_folder, oas_path)
+    # result.save(out_folder)
+
+    # out_folder = "eval/airline/output/2025-07-08_14_47_29"
+    result = ToolChecksCodeGenerationResult.load(output_dir)
+    print(result)
+
+    ok = result.check_tool_call("add-user", {
+            "first_name": "A", 
+            "last_name": "B:",
+            "address": "aasa",
+        },
+        [])
 
     # print(f"Domain: {result.domain_file}")
     # for tool_name, tool in result.tools.items():
