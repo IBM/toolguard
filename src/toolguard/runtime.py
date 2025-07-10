@@ -28,6 +28,11 @@ class ToolGuardCodeGenerationResult(BaseModel):
     domain: Domain
     tools: Dict[str, ToolGuardCodeResult]
 
+    @property
+    def root_dir(self):
+        cur_dir = os.path.dirname(os.path.abspath(__file__))
+        return os.path.dirname(cur_dir)
+
     def save(self, directory: str, filename: str = "result.json") -> None:
         full_path = os.path.join(directory, filename)
         with open(full_path, 'w', encoding='utf-8') as f:
@@ -37,7 +42,7 @@ class ToolGuardCodeGenerationResult(BaseModel):
         tool = self.tools.get(tool_name)
         assert tool, f"Unknown tool {tool_name}"
 
-        guard_file = os.path.join(self.output_path, tool.guard_file.file_name)
+        guard_file = os.path.join(self.root_dir, tool.guard_file.file_name)
         module = load_module_from_path(guard_file, file_to_module(tool.guard_file.file_name))
         guard_fn =find_function_in_module(module, tool.guard_fn_name)
         assert guard_fn, "Guard not found"
@@ -53,7 +58,7 @@ class ToolGuardCodeGenerationResult(BaseModel):
             elif p_name == "history":
                 guard_args[p_name] = ChatHistoryImpl(messages, None) #FIXME LLM
             elif p_name == "api":
-                api_impl_file = os.path.join(self.output_path, self.domain.api_impl.file_name)
+                api_impl_file = os.path.join(self.root_dir, self.domain.api_impl.file_name)
                 module = load_module_from_path(api_impl_file, file_to_module(self.domain.api_impl.file_name))
                 cls = find_class_in_module(module, self.domain.api_impl_class_name)
                 assert cls
