@@ -85,11 +85,13 @@ def main(policy_text:str, oas_file:str, step1_out_dir:str, step2_out_dir:str, fo
 	if run_step2:
 		result = asyncio.run(step2(oas_file, step1_out_dir, step2_out_dir, tools))
 		# print(f"Domain: {result.domain_file}")
-		for tool_name, tool in result.tools.items():
-			print(f"\t{tool_name}\t{tool.guard_file.file_name}")
-			for test in tool.test_files:
-				if test:
-					print(f"\t\t{test.file_name}")
+		# for tool_name, tool in result.tools.items():
+		# 	print(f"\t{tool_name}\t{tool.guard_file.file_name}")
+		# 	for test in tool.test_files:
+		# 		if test:
+		# 			print(f"\t\t{test.file_name}")
+
+		return result
 
 	
 def read_oas_file(filepath:str)->Dict:
