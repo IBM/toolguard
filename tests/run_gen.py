@@ -9,13 +9,15 @@ from loguru import logger
 
 #important to load the env variables BEFORE policy_adherence library (so programmatic_ai configuration will take place)
 import dotenv
+
 dotenv.load_dotenv() 
 
 from toolguard.__main__ import read_oas_file
 from toolguard.py_to_oas import tools_to_openapi
 from toolguard.stages_tptd.text_policy_identify_process import step1_main
 
-from toolguard.data_types import ToolGuardCodeGenerationResult, ToolPolicy, ToolPolicyItem
+from toolguard.data_types import ToolPolicy, ToolPolicyItem
+from toolguard.runtime import load
 from toolguard.common.open_api import OpenAPI
 
 model = "gpt-4o-2024-08-06"
@@ -90,7 +92,7 @@ async def gen_all():
     result.save(out_folder)
 
     # out_folder = "eval/airline/output/2025-07-08_14_47_29"
-    result = ToolGuardCodeGenerationResult.load(out_folder)
+    result = load(out_folder)
     print(result.model_dump_json(indent=2, exclude_none=True, by_alias=True))
 
     # ok = result.check_tool_call("add_user", {

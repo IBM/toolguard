@@ -16,12 +16,13 @@ import dotenv
 
 from toolguard.llm.tg_litellm import LitellmModel
 from toolguard.llm.tg_llm import TG_LLM
+from toolguard.runtime import ToolGuardCodeGenerationResult
 from toolguard.stages_tptd.create_oas_summary import OASSummarizer
 
 dotenv.load_dotenv()
 
 
-from toolguard.data_types import ToolPolicy, ToolPolicyItem, ToolGuardCodeGenerationResult
+from toolguard.data_types import ToolPolicy, ToolPolicyItem
 from toolguard.gen_tool_policy_check import generate_tools_check_fns
 from toolguard.stages_tptd.text_policy_identify_process import step1_main
 
@@ -83,7 +84,7 @@ def main(policy_text:str, oas_file:str, step1_out_dir:str, step2_out_dir:str, fo
 	run_or_validate_step1(policy_text, fsummary,summary, step1_out_dir, force_step1,step1_llm, tools)
 	if run_step2:
 		result = asyncio.run(step2(oas_file, step1_out_dir, step2_out_dir, tools))
-		print(f"Domain: {result.domain_file}")
+		# print(f"Domain: {result.domain_file}")
 		for tool_name, tool in result.tools.items():
 			print(f"\t{tool_name}\t{tool.guard_file.file_name}")
 			for test in tool.test_files:

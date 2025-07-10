@@ -12,10 +12,10 @@ from toolguard.common.open_api import OpenAPI, Operation, Parameter, ParameterIn
 from toolguard.data_types import Domain, FileTwin
 
 PACKAGE_NAME="toolguard"
-RUNTIME_MAIN_PY = "__init__.py"
-RUNTIME_TYPES_PY = "domain_types.py"
-RUNTIME_API_PY = "api.py"
-RUNTIME_API_IMPL_PY = "api_impl.py"
+RUNTIME_COMMON_PY = "data_types.py"
+RUNTIME_APP_TYPES_PY = "domain_types.py"
+RUNTIME_APP_API_PY = "api.py"
+RUNTIME_APP_API_IMPL_PY = "api_impl.py"
 
 class OpenAPICodeGenerator():
     cwd: str
@@ -28,18 +28,18 @@ class OpenAPICodeGenerator():
     def generate_domain(self, oas_file:str, funcs: List[Callable]|None = None)->Domain:
         common = FileTwin.load_from(
             str(Path(__file__).parent), "data_types.py")\
-            .save_as(self.cwd, join(PACKAGE_NAME, RUNTIME_MAIN_PY))
+            .save_as(self.cwd, join(PACKAGE_NAME, RUNTIME_COMMON_PY))
 
         oas = read_openapi(oas_file)
         types = FileTwin(
-                file_name=join(self.app_name, RUNTIME_TYPES_PY),
+                file_name=join(self.app_name, RUNTIME_APP_TYPES_PY),
                 content= dm_codegen(oas_file)
             ).save(self.cwd)
 
         api_cls_name = to_camel_case(oas.info.title) or "Tools_API"
         methods = self.get_oas_methods(oas, funcs)
         api = FileTwin(
-                file_name=join(self.app_name, RUNTIME_API_PY), 
+                file_name=join(self.app_name, RUNTIME_APP_API_PY), 
                 content= self.generate_api(methods, api_cls_name, py_module(types.file_name))
             ).save(self.cwd)
 
@@ -52,7 +52,7 @@ class OpenAPICodeGenerator():
             impl_cls_name
         )
         api_impl = FileTwin(
-                file_name=join(self.app_name, RUNTIME_API_IMPL_PY),
+                file_name=join(self.app_name, RUNTIME_APP_API_IMPL_PY),
                 content=cls_str
             ).save(self.cwd)
         
