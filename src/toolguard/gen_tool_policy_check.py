@@ -49,11 +49,6 @@ def test_fn_module_name(name:str)->str:
 async def generate_tools_check_fns(app_name: str, tools: List[ToolPolicy], py_root:str, openapi_path:str)->ToolGuardCodeGenerationResult:
     logger.debug(f"Starting... will save into {py_root}")
 
-    #Setup:
-    venv.run(join(py_root, PY_ENV), PY_PACKAGES)
-    pyright.config(py_root)
-    pytest.configure(py_root)
-
     #app folder:
     app_root = join(py_root, to_snake_case(app_name))
     os.makedirs(app_root, exist_ok=True)
@@ -62,13 +57,19 @@ async def generate_tools_check_fns(app_name: str, tools: List[ToolPolicy], py_ro
     # domain
     domain = OpenAPICodeGenerator(py_root, app_name).generate_domain(openapi_path)
     
+    #Setup env (slow, hence last):
+    venv.run(join(py_root, PY_ENV), PY_PACKAGES)
+    pyright.config(py_root)
+    pytest.configure(py_root)
+    
     #tools
     tools_w_poilicies = [tool for tool in tools if len(tool.policy_items) > 0]
     tool_results = await asyncio.gather(*[
         ToolCheckPolicyGenerator(app_name, tool, py_root, domain).generate()
         for tool in tools_w_poilicies
     ])
-    
+
+
     tools_result = {tool.name:res 
         for tool, res 
         in zip(tools_w_poilicies, tool_results)
@@ -138,9 +139,9 @@ class ToolCheckPolicyGenerator:
             logger.debug(f"Generating tool {item.name} tests. iteration {trial_no}")
             first_time = trial_no == 0
             if first_time:
-                res_content = await prompts.generate_tool_item_tests(fn_name, check_fn, item, self.common, self.domain.api, dep_tools)
+                res_content = await prompts.generate_tool_item_tests(fn_name, check_fn, item, self.domain.common, self.domain.api, dep_tools)
             else:
-                res_content = await prompts.improve_tool_tests(test_file, self.domain.api, item, errors)
+                res_content = await prompts.improve_tool_tests(test_file, self.domain.api, self.domain.common, item, errors) # type: ignore #
 
             test_content = post_process_llm_response(res_content)
             test_file = FileTwin(
@@ -201,7 +202,7 @@ class ToolCheckPolicyGenerator:
         errors = []
         for trial in range(MAX_TOOL_IMPROVEMENTS):
             logger.debug(f"Improving check function {module_name}... (trial = {trial})")
-            res_content = await prompts.improve_tool_check_fn(prev_version, self.domain.api, item, review_comments + errors)
+            res_content = await prompts.improve_tool_check_fn(prev_version, self.domain.common, self.domain.api, item, review_comments + errors)
 
             body = post_process_llm_response(res_content)
             check_fn = FileTwin(

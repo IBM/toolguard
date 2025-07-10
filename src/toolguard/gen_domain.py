@@ -11,28 +11,11 @@ from toolguard.utils.datamodel_codegen import run as dm_codegen
 from toolguard.common.open_api import OpenAPI, Operation, Parameter, ParameterIn, PathItem, Reference, RequestBody, Response, JSchema, read_openapi
 from toolguard.data_types import Domain, FileTwin
 
-RUNTIME_COMMON_PY = "common.py"
+PACKAGE_NAME="toolguard"
+RUNTIME_MAIN_PY = "__init__.py"
 RUNTIME_TYPES_PY = "domain_types.py"
 RUNTIME_API_PY = "api.py"
 RUNTIME_API_IMPL_PY = "api_impl.py"
-
-def primitive_jschema_types_to_py(type:Optional[str], format:Optional[str])->Optional[str]:
-    #https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.2.md#data-types
-    if type == "string":
-        if format == "date":
-            return "datetime.date"
-        if format == "date-time":
-            return "datetime.datetime"
-        if format in ["byte", "binary"]:
-            return "bytes"
-        return "str"
-    if type == "integer":
-        return "int"
-    if type == "number":
-        return "float"
-    if type == "boolean":
-        return "bool"
-    return None
 
 class OpenAPICodeGenerator():
     cwd: str
@@ -45,7 +28,7 @@ class OpenAPICodeGenerator():
     def generate_domain(self, oas_file:str, funcs: List[Callable]|None = None)->Domain:
         common = FileTwin.load_from(
             str(Path(__file__).parent), "data_types.py")\
-            .save_as(self.cwd, join(self.app_name, RUNTIME_COMMON_PY))
+            .save_as(self.cwd, join(PACKAGE_NAME, RUNTIME_MAIN_PY))
 
         oas = read_openapi(oas_file)
         types = FileTwin(
@@ -168,12 +151,31 @@ class OpenAPICodeGenerator():
 
         scm = oas.resolve_ref(scm_or_ref, JSchema)
         if scm:
-            py_type = primitive_jschema_types_to_py(scm.type, scm.format)
+            py_type = _primitive_jschema_types_to_py(scm.type, scm.format)
             if py_type:
                 return py_type
             # if scm.type == JSONSchemaTypes.array and scm.items:
             #     return f"List[{self.oas_to_py_type(scm.items, oas) or 'Any'}]"
     
+def _primitive_jschema_types_to_py(type:Optional[str], format:Optional[str])->Optional[str]:
+    #https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.0.2.md#data-types
+    if type == "string":
+        if format == "date":
+            return "datetime.date"
+        if format == "date-time":
+            return "datetime.datetime"
+        if format in ["byte", "binary"]:
+            return "bytes"
+        return "str"
+    if type == "integer":
+        return "int"
+    if type == "number":
+        return "float"
+    if type == "boolean":
+        return "bool"
+    return None
+
+
 if __name__ == '__main__':
     from pydantic import BaseModel
     class R(BaseModel):

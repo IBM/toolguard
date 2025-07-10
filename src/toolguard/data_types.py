@@ -5,6 +5,12 @@ from types import ModuleType
 from pydantic import BaseModel, Field
 from typing import Dict, List, Optional, Type
 
+def load(directory: str, filename: str = "result.json") -> "ToolGuardCodeGenerationResult":
+    full_path = os.path.join(directory, filename)
+    with open(full_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    return ToolGuardCodeGenerationResult(**data)
+
 def to_md_bulltets(items: List[str])->str:
     s = ""
     for item in items:
@@ -86,12 +92,6 @@ class ToolGuardCodeGenerationResult(BaseModel):
         with open(full_path, 'w', encoding='utf-8') as f:
             json.dump(self.model_dump(), f, indent=2)
     
-    @staticmethod
-    def load(directory: str, filename: str = "result.json") -> "ToolGuardCodeGenerationResult":
-        full_path = os.path.join(directory, filename)
-        with open(full_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        return ToolGuardCodeGenerationResult(**data)
 
     def check_tool_call(self, tool_name:str, args: dict, messages: List):
         tool = self.tools.get(tool_name)
@@ -100,7 +100,7 @@ class ToolGuardCodeGenerationResult(BaseModel):
         guard_file = os.path.join(self.output_path, tool.guard_file.file_name)
         module = load_module_from_path(guard_file, file_to_module(tool.guard_file.file_name))
         guard_fn =find_function_in_module(module, tool.guard_fn_name)
-        assert guard_fn "Guard not found"
+        assert guard_fn, "Guard not found"
 
         sig = inspect.signature(guard_fn)
         guard_args = {}
@@ -229,7 +229,7 @@ class PolicyViolationException(Exception):
     @property
     def message(self):
         return self._msg
-    
+
 def file_to_module(file_path:str):
     return file_path.removesuffix('.py').replace('/', '.')
 

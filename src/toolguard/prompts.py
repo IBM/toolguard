@@ -5,24 +5,20 @@ from programmatic_ai import generative
 
 @generative
 async def generate_tool_item_tests(
-    fn_under_test_name:str, 
+    fn_under_test_name: str, 
     fn_src: FileTwin, 
     tool_item: ToolPolicyItem, 
     common: FileTwin, 
     domain: FileTwin, 
     dependent_tool_names: Set[str])-> str:
-    """Generate Python unit tests for a function to verify tool-call compliance with policy constraints.
+    """
+    Generate Python unit tests for a function to verify tool-call compliance with policy constraints.
 
     This function creates unit tests to validate the behavior of a given function-under-test. 
     The function goal is to check the argument data, and raise an exception if they violated the requirements in the policy item.
 
     **Test Generation Rules:**
     - Make sure to Python import all items in fn_src, common and domain modules. Example:
-```
-from check_my_fn import check_my_function
-from common import *
-from domain import *
-```
     - Each **policy item** has multiple **compliance** and **violation** test examples.
         - For **each compliance example, ONE test method** is generated. 
             - If an exception occurrs in the function-under-test, let the exception propagate up.
@@ -40,39 +36,53 @@ from domain import *
     - You should mock the return_value from **ALL tools listed in `dependent_tool_names`**.
     - You should mock the chat_history services. 
     
-    **Example:** Testing the function `check_create_reservation`, for policy: `cannot book room for a date in the past`, and mocking dependent_tool_names: `["get_user", "get_hotel"]`
-    ```python
-
-    from unittest.mock import MagicMock, patch
-
-    # domain:
-    class SomeAPI(Protocol):
-        def get_user(self, user_id):
-            ...
-        def get_hotel(self, hotel_id):
-            ...
-
-                # function call arguments
-    args = {
-        user_id: ...,
+    **Example:** Testing the function `check_create_reservation`, 
+    * Policy: `cannot book a room for a date in the past`
+    * Violation example: `book a room for a hotel, one week ago`
+    * Dependent_tool_names: `["get_user", "get_hotel"]`
+    * Domain: 
+```python
+# file: my_app/api.py
+class SomeAPI(ABC):
+    def get_user(self, user_id):
         ...
-        hotel_id: ....
-    }
+    def get_hotel(self, hotel_id):
+        ...
+    def create_reservation(self, args: Reservation):
+        ...
+```
+    * fn_under_test_name: `guard_create_reservation`
+    * fn_src:
+```python
+# file: my_app/guard_create_reservation.py
+def guard_create_reservation(args:Reservation, history: ChatHistory, api: SomeAPI):
+    ...
+```
 
-            # mock the history service:
-            history = MagicMock()
-            history.ask_bool.return_value = True #Mock that True is the answer to the question
+    Should generate this snippet:
+```python
+from unittest.mock import MagicMock, patch
+from my_app.guard_create_reservation import guard_create_reservation
+from my_app.api import *
 
-            # mock other tools function return values 
-            user = User.model_construct(...)
-            hotel = Hotel.model_construct(...)
+def test_book_in_the_past():
+    # Policy: "cannot book room for a date in the past"
+    # Example: "book a room for a hotel, one week ago"
+    
+    # mock the history service:
+    history = MagicMock()
+    history.ask_bool.return_value = True #Mock that True is the answer to the question
 
-            api = MagicMock()
-            api.get_user.return_value = user
-            api.get_hotel.return_value = hotel
-            
-            #invoke function under test.
-            check_book_flight(args, history, api)
+    # mock other tools function return values 
+    user = User.model_construct(...)
+    hotel = Hotel.model_construct(...)
+
+    api = MagicMock()
+    api.get_user.return_value = user
+    api.get_hotel.return_value = hotel
+    
+    #invoke function under test.
+    check_create_reservation(args, history, api)
 ```
 
     Args:
@@ -90,7 +100,7 @@ from domain import *
 
 
 @generative
-async def improve_tool_tests(prev_impl:FileTwin, domain: FileTwin, tool: ToolPolicyItem, review_comments: List[str])-> str:
+async def improve_tool_tests(prev_impl:FileTwin, domain: FileTwin, common: FileTwin, tool: ToolPolicyItem, review_comments: List[str])-> str:
     """
     Improve the previous test functions (in Python) to check the given tool policy-items according to the review-comments.
 
@@ -179,7 +189,7 @@ async def tool_information_dependencies(tool_name:str, policy: str, domain:FileT
 
 
 @generative
-async def improve_tool_check_fn(prev_impl:FileTwin, domain: FileTwin, policy_item: ToolPolicyItem, review_comments: List[str])-> str:
+async def improve_tool_check_fn(prev_impl:FileTwin, common: FileTwin, domain: FileTwin, policy_item: ToolPolicyItem, review_comments: List[str])-> str:
     """
     Improve the previous tool-call check implementation (in Python) to cover all tool policy-items according to the review-comments.
 
