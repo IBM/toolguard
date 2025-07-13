@@ -84,7 +84,7 @@ async def generate_tools_check_fns(app_name: str, tools: List[ToolPolicy], py_ro
     return ToolGuardsCodeGenerationResult(
         domain=domain,
         tools=tools_result
-    )
+    ).save(py_root)
 
 class ToolCheckPolicyGenerator:
     app_name: str

@@ -40,10 +40,11 @@ class ToolGuardsCodeGenerationResult(BaseModel):
         cur_dir = os.path.dirname(os.path.abspath(__file__))
         return os.path.dirname(cur_dir)
 
-    def save(self, directory: str, filename: str = "result.json") -> None:
+    def save(self, directory: str, filename: str = "result.json") -> 'ToolGuardsCodeGenerationResult':
         full_path = os.path.join(directory, filename)
         with open(full_path, 'w', encoding='utf-8') as f:
             json.dump(self.model_dump(), f, indent=2)
+        return self
 
     def use_llm(self, llm: LLM):
         self._llm = llm
