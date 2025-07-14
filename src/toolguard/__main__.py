@@ -24,7 +24,7 @@ dotenv.load_dotenv()
 
 from toolguard.data_types import ToolPolicy, ToolPolicyItem
 from toolguard.gen_tool_policy_check import generate_tools_check_fns
-from toolguard.stages_tptd.text_policy_identify_process import step1_main
+from toolguard.stages_tptd.text_tool_policy_generator import step1_main
 
 
 
@@ -50,12 +50,12 @@ def validate_files_exist(tools_descriptions:dict, step1_path:str):
 	
 
 
-def run_or_validate_step1(policy_text:str, tools_descriptions:dict[str,str],tools_details:dict[str,dict], step1_out_dir:str, force_step1:bool,llm:TG_LLM, tools:Optional[List[str]]=None):
+def run_or_validate_step1(policy_text:str, tools_descriptions:dict[str,str],tools_details:dict[str,dict], step1_out_dir:str, force_step1:bool,llm:TG_LLM, tools:Optional[List[str]]=None,short1=False):
 	
 	if not(force_step1) and validate_files_exist(tools_descriptions, step1_out_dir):
 		return
 	
-	step1_main(policy_text, tools_descriptions,tools_details, step1_out_dir,llm, tools)
+	step1_main(policy_text, tools_descriptions,tools_details, step1_out_dir,llm, tools,short1)
 
 
 
@@ -74,14 +74,14 @@ async def step2(oas_path:str, step1_path:str, step2_path:str, tools:Optional[Lis
 	
 	return await generate_tools_check_fns("my_app", tool_policies, step2_path, oas_path)
 
-def main(policy_text:str, oas_file:str, step1_out_dir:str, step2_out_dir:str, force_step1:bool, run_step2:bool,step1_llm:TG_LLM, tools:List[str]=None):
+def main(policy_text:str, oas_file:str, step1_out_dir:str, step2_out_dir:str, force_step1:bool, run_step2:bool,step1_llm:TG_LLM, tools:List[str]=None,short1=False):
 	with open(oas_file,'r',encoding='utf-8') as file:
 		oas = json.load(file)
 	summarizer = OASSummarizer(oas)
 	summary = summarizer.summarize()
 	fsummary = {k: v["description"] for k, v in summary.items()}
 
-	run_or_validate_step1(policy_text, fsummary,summary, step1_out_dir, force_step1,step1_llm, tools)
+	run_or_validate_step1(policy_text, fsummary,summary, step1_out_dir, force_step1,step1_llm, tools,short1)
 	if run_step2:
 		result = asyncio.run(step2(oas_file, step1_out_dir, step2_out_dir, tools))
 		# print(f"Domain: {result.domain_file}")
@@ -142,7 +142,8 @@ if __name__ == '__main__':
 	parser.add_argument('--step1-model-name', type=str, default='gpt-4o-2024-08-06', help='Model to use for generating in step 1')
 	parser.add_argument('--step2-model-name', type=str, default='gpt-4o-2024-08-06', help='Model to use for generating in step 2')
 	parser.add_argument('--tools', nargs='+', default=None, help='Optional list of tool names. These are a subset of the tools in the openAPI operation ids.')
-
+	parser.add_argument('--short-step1', action='store_true', default=False, help='run short version of step 1')
+	
 	args = parser.parse_args()
 	policy_path = args.policy_path
 	oas_file = args.oas
@@ -157,6 +158,7 @@ if __name__ == '__main__':
 		force_step1 = args.force_step1,
 		run_step2 = args.run_step2,
 		step1_llm = llm,
-		tools = args.tools
+		tools = args.tools,
+		short1 = args.short_step1
 	)
 	
