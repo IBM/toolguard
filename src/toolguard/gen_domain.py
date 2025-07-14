@@ -1,10 +1,11 @@
+import os
 from pathlib import Path
 from typing import Callable, List, Optional, Tuple, Union
 from os.path import join
 
 from toolguard.common.array import find
 from toolguard.common.py import py_module, unwrap_fn
-from toolguard.common.str import to_camel_case
+from toolguard.common.str import to_camel_case, to_snake_case
 from toolguard.templates import load_template
 from toolguard.py_to_oas import tools_to_openapi
 from toolguard.utils.datamodel_codegen import run as dm_codegen
@@ -12,7 +13,8 @@ from toolguard.common.open_api import OpenAPI, Operation, Parameter, ParameterIn
 from toolguard.data_types import Domain, FileTwin
 
 PACKAGE_NAME="toolguard"
-RUNTIME_COMMON_PY = "data_types.py"
+RUNTIME_INIT_PY = "__init__.py"
+RUNTIME_TYPES_PY = "data_types.py"
 RUNTIME_APP_TYPES_PY = "domain_types.py"
 RUNTIME_APP_API_PY = "api.py"
 RUNTIME_APP_API_IMPL_PY = "api_impl.py"
@@ -25,17 +27,26 @@ class OpenAPICodeGenerator():
         self.cwd = cwd
         self.app_name = app_name
 
-    def generate_domain(self, oas_file:str, funcs: List[Callable]|None = None)->Domain:
+    def generate_domain(self, oas_file:str, funcs: Optional[List[Callable]] = None)->Domain:
+        #ToolGuard Runtime
+        os.makedirs(join(self.cwd, PACKAGE_NAME), exist_ok=True)
+        FileTwin.load_from(
+            str(Path(__file__).parent), "runtime.py")\
+            .save_as(self.cwd, join(PACKAGE_NAME, RUNTIME_INIT_PY))
         common = FileTwin.load_from(
             str(Path(__file__).parent), "data_types.py")\
-            .save_as(self.cwd, join(PACKAGE_NAME, RUNTIME_COMMON_PY))
+            .save_as(self.cwd, join(PACKAGE_NAME, RUNTIME_TYPES_PY))
 
+        #APP init and Types
         oas = read_openapi(oas_file)
+        os.makedirs(join(self.cwd, to_snake_case(self.app_name)), exist_ok=True)
+        FileTwin(file_name=join(to_snake_case(self.app_name), "__init__.py"), content="").save(self.cwd)
         types = FileTwin(
-                file_name=join(self.app_name, RUNTIME_APP_TYPES_PY),
+                file_name=join(to_snake_case(self.app_name), RUNTIME_APP_TYPES_PY),
                 content= dm_codegen(oas_file)
             ).save(self.cwd)
 
+        #APP API
         api_cls_name = to_camel_case(oas.info.title) or "Tools_API"
         methods = self.get_oas_methods(oas, funcs)
         api = FileTwin(
@@ -43,6 +54,7 @@ class OpenAPICodeGenerator():
                 content= self.generate_api(methods, api_cls_name, py_module(types.file_name))
             ).save(self.cwd)
 
+        #APP API Impl
         impl_cls_name = api_cls_name+"_impl"
         cls_str = self.generate_api_impl(
             methods, 
@@ -199,7 +211,7 @@ if __name__ == '__main__':
     oas = tools_to_openapi("Bla", [greet])
     oas.save(oas_path)
 
-    gen = OpenAPICodeGenerator("my_app", "eval/airline/output")
     # domain_path = "domain.py"
-    domain = gen.generate_domain(oas_path, [greet])
+    domain = OpenAPICodeGenerator("eval/airline/output", "my_app")\
+        .generate_domain(oas_path, [greet])
     print("Done")

@@ -2,14 +2,15 @@ import asyncio
 import inspect
 import os
 from os.path import join
-from typing import Any, List, Tuple
+from typing import Any, Callable, List, Optional, Tuple
 from loguru import logger
 from toolguard.common.array import find
 from toolguard.common import py
 from toolguard.common.str import to_camel_case, to_snake_case
-from toolguard.gen_domain import PACKAGE_NAME, OpenAPICodeGenerator
+from toolguard.gen_domain import OpenAPICodeGenerator
 import toolguard.prompts as prompts
 from toolguard.data_types import Domain, FileTwin, ToolPolicy, ToolPolicyItem, ToolPolicyItem
+from toolguard.py_to_oas import tools_to_openapi
 from toolguard.runtime import ToolGuardsCodeGenerationResult, ToolGuardCodeResult, find_class_in_module, load_module_from_path
 from toolguard.templates import load_template
 import toolguard.utils.pyright as pyright
@@ -47,22 +48,16 @@ def test_fn_name(name:str)->str:
 def test_fn_module_name(name:str)->str:
     return to_snake_case(test_fn_name(name))
 
-async def generate_tools_check_fns(app_name: str, tools: List[ToolPolicy], py_root:str, openapi_path:str)->ToolGuardsCodeGenerationResult:
+async def generate_tools_check_fns(app_name: str, tool_policies: List[ToolPolicy], py_root:str, openapi_path:Optional[str]=None, funcs: Optional[List[Callable]] = None)->ToolGuardsCodeGenerationResult:
+    assert openapi_path or funcs, "one of [openapi_path, funcs] parameters must be passed"
     logger.debug(f"Starting... will save into {py_root}")
 
-    #Runtime
-    os.makedirs(join(py_root, PACKAGE_NAME), exist_ok=True)
-    FileTwin.load_from(
-            str(Path(__file__).parent), "runtime.py")\
-            .save_as(py_root, join(PACKAGE_NAME, "__init__.py"))
+    if not openapi_path and funcs:
+        oas = tools_to_openapi(app_name, funcs)
+        openapi_path = join(py_root, f"{app_name}_oas.json")
+        oas.save(openapi_path)
 
-    #app folder:
-    app_root = join(py_root, to_snake_case(app_name))
-    os.makedirs(app_root, exist_ok=True)
-    FileTwin(file_name=join(app_root, "__init__.py"), content="").save(py_root)
-
-    # domain
-    domain = OpenAPICodeGenerator(py_root, app_name).generate_domain(openapi_path)
+    domain = OpenAPICodeGenerator(py_root, app_name).generate_domain(openapi_path, funcs)
     
     #Setup env (slow, hence last):
     venv.run(join(py_root, PY_ENV), PY_PACKAGES)
@@ -70,7 +65,7 @@ async def generate_tools_check_fns(app_name: str, tools: List[ToolPolicy], py_ro
     pytest.configure(py_root)
     
     #tools
-    tools_w_poilicies = [tool for tool in tools if len(tool.policy_items) > 0]
+    tools_w_poilicies = [tool_policy for tool_policy in tool_policies if len(tool_policy.policy_items) > 0]
     tool_results = await asyncio.gather(*[
         ToolCheckPolicyGenerator(app_name, tool, py_root, domain).generate()
         for tool in tools_w_poilicies
