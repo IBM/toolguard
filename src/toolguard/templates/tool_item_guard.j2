@@ -1,9 +1,9 @@
 from typing import Any, Dict, List
 from {{ py_module(domain.toolguard_common.file_name) }} import ChatHistory
 from {{ py_module(domain.app_types.file_name) }} import {{ method.arg.type }}
-from {{ py_module(domain.app_api.file_name) }} import {{ domain.app_api_impl_class_name }}
+from {{ py_module(domain.app_api.file_name) }} import {{ domain.app_api_class_name }}
 
-def {{ method.name }}({{ method.arg.name }}: {{method.arg.type}}, history: ChatHistory, api: {{ domain.api_class_name }}):
+def {{ method.name }}({{ method.arg.name }}: {{method.arg.type}}, history: ChatHistory, api: {{ domain.app_api_class_name }}):
     """
     Checks that a tool call complies with the following policy:
     >{{ policy }}

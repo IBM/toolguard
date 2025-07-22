@@ -22,7 +22,7 @@ async def generate_tool_item_tests(
         - For **each compliance example, ONE test method** is generated. 
             - If an exception occurrs in the function-under-test, let the exception propagate up.
         - For **each violation example, ONE test** is generated.
-            - The function-under-test is EXPECTED to raise an exception.
+            - The function-under-test is EXPECTED to raise a `PolicyViolationException`.
             - If the expected exception was not raised, the test should raise an exception with a message describing test case that did not raise exception.
             
         - Test class and method names should be meaningful and use up to **six words in snake_case**.
@@ -32,7 +32,8 @@ async def generate_tool_item_tests(
     **Data population and references:**
     - When populating domain objects, use pydantic `.model_construct()`. 
     - If the class extends `pydantic.RootModel`, always pass the `root` argument.
-    - You should mock the return_value from **ALL tools listed in `dependent_tool_names`**.
+    - You should mock the return_value from **ALL tools listed in `dependent_tool_names`**. 
+        - Use side_effect to return the expected value only when the expected parameters are passed.
     - You should mock the chat_history services. 
     
     **Example:** Testing the function `check_create_reservation`, 
@@ -61,6 +62,7 @@ def guard_create_reservation(args:Reservation, history: ChatHistory, api: SomeAP
     Should generate this snippet:
 ```python
 from unittest.mock import MagicMock, patch
+from toolguard.data_types import PolicyViolationException
 from my_app.guard_create_reservation import guard_create_reservation
 from my_app.api import *
 
@@ -73,12 +75,12 @@ def test_book_in_the_past():
     history.ask_bool.return_value = True #Mock that True is the answer to the question
 
     # mock other tools function return values 
-    user = User.model_construct(...)
-    hotel = Hotel.model_construct(...)
+    user = User.model_construct(user_id=123, ...)
+    hotel = Hotel.model_construct(hotel_id="789", ...)
 
     api = MagicMock()
-    api.get_user.return_value = user
-    api.get_hotel.return_value = hotel
+    api.get_user.return_value = lambda user_id: user if user_id == 123 else None
+    api.get_hotel.return_value = lambda hotel_id: hotel if hotel_id == "789" else None
     
     #invoke function under test.
     check_create_reservation(args, history, api)
@@ -194,9 +196,9 @@ async def tool_information_dependencies(tool_name:str, policy: str, domain:FileT
 
 
 @generative
-async def improve_tool_check_fn(prev_impl:FileTwin, domain: Domain, policy_item: ToolPolicyItem, review_comments: List[str])-> str:
+async def improve_tool_guard_fn(prev_impl:FileTwin, domain: Domain, policy_item: ToolPolicyItem, review_comments: List[str])-> str:
     """
-    Improve the previous tool-call check implementation (in Python) to cover all tool policy-items according to the review-comments.
+    Improve the previous tool-call guard implementation (in Python) to cover all tool policy-items according to the review-comments.
 
     Args:
         prev_impl (FileTwin): previous implementation of the tool-call check.

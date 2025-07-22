@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime
+import inspect
 import json
 import os
 import sys
@@ -26,7 +27,7 @@ model = "gpt-4o-2024-08-06"
 # settings.provider = "azure"
 # settings.model = model
 # settings.sdk = "litellm"
-from toolguard.gen_tool_policy_check import generate_tools_check_fns
+from toolguard.gen_tool_policy_check import generate_tool_guards_fns
     
 def read_oas(file_path:str)->OpenAPI:
     with open(file_path, "r") as file:
@@ -66,7 +67,8 @@ async def gen_all():
     }
     output_dir = "eval/airline/output"
     from tau2.domains.airline.tools import AirlineTools
-    funcs = [AirlineTools.book_reservation]
+    funcs = [member for name, member in inspect.getmembers(AirlineTools, predicate=inspect.isfunction)
+        if getattr(member, "__tool__", None)]  # only @is_tool]
 
     # oas_path = "../ToolGuardAgent/eval/clinic/oas_1.json"
     # policy_path = "../ToolGuardAgent/eval/clinic/clinic_policy_doc.md"
@@ -91,12 +93,12 @@ async def gen_all():
         for tool_name, tool_policy_path 
         in tool_policy_paths.items()]
     
-    result = await generate_tools_check_fns("airline", tool_policies, out_folder, funcs)
+    result = await generate_tool_guards_fns("airline", tool_policies, out_folder, funcs)
     result.save(out_folder)
 
     # out_folder = "eval/airline/output/2025-07-08_14_47_29"
     result = load(out_folder)
-    print(result.model_dump_json(indent=2, exclude_none=True, by_alias=True))
+    # print(result.model_dump_json(indent=2, exclude_none=True, by_alias=True))
 
     # ok = result.check_tool_call("add_user", {
     #         "first_name": "A", 

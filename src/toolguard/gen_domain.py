@@ -1,3 +1,4 @@
+import inspect
 import os
 from pathlib import Path
 from typing import Callable, List, Optional, Tuple, Union
@@ -97,7 +98,7 @@ class OpenAPICodeGenerator():
                 if orign_funcs:
                     func = find(orign_funcs or [], lambda fn: fn.__name__ == op.operationId)
                     if func:
-                        body = self.call_fn_body(func, args)
+                        body = self.call_fn_body(func)
                 methods.append({
                     "name": to_camel_case(op.operationId), 
                     "signature": sig,
@@ -106,13 +107,39 @@ class OpenAPICodeGenerator():
                 })
         return methods
 
-    def call_fn_body(self, func:Callable, args:str):
-        #FIXME to implement class methods and instace methods
-        args_str = ', '.join(["self"]+[f"{arg}" for arg,type in args])
-        return f"""
-            from {func.__module__} import {func.__name__}
-            return {func.__name__}({args_str})
-"""
+    def call_fn_body(self, func:Callable):
+        module = inspect.getmodule(func)
+        if module is None or not hasattr(module, '__file__'):
+            raise ValueError("Function must be from an importable module")
+
+        module_name = module.__name__
+        qualname = func.__qualname__
+        func_name = func.__name__
+        parts = qualname.split('.')
+        
+        if len(parts) == 1: # Regular function
+            return f"""
+        mod = importlib.import_module("{module_name}")
+        func = getattr(mod, "{func_name}")
+        return func(locals())"""
+        
+        if len(parts) == 2:  # Classmethod or staticmethod
+            class_name = parts[0]
+            return f"""
+        mod = importlib.import_module("{module_name}")
+        cls = getattr(mod, "{class_name}")
+        func = getattr(cls, "{func_name}")
+        return func(locals())"""
+
+        if len(parts) > 2: # Instance method
+            class_name = parts[-2]
+            return f"""
+        mod = importlib.import_module("{module_name}")
+        cls = getattr(mod, "{class_name}")
+        instance = cls()
+        func = getattr(instance, "{func_name}")
+        return func(locals())"""
+        raise NotImplementedError("Unsupported function type or nested depth")
     
     def generate_api(self, methods: List, cls_name: str, types_module:str)->str:
         return load_template("api.j2").render(

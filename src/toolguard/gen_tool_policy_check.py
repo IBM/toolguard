@@ -37,7 +37,7 @@ HISTORY_PARAM_TYPE = "ChatHistory"
 API_PARAM = "api"
 
 
-async def generate_tools_check_fns(app_name: str, tool_policies: List[ToolPolicy], py_root:str, funcs: List[Callable])->ToolGuardsCodeGenerationResult:
+async def generate_tool_guards_fns(app_name: str, tool_policies: List[ToolPolicy], py_root:str, funcs: List[Callable])->ToolGuardsCodeGenerationResult:
     logger.debug(f"Starting... will save into {py_root}")
 
     #Open API Spec is the common way to specify API
@@ -90,37 +90,39 @@ class ToolCheckPolicyGenerator:
         os.makedirs(join(self.app_path, to_snake_case(tool_policy.tool_name)), exist_ok=True)
         os.makedirs(join(py_path, to_snake_case(DEBUG_DIR)), exist_ok=True)
         os.makedirs(join(py_path, to_snake_case(DEBUG_DIR), to_snake_case(self.tool_policy.tool_name)), exist_ok=True)
+        for item in tool_policy.policy_items:
+            os.makedirs(join(py_path, to_snake_case(DEBUG_DIR), to_snake_case(self.tool_policy.tool_name), to_snake_case(item.name)), exist_ok=True)
         os.makedirs(join(py_path, to_snake_case(TESTS_DIR)), exist_ok=True)
 
     async def generate(self)->ToolGuardCodeResult:
-        tool_check_fn, item_check_fns = self.create_initial_check_fns()
-        for item_check_fn in item_check_fns:
-            item_check_fn.save_as(self.py_path, self.debug_dir(f"-1_{Path(item_check_fn.file_name).parts[-1]}"))
+        tool_guard_fn, item_guard_fns = self.create_initial_guard_fns()
+        for item_guard_fn, policy_item in zip(item_guard_fns, self.tool_policy.policy_items):
+            item_guard_fn.save_as(self.py_path, self.debug_dir(policy_item, f"-1_{Path(item_guard_fn.file_name).parts[-1]}"))
         
         logger.debug(f"Tool {self.tool_policy.tool_name} function draft created")
     
         items_tests = await asyncio.gather(* [
-            self.generate_tool_item_tests_and_check_fn(item, item_check_fn)
-                for item, item_check_fn in zip(self.tool_policy.policy_items, item_check_fns)
+            self.generate_tool_item_tests_and_guard_fn(item, item_guard_fn)
+                for item, item_guard_fn in zip(self.tool_policy.policy_items, item_guard_fns)
         ])
         return ToolGuardCodeResult(
             tool=self.tool_policy,
             guard_fn_name=self.guard_fn_name(),
-            guard_file=tool_check_fn,
-            item_guard_files = item_check_fns,
+            guard_file=tool_guard_fn,
+            item_guard_files = item_guard_fns,
             test_files=items_tests
         )
 
-    async def generate_tool_item_tests_and_check_fn(self, item: ToolPolicyItem, check_fn: FileTwin)->FileTwin|None:
+    async def generate_tool_item_tests_and_guard_fn(self, item: ToolPolicyItem, guard_fn: FileTwin)->FileTwin|None:
         try:
-            tests = await self.generate_tool_item_tests(item, check_fn)
-            await self.improve_tool_item_check_fn_loop(item, check_fn, tests)
+            tests = await self.generate_tool_item_tests(item, guard_fn)
+            await self.improve_tool_item_guard_fn_loop(item, guard_fn, tests)
             return tests
         except Exception as ex:
             logger.error(ex)
             return None
 
-    async def generate_tool_item_tests(self, item: ToolPolicyItem, check_fn: FileTwin)-> FileTwin:
+    async def generate_tool_item_tests(self, item: ToolPolicyItem, guard_fn: FileTwin)-> FileTwin:
         fn_name = self.guard_item_fn_name(item)
         dep_tools = await prompts.tool_information_dependencies(item.name, item.description, self.domain.app_api)
         dep_tools = set(dep_tools) #workaround. generative AI
@@ -133,7 +135,7 @@ class ToolCheckPolicyGenerator:
             first_time = trial_no == 0
             domain = Domain.model_construct(**self.domain.model_dump()) #remove runtime fields
             if first_time:
-                res_content = await prompts.generate_tool_item_tests(fn_name, check_fn, item, domain, dep_tools)
+                res_content = await prompts.generate_tool_item_tests(fn_name, guard_fn, item, domain, dep_tools)
             else:
                 res_content = await prompts.improve_tool_tests(test_file, domain, item, errors)
 
@@ -143,10 +145,10 @@ class ToolCheckPolicyGenerator:
                 content=test_content
             )
             test_file.save(self.py_path)
-            test_file.save_as(self.py_path, self.debug_dir(f"{trial_no}_{self.test_fn_module_name(item)}.py"))
+            test_file.save_as(self.py_path, self.debug_dir(item, f"{trial_no}_{self.test_fn_module_name(item)}.py"))
 
             lint_report = pyright.run(self.py_path, test_file.file_name, PY_ENV)
-            lint_report_filename =self.debug_dir(f"{trial_no}_{to_snake_case(item.name)}_pyright.json")
+            lint_report_filename =self.debug_dir(item, f"{trial_no}_{to_snake_case(item.name)}_pyright.json")
             report = FileTwin(
                 file_name=lint_report_filename,
                 content=lint_report.model_dump_json(indent=2)
@@ -156,7 +158,7 @@ class ToolCheckPolicyGenerator:
             if lint_report.summary.errorCount>0:
                 logger.warning(f"Generated tests with {lint_report.summary.errorCount} Python errors {test_file.file_name}.")
                 FileTwin(
-                        file_name=self.debug_dir(f"{trial_no}_{self.test_fn_module_name(item)}_errors.json"), 
+                        file_name=self.debug_dir(item, f"{trial_no}_{self.test_fn_module_name(item)}_errors.json"), 
                         content=lint_report.model_dump_json(indent=2)
                     ).save(self.py_path, )
                 errors = lint_report.list_error_messages()
@@ -164,7 +166,7 @@ class ToolCheckPolicyGenerator:
 
             #syntax ok, try to run it...
             logger.debug(f"Generated Tests... (trial={trial_no})")
-            report_file_name = self.debug_dir(f"{trial_no}_{to_snake_case(item.name)}_report.json")
+            report_file_name = self.debug_dir(item, f"{trial_no}_{to_snake_case(item.name)}_report.json")
             test_report = pytest.run(self.py_path, test_file.file_name, report_file_name)
             if test_report.all_tests_collected_successfully() and test_report.non_empty_tests():
                 return test_file
@@ -175,42 +177,42 @@ class ToolCheckPolicyGenerator:
         
         raise Exception("Generated tests contain errors")
     
-    async def improve_tool_item_check_fn_loop(self, item: ToolPolicyItem, check_fn: FileTwin, tests:FileTwin)->FileTwin:
+    async def improve_tool_item_guard_fn_loop(self, item: ToolPolicyItem, guard_fn: FileTwin, tests:FileTwin)->FileTwin:
         for trial_no in range(MAX_TOOL_IMPROVEMENTS):
-            report_file_name = self.debug_dir(f"{trial_no}_{to_snake_case(item.name)}_report.json")
+            report_file_name = self.debug_dir(item, f"{trial_no}_{to_snake_case(item.name)}_report.json")
             errors = pytest.run(
                     self.py_path, 
                     tests.file_name,
                     report_file_name
                 ).list_errors()
             if not errors: 
-                return check_fn
+                return guard_fn
             
-            logger.debug(f"Tool {item.name} check function unit-tests failed. Retrying...")
-            check_fn = await self.improve_check_fn(check_fn, errors, item)
+            logger.debug(f"Tool {item.name} guard function unit-tests failed. Retrying...")
+            guard_fn = await self.improve_tool_item_guard_fn(guard_fn, errors, item, trial_no)
         
-        raise Exception(f"Could not generate check function for tool {item.name}")
+        raise Exception(f"Could not generate guard function for tool {self.tool_policy.tool_name}.{item.name}")
 
-    async def improve_check_fn(self, prev_version:FileTwin, review_comments: List[str], item: ToolPolicyItem)->FileTwin:
+    async def improve_tool_item_guard_fn(self, prev_version:FileTwin, review_comments: List[str], item: ToolPolicyItem, round: int)->FileTwin:
         module_name = self.guard_item_fn_module_name(item)
         errors = []
         for trial in range(MAX_TOOL_IMPROVEMENTS):
-            logger.debug(f"Improving check function {module_name}... (trial = {trial})")
+            logger.debug(f"Improving guard function {module_name}... (trial = {round}.{trial})")
             domain = Domain.model_construct(**self.domain.model_dump()) #omit runtime fields
-            res_content = await prompts.improve_tool_check_fn(prev_version, domain, item, review_comments + errors)
+            res_content = await prompts.improve_tool_guard_fn(prev_version, domain, item, review_comments + errors)
 
             body = post_process_llm_response(res_content)
-            check_fn = FileTwin(
+            guard_fn = FileTwin(
                 file_name=prev_version.file_name,
                 content=body
             )
-            check_fn.save(self.py_path)
-            check_fn.save_as(self.py_path, self.debug_dir(f"{trial}_{module_name}.py"))
+            guard_fn.save(self.py_path)
+            guard_fn.save_as(self.py_path, self.debug_dir(item, f"{round}.{trial}_{module_name}.py"))
 
-            lint_report = pyright.run(self.py_path, check_fn.file_name, PY_ENV)
+            lint_report = pyright.run(self.py_path, guard_fn.file_name, PY_ENV)
             if lint_report.summary.errorCount>0:
                 FileTwin(
-                        file_name=self.debug_dir(f"{trial}_{module_name}_errors.json"), 
+                        file_name=self.debug_dir(item, f"{round}.{trial}_{module_name}_errors.json"), 
                         content=lint_report.model_dump_json(indent=2)
                     ).save(self.py_path, )
                 logger.warning(f"Generated function {module_name} with {lint_report.summary.errorCount} errors.")
@@ -218,11 +220,11 @@ class ToolCheckPolicyGenerator:
                 errors = lint_report.list_error_messages()
                 continue
             
-            return check_fn
+            return guard_fn
         
         raise Exception(f"Generation failed for tool {item.name}")
 
-    def create_initial_check_fns(self)->Tuple[FileTwin, List[FileTwin]]:
+    def create_initial_guard_fns(self)->Tuple[FileTwin, List[FileTwin]]:
         with py.temp_python_path(self.py_path):
             module = load_module_from_path(self.domain.app_api.file_name, self.py_path)
         assert module, f"File not found {self.domain.app_api.file_name}"
@@ -293,8 +295,8 @@ class ToolCheckPolicyGenerator:
             )
         ).save(self.py_path)
     
-    def debug_dir(self, dir:str):
-        return join(DEBUG_DIR, to_snake_case(self.tool_policy.tool_name), dir)
+    def debug_dir(self, policy_item: ToolPolicyItem, dir:str):
+        return join(DEBUG_DIR, to_snake_case(self.tool_policy.tool_name), to_snake_case(policy_item.name), dir)
     
     def guard_fn_name(self)->str:
         return to_snake_case(f"guard_{self.tool_policy.tool_name}")

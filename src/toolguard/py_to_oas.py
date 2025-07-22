@@ -1,4 +1,5 @@
-from typing import Any, Callable, Dict, List, Literal
+import types
+from typing import Any, Callable, Dict, List, Literal, Union
 import docstring_parser
 import inspect
 import typing
@@ -29,54 +30,65 @@ def py_type_to_json_schema(py_type:Any) -> JSchema:
     origin = get_origin(py_type)
     args = get_args(py_type)
 
-    # Handle optional (Union[X, None])
-    if origin is typing.Union and type(None) in args:
-        non_none_type = [arg for arg in args if arg is not type(None)][0]
-        schema = py_type_to_json_schema(non_none_type)
+    # Handle Optional[X] (Union[X, None] or X | None)
+    if (origin is Union or origin is types.UnionType) and type(None) in args:
+        non_none_args = [arg for arg in args if arg is not type(None)]
+        if len(non_none_args) == 1:
+            schema = py_type_to_json_schema(non_none_args[0])
+        else:
+            schema = py_type_to_json_schema(Union[*non_none_args])
         schema.nullable = True
         return schema
 
-    # Handle List[X], Tuple[X], etc.
-    if origin in (list, typing.List, tuple, typing.Tuple):
-        item_type = args[0] if args else typing.Any
-        return JSchema( 
-            type = JSONSchemaTypes.array,
-            items = py_type_to_json_schema(item_type)
+    # Handle Union[X, Y] or X | Y
+    if origin is Union or origin is types.UnionType:
+        return JSchema(
+            anyOf=[py_type_to_json_schema(arg) for arg in args]
         )
 
-    # Handle Dict[str, X]
-    if origin in (dict, typing.Dict):
-        key_type, val_type = args if args else (str, typing.Any)
+    # Handle List[X], Tuple[X], etc.
+    if origin in (list, typing.List, tuple, typing.Tuple):
+        item_type = args[0] if args else Any
+        return JSchema( 
+            type=JSONSchemaTypes.array,
+            items=py_type_to_json_schema(item_type)
+        )
+
+    # Handle Dict[str, X] or just dict
+    if py_type == dict or origin in (dict, typing.Dict):
+        key_type, val_type = (str, Any)  # default
+        if args:
+            key_type, val_type = args
         return JSchema(
-            type = JSONSchemaTypes.object,
-            additionalProperties = py_type_to_json_schema(val_type)
+            type=JSONSchemaTypes.object,
+            additionalProperties=py_type_to_json_schema(val_type)
         )
 
     # Handle base Python types
     if py_type in PRIMITIVE_PY_TYPES_TO_JSCHMA_TYPES:
-        return JSchema(type= PRIMITIVE_PY_TYPES_TO_JSCHMA_TYPES.get(py_type))
+        return JSchema(type=PRIMITIVE_PY_TYPES_TO_JSCHMA_TYPES[py_type])
     if py_type is None or py_type is type(None):
-        return JSchema(type = JSONSchemaTypes.null)
-    if py_type is typing.Any:
+        return JSchema(type=JSONSchemaTypes.null)
+    if py_type is Any:
         return JSchema()
 
-    # Handle custom classes with annotations (like dataclasses or tool args)
+    # Handle custom classes with annotations (like dataclasses or pydantic models)
     if inspect.isclass(py_type) and hasattr(py_type, "__annotations__"):
         props = {}
         required = []
         for name, typ in py_type.__annotations__.items():
             props[name] = py_type_to_json_schema(typ)
-            if not typing.get_origin(typ) is typing.Union or type(None) not in typing.get_args(typ):
+            if not (get_origin(typ) in (Union, types.UnionType) and type(None) in get_args(typ)):
                 required.append(name)
 
         return JSchema(
-            type = JSONSchemaTypes.object,
-            properties = props,
-            required = required or None
+            type=JSONSchemaTypes.object,
+            properties=props,
+            required=required or None
         )
 
     # Fallback
-    return JSchema(type = JSONSchemaTypes.string)
+    return JSchema(type=JSONSchemaTypes.string)
 
 def func_to_oas_operation(func:Callable)->Operation:
     original_fn = unwrap_fn(func)
@@ -96,6 +108,7 @@ def func_to_oas_operation(func:Callable)->Operation:
                 "in": ParameterIn.query,
                 "schema": JSchema(
                     type= py_type_to_json_schema(fn_param.annotation).type,
+                    items= py_type_to_json_schema(fn_param.annotation).items,
                     default=fn_param.default if fn_param.default != inspect.Parameter.empty else None,
                 )
             },
