@@ -1,30 +1,27 @@
 import inspect
 from types import FunctionType
-from typing import Dict, List, Literal, Set, Tuple, get_type_hints, get_origin, get_args
+from typing import Dict, List, Literal, Optional, Set, Tuple, get_type_hints, get_origin, get_args
 from typing import Annotated, Union
 from pathlib import Path
 from collections import defaultdict, deque
 import typing
 
 class TypeExtractor:
-    def __init__(self):
-        self.module_roots: List[str] = []
+    def __init__(self, include_module_roots:List[str] = []):
+        self.include_module_roots = include_module_roots
+
         self.collected_types: Set[type]= set()
-        self.type_definitions = {}
-        self.imports = set()
         self.processed_types: Set[type] = set()
         self.type_dependencies = defaultdict(set)  # type -> set of types it depends on
         self.literal_values = {}  # Store literal type values
         
-    def extract_from_class(self, typ:type, output_dir="output")->Tuple[str, str]:
+    def extract_from_class(self, typ:type, output_dir:str)->Tuple[str, str]:
         """Extract interface and types from a class and save to files."""
         output_path = Path(output_dir)
         output_path.mkdir(exist_ok=True)
         
         class_name = _get_type_name(typ)
         
-        self.module_roots = [typ.__module__.split(".")[0]] #ex: "tau2". 
-
         # Extract interface
         interface_content = self._generate_interface(typ)
         
@@ -41,9 +38,6 @@ class TypeExtractor:
             
         with open(types_file, 'w') as f:
             f.write(types_content)
-            
-        print(f"Generated {interface_file}")
-        print(f"Generated {types_file}")
         
         return str(interface_file), str(types_file)
     
@@ -124,7 +118,7 @@ class TypeExtractor:
     def should_include_type(self, typ:type)->bool:
         if hasattr(typ, '__module__'):
             module_root = typ.__module__.split(".")[0]
-            if module_root in self.module_roots:
+            if module_root in self.include_module_roots:
                 return True
         return any([self.should_include_type(arg) for arg in get_args(typ)])
 
@@ -360,7 +354,7 @@ class TypeExtractor:
         
             # Handle Literal types specially
             if origin is typing.Literal or (hasattr(typing, '_LiteralGenericAlias') and 
-                                         isinstance(typ, typing._LiteralGenericAlias)):
+                                         isinstance(typ, typing._LiteralGenericAlias)): # type: ignore
                 self.collected_types.add(typ)
                 # Store literal values
                 self.literal_values[typ] = args
@@ -448,9 +442,6 @@ class TypeExtractor:
         lines.append("from enum import Enum")
         lines.append("from abc import ABC")
         lines.append("from typing import *")
-        lines.append("from datetime import datetime, date")
-        lines.append("from decimal import Decimal")
-        lines.append("from uuid import UUID")
         lines.append("from pydantic import BaseModel, Field")
         lines.append("")
         
@@ -508,7 +499,7 @@ class TypeExtractor:
             return _get_type_name(origin)
 
         #Simple type
-        return _get_type_name(origin)
+        return _get_type_name(origin or typ)
 
 def _get_type_name(typ: type)->str:
     """Get a consistent name for a type object."""
@@ -519,27 +510,14 @@ def _get_type_name(typ: type)->str:
 def _get_type_bases(typ: type)->List[type]:
     if hasattr(typ, '__bases__'):
         return typ.__bases__ # type: ignore
-    return []
-
-def extract_class_interface_and_types(cls, output_dir="output"):
-    """
-    Main function to extract interface and types from a class.
-    
-    Args:
-        cls: The class to analyze
-        output_dir: Directory to save the generated files
-    
-    Returns:
-        tuple: (interface_file_path, types_file_path)
-    """
-    extractor = TypeExtractor()
-    return extractor.extract_from_class(cls, output_dir)
+    return []    
 
 # Example class for testing
 if __name__ == "__main__":
     from tau2.domains.airline.tools import AirlineTools
-    # Extract interface and types
-    interface_file, types_file = extract_class_interface_and_types(AirlineTools)
+    extractor = TypeExtractor(include_module_roots = ["tau2"])
+    interface_file, types_file = extractor.extract_from_class(AirlineTools, "output")
+
     print(f"Interface saved to: {interface_file}")
     print(f"Types saved to: {types_file}")
     print("Done")
