@@ -1,7 +1,7 @@
 import inspect
 import os
 from types import FunctionType
-from typing import Callable, Dict, List, Literal, Optional, Set, Tuple, get_type_hints, get_origin, get_args
+from typing import Callable, DefaultDict, Dict, List, Literal, Optional, Set, Tuple, get_type_hints, get_origin, get_args
 from typing import Annotated, Union
 from pathlib import Path
 from collections import defaultdict, deque
@@ -10,29 +10,22 @@ from os.path import join
 
 from toolguard.common.py import py_extension, unwrap_fn
 
+Dependencies = DefaultDict[type, Set[type]]
+
 class TypeExtractor:
     def __init__(self, include_module_roots:List[str] = []):
         self.include_module_roots = include_module_roots
 
-        self.collected_types: Set[type]= set()
-        self.processed_types: Set[type] = set()
-        self.type_dependencies = defaultdict(set)  # type -> set of types it depends on
-        self.literal_values = {}  # Store literal type values
-
     def setup(self, output_path:str):
         os.makedirs(output_path, exist_ok=True)
-        self.collected_types = set()
-        self.processed_types = set()
-        self.type_dependencies = defaultdict(set)
-        self.literal_values = {}
 
-    def extract_from_functions(self, funcs:List[Callable], interface_name:str, interface_module_name:str, types_module_name:str, output_dir:str)->Tuple[str, str]:
+    def extract_from_functions(self, funcs: List[Callable], interface_name: str, interface_module_name:str, types_module_name:str, output_dir: str = "output")->Tuple[str, str]:
         self.setup(output_dir)
         interface_content = self._generate_interface_from_functions(funcs, interface_name, types_module_name)
 
         # Extract all required types
-        self._collect_all_types_from_functions(funcs)
-        types_content = self._generate_types_file()
+        collected, dependencies = self._collect_all_types_from_functions(funcs)
+        types_content = self._generate_types_file(collected, dependencies)
         
         # Save files
         interface_file = join(output_dir, py_extension(interface_module_name))
@@ -46,25 +39,25 @@ class TypeExtractor:
         
         return str(interface_file), str(types_file)
     
-    def extract_from_class(self, typ:type, output_dir:str)->Tuple[str, str]:
+    def extract_from_class(self, typ:type, *, interface_name: Optional[str]= None, interface_module_name: Optional[str] = None, types_module_name: Optional[str] = None, output_dir: str = "output")->Tuple[str, str]:
         """Extract interface and types from a class and save to files."""
-        self.setup(output_dir)
-
         class_name = _get_type_name(typ)
-        interface_name = "I_"+class_name
-        interface_module = f"I_{class_name}".lower()
-        types_module = f"{class_name}_types".lower()
+        interface_name = interface_name or "I_"+class_name
+        interface_module_name = interface_module_name or f"I_{class_name}".lower()
+        types_module_name = types_module_name or f"{class_name}_types".lower()
+        
+        self.setup(output_dir)
         
         # Extract interface
-        interface_content = self._generate_interface_from_class(typ, interface_name, types_module)
+        interface_content = self._generate_interface_from_class(typ, interface_name, types_module_name)
         
         # Extract all required types
-        self._collect_all_types_from_class(typ)
-        types_content = self._generate_types_file()
+        collected, dependencies = self._collect_all_types_from_class(typ)
+        types_content = self._generate_types_file(collected, dependencies)
         
         # Save files
-        interface_file = join(output_dir, py_extension(interface_module))
-        types_file = join(output_dir, py_extension(types_module))
+        interface_file = join(output_dir, py_extension(interface_module_name))
+        types_file = join(output_dir, py_extension(types_module_name))
         
         with open(interface_file, 'w') as f:
             f.write(interface_content)
@@ -106,7 +99,7 @@ class TypeExtractor:
         else:
             for method_name, method in methods:
                 # Add method docstring and signature
-                method_lines = self._get_method_with_docstring(method, method_name)
+                method_lines = self._get_function_with_docstring(method, method_name)
                 lines.extend([line if line else "" for line in method_lines])
                 lines.append("")
         
@@ -129,24 +122,23 @@ class TypeExtractor:
             for func in funcs:
                 fn = unwrap_fn(func)
                 # Add method docstring and signature
-                method_lines = self._get_method_with_docstring(fn, _get_type_name(fn))
+                method_lines = self._get_function_with_docstring(fn, _get_type_name(fn))
                 lines.extend([line if line else "" for line in method_lines])
                 lines.append("")
         
         return "\n".join(lines)
     
-
-    def _get_method_with_docstring(self, method:FunctionType, method_name:str)->List[str]:
+    def _get_function_with_docstring(self, func:FunctionType, func_name:str)->List[str]:
         """Extract method signature with type hints and docstring."""
         lines = ["    @abstractmethod"]
         
         # Get method signature
-        method_signature = self._get_method_signature(method, method_name)
+        method_signature = self._get_method_signature(func, func_name)
         lines.append(f"    {method_signature}:")
         
         # Add method docstring if available
-        if method.__doc__:
-            docstring = method.__doc__.strip()
+        if func.__doc__:
+            docstring = func.__doc__.strip()
             if docstring:
                 lines.append('        """')
                 for line in docstring.split('\n'):
@@ -352,20 +344,31 @@ class TypeExtractor:
             # Fallback for problematic signatures
             return f"def {method_name}(self, *args, **kwargs)"
     
-    def _collect_all_types_from_functions(self, funcs: List[Callable]):
+    def _collect_all_types_from_functions(self, funcs: List[Callable])->Tuple[Set[type], Dependencies]:
+        processed_types = set()
+        collected = set()
+        dependencies = defaultdict(set)
+        literals = defaultdict(tuple)
+        
         for func in funcs:
             fn = unwrap_fn(func)
             for param, hint in get_type_hints(fn).items():
-                self._collect_types_recursive(hint)
+                self._collect_types_recursive(hint, processed_types, collected, dependencies)
 
-    def _collect_all_types_from_class(self, typ:type):
+        return collected, dependencies
+
+    def _collect_all_types_from_class(self, typ:type)->Tuple[Set[type], Dependencies]:
         """Collect all types used in the class recursively."""
-
+        visited = set()
+        collected = set()
+        dependencies = defaultdict(set)
+        literals = defaultdict(tuple)
+        
         # Field types
         try:
             class_hints = get_type_hints(typ)
             for field, hint in class_hints.items():
-                self._collect_types_recursive(hint)
+                self._collect_types_recursive(hint, visited, collected, dependencies)
         except:
             pass
         
@@ -374,46 +377,35 @@ class TypeExtractor:
             try:
                 method_hints = get_type_hints(method)
                 for hint in method_hints.values():
-                    self._collect_types_recursive(hint)
+                    self._collect_types_recursive(hint, visited, collected, dependencies)
             except:
                 pass
         
+
         # Also collect base class types
         for base in _get_type_bases(typ):
-            self._collect_types_recursive(base)
+            self._collect_types_recursive(base, visited, collected, dependencies)
+
+        return collected, dependencies
     
-    def _collect_types_recursive(self, typ: type):
+    def _collect_types_recursive(self, typ: type, visited:Set[type], acc:Set[type], dependencies: Dependencies):
         """Recursively collect all types from a type hint."""
         
-        if typ in self.processed_types:
-            return
-            
-        self.processed_types.add(typ)
+        visited.add(typ)
         
         if not self.should_include_type(typ):
             return
 
+        acc.add(typ)
         origin = get_origin(typ)
         args = get_args(typ)
 
         #Type with generic arguments. eg: List[Person]
         if origin and args:
-            self.collected_types.add(typ)
             for f_arg in args:
-                self._collect_types_recursive(f_arg)
-                self._add_dependency(typ, f_arg)
-        
-            # Handle Literal types specially
-            if origin is typing.Literal or (hasattr(typing, '_LiteralGenericAlias') and 
-                                         isinstance(typ, typing._LiteralGenericAlias)): # type: ignore
-                self.collected_types.add(typ)
-                # Store literal values
-                self.literal_values[typ] = args
-            
+                self._collect_types_recursive(f_arg, visited, acc, dependencies)
+                self._add_dependency(typ, f_arg, dependencies)
             return
-        
-        # Handle regular classes and custom types
-        self.collected_types.add(typ)
         
         # If it's a custom class, try to get its type hints
         try:
@@ -422,26 +414,26 @@ class TypeExtractor:
                 f_origin = get_origin(field_hint)
                 if f_origin:
                     for f_arg in get_args(field_hint):
-                        self._collect_types_recursive(f_arg)
-                        self._add_dependency(typ, f_arg)
+                        self._collect_types_recursive(f_arg, visited, acc, dependencies)
+                        self._add_dependency(typ, f_arg, dependencies)
                 else:
-                    self._collect_types_recursive(field_hint)
-                    self._add_dependency(typ, field_hint)
+                    self._collect_types_recursive(field_hint, visited, acc, dependencies)
+                    self._add_dependency(typ, field_hint, dependencies)
 
             for base in _get_type_bases(typ): #Base classes
-                self._collect_types_recursive(base)
-                self._add_dependency(typ, base)
+                self._collect_types_recursive(base, visited, acc, dependencies)
+                self._add_dependency(typ, base, dependencies)
         except:
             pass
     
-    def _add_dependency(self, dependent_type, dependency_type):
+    def _add_dependency(self, dependent_type:type, dependency_type:type, dependencies: Dependencies):
         """Add a dependency relationship between types."""
         dep_name = _get_type_name(dependent_type)
         dep_on_name = _get_type_name(dependency_type)
         if dep_name != dep_on_name:
-            self.type_dependencies[dependent_type].add(dependency_type)
+            dependencies[dependent_type].add(dependency_type)
 
-    def _topological_sort_types(self, types):
+    def _topological_sort_types(self, types: List[type], dependencies: Dependencies):
         """Sort types by their dependencies using topological sort."""
         # Create a mapping of type names to types for easier lookup
         type_map = {_get_type_name(t): t for t in types}
@@ -459,7 +451,7 @@ class TypeExtractor:
         # Build the dependency graph
         for dependent_type in types:
             dependent_name = _get_type_name(dependent_type)
-            for dependency_type in self.type_dependencies.get(dependent_type, set()):
+            for dependency_type in dependencies.get(dependent_type, set()):
                 dependency_name = _get_type_name(dependency_type)
                 if dependency_name in type_map:  # Only consider types we're actually processing
                     adj_list[dependency_name].append(dependent_name)
@@ -486,7 +478,7 @@ class TypeExtractor:
         
         return result
     
-    def _generate_types_file(self)->str:
+    def _generate_types_file(self, collected_types:Set[type], dependencies: Dependencies)->str:
         """Generate the types file content."""
         lines = []
         lines.append("# Auto-generated type definitions")
@@ -497,14 +489,14 @@ class TypeExtractor:
         lines.append("")
         
         custom_classes = []
-        for typ in self.collected_types:
+        for typ in collected_types:
             # Check if it's a class with attributes
             if (hasattr(typ, '__annotations__') or 
                 (hasattr(typ, '__dict__') and 
                  any(not callable(getattr(typ, attr, None)) 
                      for attr in dir(typ) if not attr.startswith('_')))):
                 custom_classes.append(typ)
-        custom_classes = self._topological_sort_types(custom_classes)
+        custom_classes = self._topological_sort_types(custom_classes, dependencies)
         
         # Generate custom classes (sorted by dependency)
         for cls in custom_classes:
@@ -567,7 +559,7 @@ def _get_type_bases(typ: type)->List[type]:
 if __name__ == "__main__":
     # from tau2.domains.airline.tools import AirlineTools
     # extractor = TypeExtractor(include_module_roots = ["tau2"])
-    # interface_file, types_file = extractor.extract_from_class(AirlineTools, "output")
+    # interface_file, types_file = extractor.extract_from_class(AirlineTools, output_dir="output")
 
     from appointment_app import lg_tools
     funcs = [lg_tools.add_user, lg_tools.add_payment_method, 
