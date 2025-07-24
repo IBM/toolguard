@@ -22,7 +22,7 @@ RUNTIME_APP_TYPES_PY = "domain_types.py"
 RUNTIME_APP_API_PY = "api.py"
 RUNTIME_APP_API_IMPL_PY = "api_impl.py"
 
-class APIGenerator():
+class APIGenerator:
     py_path: str #root of the Python path
     app_name: str
     include_module_roots: List[str]
@@ -35,12 +35,14 @@ class APIGenerator():
     def generate_domain(self, funcs: List[Callable])->RuntimeDomain:
         #ToolGuard Runtime
         os.makedirs(join(self.py_path, RUNTIME_PACKAGE_NAME), exist_ok=True)
-        FileTwin.load_from(
-            str(Path(__file__).parent), "runtime.py")\
-            .save_as(self.py_path, join(RUNTIME_PACKAGE_NAME, RUNTIME_INIT_PY))
+        
         common = FileTwin.load_from(
             str(Path(__file__).parent), "data_types.py")\
             .save_as(self.py_path, join(RUNTIME_PACKAGE_NAME, RUNTIME_TYPES_PY))
+        runtime = FileTwin.load_from(
+            str(Path(__file__).parent), "runtime.py")
+        runtime.content = runtime.content.replace("toolguard.", f"{RUNTIME_PACKAGE_NAME}.")
+        runtime.save_as(self.py_path, join(RUNTIME_PACKAGE_NAME, RUNTIME_INIT_PY))
 
         #APP init and Types
         os.makedirs(join(self.py_path, to_snake_case(self.app_name)), exist_ok=True)
@@ -48,19 +50,19 @@ class APIGenerator():
             .save(self.py_path)
         
         extractor = APIExtractor(py_path=self.py_path, include_module_roots = self.include_module_roots)
-        api_cls_name = f"I_{self.app_name}"
-        impl_cls_name = f"{self.app_name}_impl"
+        api_cls_name = f"I_{to_camel_case(self.app_name)}"
+        impl_module_name = to_snake_case(f"{self.app_name}.{self.app_name}_impl")
         api, types, impl = extractor.extract_from_functions(funcs, 
             interface_name=api_cls_name,
-            interface_module_name=f"i_{self.app_name}", 
-            types_module_name=f"{self.app_name}_types", 
-            impl_module_name=impl_cls_name)
+            interface_module_name=to_snake_case(f"{self.app_name}.i_{self.app_name}"),
+            types_module_name=to_snake_case(f"{self.app_name}.{self.app_name}_types"), 
+            impl_module_name=impl_module_name)
 
         return RuntimeDomain(
             toolguard_common = common,
             app_types= types,
             app_api_class_name=api_cls_name,
             app_api= api,
-            app_api_impl_class_name=impl_cls_name,
+            app_api_impl_class_name=impl_module_name,
             app_api_impl= impl
         )

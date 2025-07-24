@@ -1,19 +1,19 @@
 from typing import Any, Dict, List
 from {{ py_module(domain.toolguard_common.file_name) }} import ChatHistory
-from {{ py_module(domain.app_types.file_name) }} import {{ method.arg.type }}
+from {{ py_module(domain.app_types.file_name) }} import *
 from {{ py_module(domain.app_api.file_name) }} import {{ domain.app_api_class_name }}
 {% for item in items %}from {{ py_module(item.file_name) }} import {{ item.guard_fn }}
 {% endfor %}
 
-def {{ method.name }}({{ method.arg.name }}: {{method.arg.type}}, history: ChatHistory, api: {{ domain.app_api_class_name }}):
+def {{ method.name }}(history: ChatHistory, api: {{ domain.app_api_class_name }}, {{ method.signature}}):
     """
     Checks that a tool call complies to the policies.
 
     Args:
-        {{method.arg.name}} ({{method.arg.type}}): Tool arguments.
         history (ChatHistory): provide question-answer services over the past chat messages.
         api ({{ domain.app_api_class_name }}): api to access other tools.
+{{method.args_doc_str}} 
     """
     
-{% for item in items %}    {{ item.guard_fn }}({{method.arg.name}}, history, api)
+{% for item in items %}    {{ item.guard_fn }}(history, api, {{method.args_call}})
 {% endfor %}

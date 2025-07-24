@@ -25,10 +25,11 @@ class APIExtractor:
         os.makedirs(self.py_path, exist_ok=True)
         
         # used types
-        collected, dependencies = self._collect_all_types_from_functions(funcs)
         types = FileTwin(
             file_name= module_to_path(types_module_name),
-            content= self._generate_types_file(collected, dependencies)
+            content= self._generate_types_file(
+                *self._collect_all_types_from_functions(funcs)
+            )
         ).save(self.py_path)
 
         # API interface
@@ -38,7 +39,7 @@ class APIExtractor:
         ).save(self.py_path)
 
         # API impl interface
-        impl_class_name = f"{interface_name}_impl"
+        impl_class_name = f"{interface_name}Impl"
         impl = FileTwin(
             file_name=module_to_path(impl_module_name),
             content=self._generate_impl_from_functions(funcs, impl_class_name, interface_module_name, interface_name, types_module_name)
