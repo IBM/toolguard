@@ -6,22 +6,18 @@ from pydantic import BaseModel, Field
 import re
 
 PYTHON_PATTERN = r'^```python\s*\n[\s\S]*?\n```$'
+FIND_PYTHON_PATTERN = r'^```python\s*\n([\s\S]*?)\n```$'
 class PythonCodeModel(BaseModel):
     python_code: str = Field(
         ...,
         pattern=PYTHON_PATTERN
     )
     def get_code_content(self) -> str:
-        """
-        Extracts the Python code content from the markdown-style code block.
-        Returns:
-            str: The inner Python code without the surrounding markdown syntax.
-        """
-        match = re.match(PYTHON_PATTERN, self.python_code)
+        match = re.match(FIND_PYTHON_PATTERN, self.python_code)
         if match:
             return match.group(1)\
                 .replace("\\n", "\n")
-        raise ValueError("Invalid python_code format")
+        return self.python_code
 
 @generative
 async def generate_tool_item_tests(

@@ -28,7 +28,7 @@ model = "gpt-4o-2024-08-06"
 # settings.provider = "azure"
 # settings.model = model
 # settings.sdk = "litellm"
-from toolguard.gen_tool_policy_check import generate_tool_guards_fns
+from toolguard.gen_tool_policy_check import generate_tool_guards
     
 def read_oas(file_path:str)->OpenAPI:
     with open(file_path, "r") as file:
@@ -95,7 +95,7 @@ async def gen_all():
         for tool_name, tool_policy_path 
         in tool_policy_paths.items()]
     
-    result = await generate_tool_guards_fns("airline", tool_policies, out_folder, funcs, ["tau_bench"])
+    result = await generate_tool_guards("airline", tool_policies, out_folder, funcs, ["tau_bench"])
     result.save(out_folder)
 
     # out_folder = "eval/airline/output/2025-07-08_14_47_29"

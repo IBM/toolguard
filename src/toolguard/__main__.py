@@ -3,7 +3,7 @@ import asyncio
 import os
 from os.path import join
 import sys
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 import markdown
 import json
@@ -23,15 +23,12 @@ dotenv.load_dotenv()
 
 
 from toolguard.data_types import ToolPolicy, ToolPolicyItem
-from toolguard.gen_tool_policy_check import generate_tools_check_fns
+from toolguard.gen_tool_policy_check import generate_tool_guards
 from toolguard.stages_tptd.text_tool_policy_generator import step1_main, step1_main_with_tools
 
 
 
-
-
-
-async def step2(funcs:list[callable], step1_path:str, step2_path:str, tools:Optional[List[str]]=None)->ToolGuardsCodeGenerationResult:
+async def step2(funcs:list[Callable], step1_path:str, step2_path:str, tools:Optional[List[str]]=None)->ToolGuardsCodeGenerationResult:
 	os.makedirs(step2_path, exist_ok=True)
 	files = [f for f in os.listdir(step1_path) 
 		  if os.path.isfile(join(step1_path, f)) and f.endswith(".json")]
@@ -44,7 +41,7 @@ async def step2(funcs:list[callable], step1_path:str, step2_path:str, tools:Opti
 
 			tool_policies.append(policy)
 	
-	return await generate_tools_check_fns("my_app", tool_policies, step2_path, funcs=funcs)
+	return await generate_tool_guards("my_app", tool_policies, step2_path, funcs=funcs)
 
 def main(policy_text:str,tools, step1_out_dir:str, step2_out_dir:str, step1_llm:TG_LLM, tools2run:List[str]=None,short1=False):
 	step1_main_with_tools(policy_text, tools, step1_out_dir,step1_llm, tools2run, short1)
