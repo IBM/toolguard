@@ -59,11 +59,11 @@ def symlink_force(target, link_name):
 
 async def gen_all():
     tool_policy_paths = {
-        # "cancel_reservation": "src/policy_adherence/eval/airline/input/cancel_reservation.json"
+        "cancel_reservation": "eval/airline/GT/airlines-examples-verified/CancelReservation-verified.json",
         "book_reservation": "eval/airline/GT/airlines-examples-verified/BookReservation-verified.json",
-        # "update_reservation_passengers": "src/eval/airline/GT/airlines-examples-verified/UpdateReservationPassengers-verified.json",
-        # "update_reservation_flights": "src/eval/airline/GT/airlines-examples-verified/UpdateReservationFlights-verified.json",
-        # "update_reservation_baggages": "src/eval/airline/GT/airlines-examples-verified/UpdateReservationBaggages-verified.json"
+        "update_reservation_passengers": "eval/airline/GT/airlines-examples-verified/UpdateReservationPassengers-verified.json",
+        "update_reservation_flights": "eval/airline/GT/airlines-examples-verified/UpdateReservationFlights-verified.json",
+        "update_reservation_baggages": "eval/airline/GT/airlines-examples-verified/UpdateReservationBaggages-verified.json",
     }
     output_dir = "eval/airline/output"
     # from tau2.domains.airline.tools import AirlineTools
