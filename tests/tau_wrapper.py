@@ -582,5 +582,5 @@ class AirlineAPI:
             passengers=passengers
         )
 
-
-ALL_TOOLS = [member for name, member in inspect.getmembers(AirlineAPI, predicate=inspect.isfunction)]
+all_members = inspect.getmembers(AirlineAPI, predicate=inspect.isfunction)
+ALL_TOOLS = [member for name, member in all_members if not name.startswith("_")]

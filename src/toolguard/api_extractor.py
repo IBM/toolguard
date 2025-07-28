@@ -386,8 +386,9 @@ class APIExtractor:
             # Handle return type
             return_annotation = ""
             if 'return' in param_hints:
-                return_type = self._format_type(param_hints['return'])
-                return_annotation = f" -> {return_type}"
+                if param_hints['return'] is not type(None):
+                    return_type = self._format_type(param_hints['return'])
+                    return_annotation = f" -> {return_type}"
             elif sig.return_annotation != sig.empty:
                 return_annotation = f" -> {sig.return_annotation}"
             

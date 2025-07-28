@@ -10,6 +10,7 @@ import importlib.util
 import inspect
 import os
 
+from toolguard.common.py import path_to_module
 from toolguard.data_types import ChatHistory, FileTwin, RuntimeDomain, ToolPolicy
 
 class LLM(ABC):
@@ -96,8 +97,7 @@ def load_module_from_path(file_path: str, py_root:str) -> ModuleType:
     if not os.path.exists(full_path):
         raise ImportError(f"Module file does not exist: {full_path}")
 
-    # Create a unique module name based on the file path
-    module_name = os.path.splitext(os.path.basename(full_path))[0]
+    module_name = path_to_module(file_path)
 
     spec = importlib.util.spec_from_file_location(module_name, full_path)
     if spec is None or spec.loader is None:

@@ -70,7 +70,7 @@ async def gen_all():
     # funcs = [member for name, member in inspect.getmembers(AirlineTools, predicate=inspect.isfunction)
     #     if getattr(member, "__tool__", None)]  # only @is_tool]
     # from tau_bench.envs.airline.tools import ALL_TOOLS
-    funcs = [t for t in ALL_TOOLS]
+    funcs = ALL_TOOLS
 
     # oas_path = "../ToolGuardAgent/eval/clinic/oas_1.json"
     # policy_path = "../ToolGuardAgent/eval/clinic/clinic_policy_doc.md"
