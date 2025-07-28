@@ -2,6 +2,26 @@
 from typing import List, Set
 from toolguard.data_types import Domain, FileTwin, ToolPolicyItem
 from programmatic_ai import generative
+from pydantic import BaseModel, Field
+import re
+
+PYTHON_PATTERN = r'^```python\s*\n[\s\S]*?\n```$'
+class PythonCodeModel(BaseModel):
+    python_code: str = Field(
+        ...,
+        pattern=PYTHON_PATTERN
+    )
+    def get_code_content(self) -> str:
+        """
+        Extracts the Python code content from the markdown-style code block.
+        Returns:
+            str: The inner Python code without the surrounding markdown syntax.
+        """
+        match = re.match(PYTHON_PATTERN, self.python_code)
+        if match:
+            return match.group(1)\
+                .replace("\\n", "\n")
+        raise ValueError("Invalid python_code format")
 
 @generative
 async def generate_tool_item_tests(
@@ -9,7 +29,7 @@ async def generate_tool_item_tests(
     fn_src: FileTwin, 
     tool_item: ToolPolicyItem, 
     domain: Domain, 
-    dependent_tool_names: Set[str])-> str:
+    dependent_tool_names: Set[str])-> PythonCodeModel:
     """
     Generate Python unit tests for a function to verify tool-call compliance with policy constraints.
 
@@ -101,10 +121,10 @@ def test_book_in_the_past():
 
 @generative
 async def improve_tool_tests(
-    prev_impl: FileTwin, 
+    prev_impl: PythonCodeModel, 
     domain: Domain, 
     policy_item: ToolPolicyItem, 
-    review_comments: List[str])-> str:
+    review_comments: List[str])-> PythonCodeModel:
     """
     Improve the previous test functions (in Python) to check the given tool policy-items according to the review-comments.
     **Implementation Rules:**"
@@ -196,7 +216,7 @@ async def tool_information_dependencies(tool_name:str, policy: str, domain:FileT
 
 
 @generative
-async def improve_tool_guard_fn(prev_impl:FileTwin, domain: Domain, policy_item: ToolPolicyItem, review_comments: List[str])-> str:
+async def improve_tool_guard_fn(prev_impl: PythonCodeModel, domain: Domain, policy_item: ToolPolicyItem, review_comments: List[str])-> PythonCodeModel:
     """
     Improve the previous tool-call guard implementation (in Python) to cover all tool policy-items according to the review-comments.
 

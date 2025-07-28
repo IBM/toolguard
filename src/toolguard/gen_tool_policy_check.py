@@ -13,7 +13,6 @@ from toolguard.runtime import ToolGuardsCodeGenerationResult, ToolGuardCodeResul
 from toolguard.templates import load_template
 import toolguard.utils.pyright as pyright
 import toolguard.utils.pytest as pytest
-from toolguard.llm_utils import post_process_llm_response
 
 import asyncio
 from pathlib import Path
@@ -130,11 +129,11 @@ class ToolCheckPolicyGenerator:
             first_time = trial_no == 0
             domain = Domain.model_construct(**self.domain.model_dump()) #remove runtime fields
             if first_time:
-                res_content = await prompts.generate_tool_item_tests(fn_name, guard_fn, item, domain, dep_tools)
+                res = await prompts.generate_tool_item_tests(fn_name, guard_fn, item, domain, dep_tools)
             else:
-                res_content = await prompts.improve_tool_tests(test_file, domain, item, errors)
+                res = await prompts.improve_tool_tests(test_file, domain, item, errors)
 
-            test_content = post_process_llm_response(res_content)
+            test_content = res.get_code_content()
             test_file = FileTwin(
                 file_name= test_file_name,
                 content=test_content
@@ -194,9 +193,9 @@ class ToolCheckPolicyGenerator:
         for trial in range(MAX_TOOL_IMPROVEMENTS):
             logger.debug(f"Improving guard function {module_name}... (trial = {round}.{trial})")
             domain = Domain.model_construct(**self.domain.model_dump()) #omit runtime fields
-            res_content = await prompts.improve_tool_guard_fn(prev_version, domain, item, review_comments + errors)
+            res = await prompts.improve_tool_guard_fn(prev_version, domain, item, review_comments + errors)
 
-            body = post_process_llm_response(res_content)
+            body = res.get_code_content()
             guard_fn = FileTwin(
                 file_name=prev_version.file_name,
                 content=body
