@@ -167,8 +167,8 @@ class Litellm(LLM):
 
 
 class MTKLLM(LLM):
-    from middleware_core.llm import LLMClient
-    def __init__(self, client: LLMClient):
+    # from middleware_core.llm import LLMClient
+    def __init__(self, client: LLM):
         self.client = client
     
     def generate(self, messages: List[Dict]) -> str:
