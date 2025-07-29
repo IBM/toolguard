@@ -18,7 +18,7 @@ class APIExtractor:
         self.py_path = py_path
         self.include_module_roots = include_module_roots
 
-    def extract_from_functions(self, funcs: List[Callable], interface_name: str, interface_module_name:str, types_module_name:str, impl_module_name:str)->Tuple[FileTwin, FileTwin, FileTwin]:
+    def extract_from_functions(self, funcs: List[Callable], interface_name: str, interface_module_name:str, types_module_name:str, impl_module_name:str, impl_class_name:str)->Tuple[FileTwin, FileTwin, FileTwin]:
         funcs = [unwrap_fn(func) for func in funcs]
         assert all([_is_global_or_class_function(func) for func in funcs])
 
@@ -39,7 +39,6 @@ class APIExtractor:
         ).save(self.py_path)
 
         # API impl interface
-        impl_class_name = f"{interface_name}Impl"
         impl = FileTwin(
             file_name=module_to_path(impl_module_name),
             content=self._generate_impl_from_functions(funcs, impl_class_name, interface_module_name, interface_name, types_module_name)
@@ -107,6 +106,7 @@ class APIExtractor:
         else:
             for method_name, method in methods:
                 # Add method docstring and signature
+                lines.append("    @abstractmethod")
                 method_lines = self._get_function_with_docstring(method, method_name)
                 lines.extend([line if line else "" for line in method_lines])
                 lines.append("        ...")
@@ -130,6 +130,7 @@ class APIExtractor:
         else:
             for func in funcs:
                 # Add method docstring and signature
+                lines.append("    @abstractmethod")
                 method_lines = self._get_function_with_docstring(func, _get_type_name(func))
                 lines.extend([line if line else "" for line in method_lines])
                 lines.append("        ...")
@@ -186,7 +187,7 @@ class APIExtractor:
     
     def _get_function_with_docstring(self, func:FunctionType, func_name:str)->List[str]:
         """Extract method signature with type hints and docstring."""
-        lines = ["    @abstractmethod"]
+        lines =[]
         
         # Get method signature
         method_signature = self._get_method_signature(func, func_name)
@@ -643,7 +644,7 @@ if __name__ == "__main__":
              lg_tools.get_user_payment_methods, lg_tools.get_available_dr_specialties,
              lg_tools.search_doctors, lg_tools.search_available_appointments]
     extractor = APIExtractor("output", include_module_roots = ["appointment_app"])
-    interface, types_, impl = extractor.extract_from_functions(funcs, "I_Clinic", "clinic.i_clinic", "clinic.clinc_types", "clinic.clinic_impl")
+    interface, types_, impl = extractor.extract_from_functions(funcs, "I_Clinic", "clinic.i_clinic", "clinic.clinc_types", "clinic.clinic_impl", "ClinicImpl")
 
     print(f"Interface saved to: {interface.file_name}")
     print(f"Types saved to: {types_.file_name}")

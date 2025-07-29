@@ -52,17 +52,19 @@ class APIGenerator:
         extractor = APIExtractor(py_path=self.py_path, include_module_roots = self.include_module_roots)
         api_cls_name = f"I_{to_camel_case(self.app_name)}"
         impl_module_name = to_snake_case(f"{self.app_name}.{self.app_name}_impl")
+        impl_class_name = to_camel_case(f"{self.app_name}Impl")
         api, types, impl = extractor.extract_from_functions(funcs, 
             interface_name=api_cls_name,
             interface_module_name=to_snake_case(f"{self.app_name}.i_{self.app_name}"),
             types_module_name=to_snake_case(f"{self.app_name}.{self.app_name}_types"), 
-            impl_module_name=impl_module_name)
+            impl_module_name=impl_module_name,
+            impl_class_name=impl_class_name)
 
         return RuntimeDomain(
             toolguard_common = common,
             app_types= types,
             app_api_class_name=api_cls_name,
             app_api= api,
-            app_api_impl_class_name=impl_module_name,
+            app_api_impl_class_name=impl_class_name,
             app_api_impl= impl
         )

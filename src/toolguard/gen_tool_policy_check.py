@@ -38,11 +38,10 @@ async def generate_tool_guards(app_name: str, tool_policies: List[ToolPolicy], p
     
     #tools
     tools_w_poilicies = [tool_policy for tool_policy in tool_policies if len(tool_policy.policy_items) > 0]
-    #tools_w_poilicies = [tool_policy for tool_policy in tool_policies ]
     tool_results = await asyncio.gather(*[
-        ToolGuardGenerator(app_name, tool, py_root, domain, PY_ENV)\
+        ToolGuardGenerator(app_name, tool_policy, py_root, domain, PY_ENV)\
             .generate()
-        for tool in tools_w_poilicies
+        for tool_policy in tools_w_poilicies
     ])
 
     tools_result = {tool.tool_name: res 

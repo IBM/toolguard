@@ -33,7 +33,10 @@ class ToolGuardCodeResult(BaseModel):
 class ToolGuardsCodeGenerationResult(BaseModel):
     domain: RuntimeDomain
     tools: Dict[str, ToolGuardCodeResult]
-    _llm: LLM = PrivateAttr()
+    _llm: LLM|None = PrivateAttr()
+    
+    def __post_init__(self):
+        self._llm = None
 
     @property
     def root_dir(self):
@@ -56,27 +59,27 @@ class ToolGuardsCodeGenerationResult(BaseModel):
             return
         #assert tool, f"Unknown tool {tool_name}"
 
-        guard_file = os.path.join(self.root_dir, tool.guard_file.file_name)
-        module = load_module_from_path(guard_file, file_to_module(tool.guard_file.file_name))
+        # guard_file = os.path.join(self.root_dir, tool.guard_file.file_name)
+        module = load_module_from_path(tool.guard_file.file_name, self.root_dir)
         guard_fn =find_function_in_module(module, tool.guard_fn_name)
         assert guard_fn, "Guard not found"
 
         sig = inspect.signature(guard_fn)
         guard_args = {}
         for p_name, param in sig.parameters.items():
-            if p_name == "args":
-                if issubclass(param.annotation, BaseModel):
-                    guard_args[p_name] = param.annotation.model_construct(**args)
-                else:
-                    guard_args[p_name] = args
-            elif p_name == "history":
+            if p_name == "history":
                 guard_args[p_name] = ChatHistoryImpl(messages, self._llm)
             elif p_name == "api":
-                api_impl_file = os.path.join(self.root_dir, self.domain.app_api_impl.file_name)
-                module = load_module_from_path(api_impl_file, file_to_module(self.domain.app_api_impl.file_name))
+                module = load_module_from_path(self.domain.app_api_impl.file_name, self.root_dir)
                 cls = find_class_in_module(module, self.domain.app_api_impl_class_name)
-                assert cls
+                assert cls, f"class {self.domain.app_api_impl_class_name} not found in {self.domain.app_api_impl.file_name}"
                 guard_args[p_name] = cls()
+            else:
+                arg = args.get(p_name)
+                if inspect.isclass(param.annotation) and issubclass(param.annotation, BaseModel):
+                    guard_args[p_name] = param.annotation.model_construct(arg)
+                else:
+                    guard_args[p_name] = arg
         
         guard_fn(**guard_args)
 

@@ -35,7 +35,6 @@ API_PARAM = "api"
 class ToolGuardGenerator:
     app_name: str
     py_path: str
-    app_path: str
     tool_policy: ToolPolicy
     domain: RuntimeDomain
     common: FileTwin
@@ -45,12 +44,12 @@ class ToolGuardGenerator:
         self.app_name = app_name
         self.tool_policy = tool_policy
         self.domain = domain
-        self.app_path = join(py_path, to_snake_case(app_name))
         self.py_env = py_env
 
     def start(self):
-        os.makedirs(self.app_path, exist_ok=True)
-        os.makedirs(join(self.app_path, to_snake_case(self.tool_policy.tool_name)), exist_ok=True)
+        app_path = join(self.py_path, to_snake_case(self.app_name))
+        os.makedirs(app_path, exist_ok=True)
+        os.makedirs(join(app_path, to_snake_case(self.tool_policy.tool_name)), exist_ok=True)
         os.makedirs(join(self.py_path, to_snake_case(DEBUG_DIR)), exist_ok=True)
         os.makedirs(join(self.py_path, to_snake_case(DEBUG_DIR), to_snake_case(self.tool_policy.tool_name)), exist_ok=True)
         for item in self.tool_policy.policy_items:
