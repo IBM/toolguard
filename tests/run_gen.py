@@ -22,13 +22,13 @@ from toolguard.data_types import ToolPolicy, ToolPolicyItem
 from toolguard.runtime import load
 from toolguard.common.open_api import OpenAPI
 
-model = "gpt-4o-2024-08-06"
+# model = "gpt-4o-2024-08-06"
 # import programmatic_ai
 # settings = programmatic_ai.settings
 # settings.provider = "azure"
 # settings.model = model
 # settings.sdk = "litellm"
-from toolguard.gen_py.gen_tool_policy_check import generate_tool_guards
+from toolguard.gen_py.gen_toolguards import generate_toolguards_from_functions
     
 def read_oas(file_path:str)->OpenAPI:
     with open(file_path, "r") as file:
@@ -50,12 +50,12 @@ def load_tool_policy(file_path:str, tool_name:str)->ToolPolicy:
             if not item.get("skip")]
     return ToolPolicy(tool_name=tool_name, policy_items=items)
     
-def symlink_force(target, link_name):
-    try:
-        os.symlink(target, link_name)
-    except FileExistsError:
-        os.remove(link_name)
-        os.symlink(target, link_name)
+# def symlink_force(target, link_name):
+#     try:
+#         os.symlink(target, link_name)
+#     except FileExistsError:
+#         os.remove(link_name)
+#         os.symlink(target, link_name)
 
 async def gen_all():
     tool_policy_paths = {
@@ -69,10 +69,11 @@ async def gen_all():
     # from tau2.domains.airline.tools import AirlineTools
     # funcs = [member for name, member in inspect.getmembers(AirlineTools, predicate=inspect.isfunction)
     #     if getattr(member, "__tool__", None)]  # only @is_tool]
-    # from tau_bench.envs.airline.tools import ALL_TOOLS
+    from tau_bench.envs.airline.tools import ALL_TOOLS
     funcs = ALL_TOOLS
 
-    # oas_path = "../ToolGuardAgent/eval/clinic/oas_1.json"
+    oas_path = "eval/airline/oas.json"
+    oas = read_oas(oas_path)
     # policy_path = "../ToolGuardAgent/eval/clinic/clinic_policy_doc.md"
     # with open(policy_path, 'r', encoding='utf-8') as f:
     #     policy_text = markdown.markdown(f.read())
@@ -95,7 +96,7 @@ async def gen_all():
         for tool_name, tool_policy_path 
         in tool_policy_paths.items()]
     
-    result = await generate_tool_guards("airline", tool_policies, out_folder, funcs, ["tau_bench"])
+    result = await generate_toolguards_from_functions("airline", tool_policies, out_folder, funcs, ["tau_bench"])
     result.save(out_folder)
 
     out_folder = "eval/airline/output/last"

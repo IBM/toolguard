@@ -2,7 +2,8 @@ import asyncio
 from os.path import join
 from typing import Callable, List, Optional
 from loguru import logger
-from toolguard.gen_py.gen_domain import APIGenerator
+from toolguard.gen_py.consts import *
+from toolguard.gen_py.domain_from_funcs import generate_domain_from_functions
 from toolguard.data_types import ToolPolicy
 from toolguard.runtime import ToolGuardsCodeGenerationResult
 from toolguard.gen_py.tool_guard_generator import ToolGuardGenerator
@@ -16,10 +17,8 @@ from toolguard.data_types import ToolPolicy
 import toolguard.utils.venv as venv
 import toolguard.utils.pyright as pyright
 
-PY_ENV = "my_env"
-PY_PACKAGES = ["pydantic", "pytest"]#, "litellm"]
 
-async def generate_tool_guards(app_name: str, tool_policies: List[ToolPolicy], py_root:str, funcs: List[Callable], module_roots: Optional[List[str]]=None)->ToolGuardsCodeGenerationResult:
+async def generate_toolguards_from_functions(app_name: str, tool_policies: List[ToolPolicy], py_root:str, funcs: List[Callable], module_roots: Optional[List[str]]=None)->ToolGuardsCodeGenerationResult:
     if not module_roots:
         if len(funcs)>0:
             module_roots = list({func.__module__.split(".")[0] for func in funcs})
@@ -27,9 +26,8 @@ async def generate_tool_guards(app_name: str, tool_policies: List[ToolPolicy], p
 
     logger.debug(f"Starting... will save into {py_root}")
 
-    #Domain from Open API Spec
-    domain = APIGenerator(py_root, app_name, module_roots)\
-        .generate_domain(funcs)
+    #Domain from functions
+    domain = generate_domain_from_functions(py_root, app_name, funcs, module_roots)
     
     #Setup env (slow, hence last):
     venv.run(join(py_root, PY_ENV), PY_PACKAGES)

@@ -7,7 +7,6 @@ from typing import Callable, DefaultDict, Dict, List, Literal, Optional, Set, Tu
 from typing import Annotated, Union
 from collections import defaultdict, deque
 import typing
-from docstring_parser import parse
 from toolguard.common.py import module_to_path, unwrap_fn
 from toolguard.data_types import FileTwin
 

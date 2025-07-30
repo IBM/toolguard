@@ -10,14 +10,14 @@ import importlib.util
 import inspect
 import os
 
-from toolguard.data_types import ChatHistory, FileTwin, RuntimeDomain, ToolPolicy
+from toolguard.data_types import API_PARAM, HISTORY_PARAM, RESULTS_FILENAME, ChatHistory, FileTwin, RuntimeDomain, ToolPolicy
 
 class LLM(ABC):
     @abstractmethod
     def generate(self, messages: List[Dict])->str:
         ...
 
-def load(directory: str, filename: str = "result.json") -> "ToolGuardsCodeGenerationResult":
+def load(directory: str, filename: str = RESULTS_FILENAME) -> "ToolGuardsCodeGenerationResult":
     full_path = os.path.join(directory, filename)
     with open(full_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
@@ -43,7 +43,7 @@ class ToolGuardsCodeGenerationResult(BaseModel):
         cur_dir = os.path.dirname(os.path.abspath(__file__))
         return os.path.dirname(cur_dir)
 
-    def save(self, directory: str, filename: str = "result.json") -> 'ToolGuardsCodeGenerationResult':
+    def save(self, directory: str, filename: str = RESULTS_FILENAME) -> 'ToolGuardsCodeGenerationResult':
         full_path = os.path.join(directory, filename)
         with open(full_path, 'w', encoding='utf-8') as f:
             json.dump(self.model_dump(), f, indent=2)
@@ -67,9 +67,9 @@ class ToolGuardsCodeGenerationResult(BaseModel):
         sig = inspect.signature(guard_fn)
         guard_args = {}
         for p_name, param in sig.parameters.items():
-            if p_name == "history":
+            if p_name == HISTORY_PARAM:
                 guard_args[p_name] = ChatHistoryImpl(messages, self._llm)
-            elif p_name == "api":
+            elif p_name == API_PARAM:
                 module = load_module_from_path(self.domain.app_api_impl.file_name, self.root_dir)
                 cls = find_class_in_module(module, self.domain.app_api_impl_class_name)
                 assert cls, f"class {self.domain.app_api_impl_class_name} not found in {self.domain.app_api_impl.file_name}"

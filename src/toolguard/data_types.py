@@ -4,6 +4,13 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
+DEBUG_DIR = "debug"
+TESTS_DIR = "tests"
+RESULTS_FILENAME = "result.json"
+HISTORY_PARAM = "history"
+HISTORY_PARAM_TYPE = "ChatHistory"
+API_PARAM = "api"
+
 class FileTwin(BaseModel):
     file_name: str
     content: str

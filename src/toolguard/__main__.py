@@ -18,7 +18,7 @@ from toolguard.llm.tg_llm import TG_LLM
 from toolguard.runtime import ToolGuardsCodeGenerationResult
 from toolguard.stages_tptd.create_oas_summary import OASSummarizer
 from toolguard.data_types import ToolPolicy, ToolPolicyItem
-from toolguard.gen_py.gen_tool_policy_check import generate_tool_guards
+from toolguard.gen_py.gen_toolguards import generate_toolguards_from_functions
 from toolguard.stages_tptd.text_tool_policy_generator import step1_main, step1_main_with_tools
 
 
@@ -40,7 +40,7 @@ async def step2(funcs:list[Callable], step1_path:str, step2_path:str, tools:Opti
 
 			tool_policies.append(policy)
 	
-	return await generate_tool_guards("my_app", tool_policies, step2_path, funcs=funcs)
+	return await generate_toolguards_from_functions("my_app", tool_policies, step2_path, funcs=funcs)
 	
 def load_tool_policy(file_path:str, tool_name:str)->ToolPolicy:
     with open(file_path, "r") as file:
