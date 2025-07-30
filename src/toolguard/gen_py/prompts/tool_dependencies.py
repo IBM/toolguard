@@ -1,13 +1,13 @@
 
-from typing import List
+from typing import List, Set
 from toolguard.data_types import FileTwin
 from programmatic_ai import generative
 
 
 @generative
-async def tool_information_dependencies(tool_name: str, policy: str, domain: FileTwin)-> List[str]:
+async def tool_information_dependencies(tool_name: str, policy: str, domain: FileTwin)-> Set[str]:
     """
-    List other tools that the given tool depends on.
+    Lists other tools that the given tool depends on.
 
     Args:
         tool_name (str): name of the tool under analysis

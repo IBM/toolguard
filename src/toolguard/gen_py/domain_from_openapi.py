@@ -63,7 +63,8 @@ def generate_domain_from_openapi(py_path:str, app_name: str, openapi_file:str)->
         app_api_class_name=api_cls_name,
         app_api= api,
         app_api_impl_class_name=impl_cls_name,
-        app_api_impl= api_impl
+        app_api_impl= api_impl,
+        app_api_size = len(methods)
     )
 
 def _get_oas_methods(oas:OpenAPI):

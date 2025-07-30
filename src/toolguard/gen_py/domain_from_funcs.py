@@ -42,5 +42,6 @@ def generate_domain_from_functions(py_path:str, app_name: str, funcs: List[Calla
         app_api_class_name=api_cls_name,
         app_api= api,
         app_api_impl_class_name=impl_class_name,
-        app_api_impl= impl
+        app_api_impl= impl,
+        app_api_size = len(funcs)
     )

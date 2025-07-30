@@ -69,6 +69,7 @@ class Domain(BaseModel):
     app_types: FileTwin = Field(..., description="Data types defined used in the application API as payloads.")
     app_api_class_name: str = Field(..., description="Name of the API class name.")
     app_api: FileTwin = Field(..., description="Python class (abstract) containing all the API signatures.")
+    app_api_size: int = Field(..., description="Number of functions in the API")
 
 class RuntimeDomain(Domain):
     app_api_impl_class_name: str = Field(..., description="Python class (implementaton) class name.")

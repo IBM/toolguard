@@ -94,8 +94,10 @@ class ToolGuardGenerator:
 
     async def generate_tool_item_tests(self, item: ToolPolicyItem, guard_fn: FileTwin)-> FileTwin:
         fn_name = guard_item_fn_name(item)
-        dep_tools = await tool_information_dependencies(item.name, item.description, self.domain.app_api)
-        dep_tools = set(dep_tools) #workaround. generative AI
+        dep_tools = set()
+        if self.domain.app_api_size > 1:
+            dep_tools = await tool_information_dependencies(item.name, item.description, self.domain.app_api)
+            # dep_tools = set(dep_tools) #workaround. generative AI
         logger.debug(f"Dependencies of {item.name}: {dep_tools}")
 
         test_file_name = join(TESTS_DIR, self.tool_policy.tool_name, f"{test_fn_module_name(item)}.py")
