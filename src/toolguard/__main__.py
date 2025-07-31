@@ -35,10 +35,12 @@ def add_log_file_handler(log_file:str):
 	)
 	file_handler = logging.FileHandler(log_file, encoding="utf-8")
 	file_handler.setFormatter(formatter)
-	logger = logging.getLogger()
-	logger.setLevel(logging.DEBUG) 
-	logger.addHandler(file_handler)
+	logging.getLogger().addHandler(file_handler)
 
+def init_logging():
+	logging.getLogger().setLevel(logging.INFO) #Default for other libraries
+	logging.getLogger("toolguard").setLevel(logging.DEBUG) # debug for our library
+	init_log_console_handler()
 
 def init_log_console_handler():
 	formatter = logging.Formatter(
@@ -91,7 +93,7 @@ def load_tool_policy(file_path:str, tool_name:str)->ToolPolicy:
     return ToolPolicy(tool_name=tool_name, policy_items=items)
 
 if __name__ == '__main__':
-	init_log_console_handler()
+	init_logging()
 
 	parser = argparse.ArgumentParser(description='parser')
 	parser.add_argument('--policy-path', type=str, help='Path to the policy file. Currently, in `markdown` syntax. eg: `/Users/me/airline/wiki.md`')

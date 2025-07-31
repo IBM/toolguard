@@ -12,7 +12,7 @@ import logging
 import dotenv
 dotenv.load_dotenv() 
 
-from toolguard.__main__ import add_log_file_handler, init_log_console_handler
+from toolguard.__main__ import add_log_file_handler, init_logging
 logger = logging.getLogger(__name__)
 
 # from toolguard.__main__ import read_oas_file
@@ -119,5 +119,6 @@ async def gen_all():
     #     [])
     
 if __name__ == '__main__':
+    init_logging()
     asyncio.run(gen_all())
     logger.info("Done")
