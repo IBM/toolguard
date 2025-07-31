@@ -15,36 +15,42 @@ from toolguard.data_types import FileTwin, RuntimeDomain
 def generate_domain_from_openapi(py_path:str, app_name: str, openapi_file:str)->RuntimeDomain:
     #ToolGuard Runtime
     os.makedirs(join(py_path, RUNTIME_PACKAGE_NAME), exist_ok=True)
-    FileTwin.load_from(
-        str(Path(__file__).parent), "runtime.py")\
-        .save_as(py_path, join(RUNTIME_PACKAGE_NAME, RUNTIME_INIT_PY))
-    common = FileTwin.load_from(
-        str(Path(__file__).parent), "data_types.py")\
-        .save_as(py_path, join(RUNTIME_PACKAGE_NAME, RUNTIME_TYPES_PY))
 
-    #APP init and Types
+    root = str(Path(__file__).parent.parent)
+    common = FileTwin.load_from(root, "data_types.py")\
+        .save_as(py_path, join(RUNTIME_PACKAGE_NAME, RUNTIME_TYPES_PY))
+    runtime = FileTwin.load_from(root, "runtime.py")
+    runtime.content = runtime.content.replace("toolguard.", f"{RUNTIME_PACKAGE_NAME}.")
+    runtime.save_as(py_path, join(RUNTIME_PACKAGE_NAME, RUNTIME_INIT_PY))
+
+    #APP Types
     oas = read_openapi(openapi_file)
     os.makedirs(join(py_path, to_snake_case(app_name)), exist_ok=True)
-    FileTwin(file_name=join(to_snake_case(app_name), "__init__.py"), content="")\
-        .save(py_path)
-    types_module_name = f"{app_name}.{app_name}_types"
+    
+    types_name = f"{app_name}_types"
+    types_module_name = f"{app_name}.{types_name}"
     types = FileTwin(
             file_name=module_to_path(types_module_name),
             content= dm_codegen(openapi_file))\
         .save(py_path)
+    
+    #APP Init
+    FileTwin(
+            file_name=join(to_snake_case(app_name), "__init__.py"), 
+            content=f"from . import {types_name}")\
+        .save(py_path)
 
     #APP API
-    title = oas.info.title or app_name
-    api_cls_name = to_camel_case(title)
+    api_cls_name = to_camel_case("I "+app_name)
     methods = _get_oas_methods(oas)
-    api_module_name = to_snake_case(f"{app_name}.i_{title}")
+    api_module_name = to_snake_case(f"{app_name}.i_{app_name}")
     api = FileTwin(
             file_name=module_to_path(api_module_name), 
             content= _generate_api(methods, api_cls_name, types_module_name))\
         .save(py_path)
 
     #APP API Impl
-    impl_cls_name = api_cls_name+"_impl"
+    impl_cls_name = to_camel_case(app_name+" impl")
     impl_module_name = to_snake_case(f"{app_name}.{app_name}_impl")
     cls_str = _generate_api_impl(
         methods, 
@@ -53,11 +59,12 @@ def generate_domain_from_openapi(py_path:str, app_name: str, openapi_file:str)->
         api_cls_name,
         impl_cls_name)
     api_impl = FileTwin(
-            file_name=join(app_name, module_to_path(impl_module_name)),
+            file_name=module_to_path(impl_module_name),
             content=cls_str)\
         .save(py_path)
     
     return RuntimeDomain(
+        app_name=app_name,
         toolguard_common = common,
         app_types= types,
         app_api_class_name=api_cls_name,
@@ -88,7 +95,7 @@ def _get_oas_methods(oas:OpenAPI):
             #     if func:
             #         body = _call_fn_body(func)
             methods.append({
-                "name": to_camel_case(op.operationId),  # type: ignore
+                "name": to_snake_case(op.operationId),  # type: ignore
                 "signature": sig,
                 "doc": op.description,
                 "body": body

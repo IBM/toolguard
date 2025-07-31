@@ -37,6 +37,7 @@ def generate_domain_from_functions(py_path:str, app_name: str, funcs: List[Calla
         impl_class_name=impl_class_name)
 
     return RuntimeDomain(
+        app_name=app_name,
         toolguard_common = common,
         app_types= types,
         app_api_class_name=api_cls_name,

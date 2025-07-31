@@ -29,6 +29,11 @@ def main(policy_text:str,tools, step1_out_dir:str, step2_out_dir:str, step1_llm:
 
 async def step2(funcs:list[Callable], step1_path:str, step2_path:str, tools:Optional[List[str]]=None)->ToolGuardsCodeGenerationResult:
 	os.makedirs(step2_path, exist_ok=True)
+	logger.add(
+        os.path.join(step2_path, "run.log"),     # Log file path
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
+        encoding="utf-8"
+    )
 	files = [f for f in os.listdir(step1_path) 
 		  if os.path.isfile(join(step1_path, f)) and f.endswith(".json")]
 	
@@ -61,7 +66,7 @@ def load_tool_policy(file_path:str, tool_name:str)->ToolPolicy:
 if __name__ == '__main__':
 	logger.remove()
 	logger.add(sys.stdout, colorize=True, format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> <level>{message}</level>")
-	
+
 	parser = argparse.ArgumentParser(description='parser')
 	parser.add_argument('--policy-path', type=str, help='Path to the policy file. Currently, in `markdown` syntax. eg: `/Users/me/airline/wiki.md`')
 	parser.add_argument('--tools-py-file', type=str, default="/Users/naamazwerdling/workspace/ToolGuardAgent/src/appointment_app/lg_tools.py")

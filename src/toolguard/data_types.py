@@ -65,6 +65,7 @@ class ToolPolicy(BaseModel):
     policy_items: List[ToolPolicyItem] = Field(..., description="Policy items. All (And logic) policy items must hold whehn invoking the tool.")
 
 class Domain(BaseModel):
+    app_name: str = Field(..., description="Application name")
     toolguard_common: FileTwin = Field(..., description="Pydantic data types used by toolguard framework.")
     app_types: FileTwin = Field(..., description="Data types defined used in the application API as payloads.")
     app_api_class_name: str = Field(..., description="Name of the API class name.")
