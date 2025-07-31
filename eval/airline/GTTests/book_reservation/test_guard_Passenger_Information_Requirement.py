@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import MagicMock
-from my_app.book_reservation.guard_book_reservation import guard_book_reservation
-from my_app.common import *
-from my_app.domain import *
+from airline.book_reservation.guard_book_reservation import guard_book_reservation
+from airline.common import *
+from airline.domain import *
 
 flight = GetFlightInstanceResponse(
     status="available",

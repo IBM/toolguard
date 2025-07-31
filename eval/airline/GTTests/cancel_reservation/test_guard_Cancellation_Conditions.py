@@ -3,9 +3,9 @@ from unittest.mock import MagicMock, patch
 from datetime import datetime, timedelta
 
 # Importing necessary modules
-from my_app.cancel_reservation.guard_cancel_reservation import guard_cancel_reservation
-from my_app.common import *
-from my_app.domain import *
+from airline.cancel_reservation.guard_cancel_reservation import guard_cancel_reservation
+from airline.common import *
+from airline.domain import *
 
 FLIGHTS = {
     'LANDED':{

@@ -2,9 +2,9 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 # Importing necessary modules
-from my_app.common import *
-from my_app.domain import *
-from my_app.upodate_reservation_flights.guard_update_reservation_flights import guard_update_reservation_flights
+from airline.common import *
+from airline.domain import *
+from airline.upodate_reservation_flights.guard_update_reservation_flights import guard_update_reservation_flights
 
 FLIGHTS_IDS = ["SFO_JFK", "JFK_BLA", "LAX_JFK", "LAX_BLU", "BLU_BLA", "JFK_BLA"] 
 FLIGHTS = { k: GetScheduledFlightResponse.model_construct(

@@ -2,9 +2,9 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 # Importing necessary modules
-from my_app.update_reservation_passengers.guard_update_reservation_passengers import guard_update_reservation_passengers
-from my_app.common import *
-from my_app.domain import *
+from airline.update_reservation_passengers.guard_update_reservation_passengers import guard_update_reservation_passengers
+from airline.common import *
+from airline.domain import *
 
 
 class TestGuardObtainUserConfirmationForUpdatingReservationDatabase(unittest.TestCase):
@@ -38,7 +38,7 @@ class TestGuardObtainUserConfirmationForUpdatingReservationDatabase(unittest.Tes
 
         guard_update_reservation_passengers(args, history, api)
 
-    @patch('my_app.domain.FlightBookingApi')
+    @patch('airline.domain.FlightBookingApi')
     def test_correct_last_name_maintains_passenger_count(self, MockApi):
         """Using 'update_reservation_passengers' with 'reservation_id' 'ZXV01Q', correcting a passenger's last name spelling from 'Doe' to 'Doer', ensuring the total number of passengers remains unchanged."""
         # Mocking the API and history
