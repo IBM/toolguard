@@ -72,25 +72,23 @@ class ToolGuardGenerator:
         try:
             test_file = await self.generate_tool_item_tests(item, init_guard_fn)
         except Exception as ex:
-            #Tests generation failed.
-            logger.exception(ex)
+            logger.warning("Tests generation failed.", ex)
             try:
-                # try to generate the code without tests...
+                logger.warning("try to generate the code without tests...", ex)
                 guard_fn = await self.improve_tool_item_guard_fn(init_guard_fn, [], item, 0)
                 return None, guard_fn
             except Exception as ex:
-                logger.exception(ex)
-                # guard generation failed. return initial guard
+                logger.warning("guard generation failed. return initial guard", ex)
                 return None, init_guard_fn
         
         #2) Tests generated, now generate guards
         try:
             guard_fn = await self.improve_tool_item_guard_fn_loop(item, init_guard_fn, test_file)
             # Happy path
+            logger.debug(f"tool item generated successfully {item.name}")
             return test_file, guard_fn
         except Exception as ex:
-            # guard generation failed. return initial guard
-            logger.exception(ex)
+            logger.warning("guard generation failed. return initial guard", ex)
             return None, init_guard_fn
 
     async def generate_tool_item_tests(self, item: ToolPolicyItem, guard_fn: FileTwin)-> FileTwin:
