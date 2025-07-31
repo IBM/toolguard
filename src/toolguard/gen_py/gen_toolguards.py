@@ -1,6 +1,6 @@
 import asyncio
 from typing import List
-from loguru import logger
+import logging
 from os.path import join
 from typing import Callable, List, Optional
 
@@ -16,6 +16,7 @@ from toolguard.data_types import ToolPolicy
 import toolguard.utils.venv as venv
 import toolguard.utils.pyright as pyright
 
+logger = logging.getLogger(__name__)
 
 async def generate_toolguards_from_functions(app_name: str, tool_policies: List[ToolPolicy], py_root:str, funcs: List[Callable], module_roots: Optional[List[str]]=None)->ToolGuardsCodeGenerationResult:
     assert funcs, "Funcs cannot be empty"

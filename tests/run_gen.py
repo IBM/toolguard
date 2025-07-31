@@ -6,12 +6,14 @@ import os
 import sys
 import markdown
 import yaml
-from loguru import logger
+import logging
 
 #important to load the env variables BEFORE policy_adherence library (so programmatic_ai configuration will take place)
 import dotenv
-
 dotenv.load_dotenv() 
+
+from toolguard.__main__ import add_log_file_handler, init_log_console_handler
+logger = logging.getLogger(__name__)
 
 # from toolguard.__main__ import read_oas_file
 # from toolguard.py_to_oas import tools_to_openapi
@@ -96,11 +98,7 @@ async def gen_all():
     now = datetime.now()
     out_folder = os.path.join(output_dir, now.strftime("%Y-%m-%d_%H_%M_%S"))
     os.makedirs(out_folder, exist_ok=True)
-    logger.add(
-        os.path.join(out_folder, "run.log"),     # Log file path
-        format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}",
-        encoding="utf-8"
-    )
+    add_log_file_handler(os.path.join(out_folder, "run.log"))
 
     tool_policies = [load_tool_policy(tool_policy_path, tool_name) 
         for tool_name, tool_policy_path 
@@ -121,13 +119,5 @@ async def gen_all():
     #     [])
     
 if __name__ == '__main__':
-    logger.remove()
-    #  Console logging
-    logger.add(
-        sys.stdout, 
-        colorize=True, 
-        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> <level>{message}</level>"
-    )
-
     asyncio.run(gen_all())
-    print("Done")
+    logger.info("Done")

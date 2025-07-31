@@ -2,7 +2,7 @@ import inspect
 import os
 import asyncio
 from pathlib import Path
-from loguru import logger
+import logging
 from os.path import join
 from typing import Callable, List, Tuple
 
@@ -19,6 +19,7 @@ from toolguard.gen_py.prompts.python_code import PythonCodeModel
 from toolguard.gen_py.prompts.tool_dependencies import tool_information_dependencies
 from toolguard.gen_py.templates import load_template
 
+logger = logging.getLogger(__name__)
 
 MAX_TOOL_IMPROVEMENTS = 5
 MAX_TEST_GEN_TRIALS = 3
