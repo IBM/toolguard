@@ -37,6 +37,8 @@ async def generate_tool_item_tests(
         - For collections (arrays, dict and sets) populate at least one item.
     - You should mock the return_value from ALL tools listed in `dependent_tool_names`. 
         - Use side_effect to return the expected value only when the expected parameters are passed.
+    - For time dependent attributes, compute the timestamp dynamically (avoid hardcoded times).
+        - for example, to set a timestamp occurred 24 hours ago: `created_at = (datetime.now() - timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%S")`.
     - You should also mock the chat_history services. 
     
     **Example:** Testing the function `check_create_reservation`, 
@@ -88,7 +90,8 @@ def test_book_in_the_past():
     
     #invoke function under test.
     with pytest.raises(PolicyViolationException):
-        check_create_reservation(args, history, api)
+        next_week = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%S")
+        check_create_reservation(user_id=123, hotel_id="789", reservation_date=next_week, persons=3, history, api)
 ```
 
     Args:
