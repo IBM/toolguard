@@ -4,6 +4,7 @@ import asyncio
 from pathlib import Path
 import logging
 from os.path import join
+import re
 from typing import Callable, List, Tuple
 
 from toolguard.common import py
@@ -161,7 +162,7 @@ class ToolGuardGenerator:
             logger.debug(f"Tool {item.name} guard function unit-tests failed. Retrying...")
             guard_fn = await self.improve_tool_item_guard_fn(guard_fn, errors, item, trial_no)
         
-        raise Exception(f"Could not generate guard function for tool {to_snake_case(self.tool_policy.tool_name)}.{to_snake_case(item.name)}")
+        raise Exception(f"Failed {MAX_TOOL_IMPROVEMENTS} times to generate guard function for tool {to_snake_case(self.tool_policy.tool_name)} policy: {item.name}")
 
     async def improve_tool_item_guard_fn(self, prev_version: FileTwin, review_comments: List[str], item: ToolPolicyItem, round: int)->FileTwin:
         module_name = guard_item_fn_module_name(item)
@@ -252,7 +253,9 @@ class ToolGuardGenerator:
     def signature_str(self, sig: inspect.Signature):
         sig_str = str(sig)
         sig_str = sig_str[sig_str.find("self,")+len("self,"): sig_str.rfind(")")].strip()
-        return sig_str
+        # Strip module prefixes like airline.airline_types.XXX → XXX
+        clean_sig_str = re.sub(r'\b(?:\w+\.)+(\w+)', r'\1', sig_str)
+        return clean_sig_str
     
     def _create_item_module(self, tool_item: ToolPolicyItem, tool_fn: Callable)->FileTwin:
         file_name = join(

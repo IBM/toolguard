@@ -1,27 +1,22 @@
 import asyncio
 from datetime import datetime
 import inspect
-import json
 import os
-import sys
-import markdown
-import yaml
 import logging
 
 #important to load the env variables BEFORE policy_adherence library (so programmatic_ai configuration will take place)
 import dotenv
+
+from toolguard.logging_utils import init_logging
+
 dotenv.load_dotenv() 
 
-from toolguard.__main__ import add_log_file_handler, init_logging
 logger = logging.getLogger(__name__)
 
 # from toolguard.__main__ import read_oas_file
 # from toolguard.py_to_oas import tools_to_openapi
 # from toolguard.stages_tptd.text_policy_identify_process import step1_main
 
-from tau_bench.envs.airline.airline_wrapper import ALL_TOOLS
-from toolguard.data_types import ToolPolicy, ToolPolicyItem
-from toolguard.common.open_api import OpenAPI
 
 # model = "gpt-4o-2024-08-06"
 # import programmatic_ai
@@ -29,43 +24,22 @@ from toolguard.common.open_api import OpenAPI
 # settings.provider = "azure"
 # settings.model = model
 # settings.sdk = "litellm"
-from toolguard.gen_py.gen_toolguards import generate_toolguards_from_functions, generate_toolguards_from_openapi
+# from toolguard.gen_py.gen_toolguards import generate_toolguards_from_functions, generate_toolguards_from_openapi
     
-def read_oas(file_path:str)->OpenAPI:
-    with open(file_path, "r") as file:
-        d = yaml.safe_load(file)
-    return OpenAPI.model_validate(d)
-
-def load_tool_policy(file_path:str, tool_name:str)->ToolPolicy:
-    with open(file_path, "r") as file:
-        d = json.load(file)
-    
-    items = [ToolPolicyItem(
-                name=item.get("policy_name"),
-                description = item.get("description"),
-                references = item.get("references"),
-                compliance_examples = item.get("compliance_examples"),
-                violation_examples = item.get("violating_examples")
-            )
-            for item in d.get("policies", [])
-            if not item.get("skip")]
-    return ToolPolicy(tool_name=tool_name, policy_items=items)
-    
-# def symlink_force(target, link_name):
-#     try:
-#         os.symlink(target, link_name)
-#     except FileExistsError:
-#         os.remove(link_name)
-#         os.symlink(target, link_name)
+# from toolguard.common.open_api import OpenAPI
+# def read_oas(file_path:str)->OpenAPI:
+#     with open(file_path, "r") as file:
+#         d = yaml.safe_load(file)
+#     return OpenAPI.model_validate(d)
 
 async def gen_all():
-    tool_policy_paths = {
-        # "cancel_reservation": "eval/airline/GT/airlines-examples-verified/CancelReservation-verified.json",
-        "book_reservation": "eval/airline/GT/airlines-examples-verified/BookReservation-verified.json",
-        # "update_reservation_passengers": "eval/airline/GT/airlines-examples-verified/UpdateReservationPassengers-verified.json",
-        # "update_reservation_flights": "eval/airline/GT/airlines-examples-verified/UpdateReservationFlights-verified.json",
-        # "update_reservation_baggages": "eval/airline/GT/airlines-examples-verified/UpdateReservationBaggages-verified.json",
-    }
+    # tool_policy_paths = {
+    #     "cancel_reservation": "eval/airline/GT/airlines/CancelReservation.json",
+    #     # "book_reservation": "eval/airline/GT/airlines/BookReservation.json",
+    #     # "update_reservation_passengers": "eval/airline/GT/airlines/UpdateReservationPassengers.json",
+    #     # "update_reservation_flights": "eval/airline/GT/airlines/UpdateReservationFlights.json",
+    #     # "update_reservation_baggages": "eval/airline/GT/airlines/UpdateReservationBaggages.json",
+    # }
     output_dir = "eval/airline/output"
 
     # ##Tau1 with wrapper
@@ -97,27 +71,23 @@ async def gen_all():
 
     now = datetime.now()
     out_folder = os.path.join(output_dir, now.strftime("%Y-%m-%d_%H_%M_%S"))
-    os.makedirs(out_folder, exist_ok=True)
-    add_log_file_handler(os.path.join(out_folder, "run.log"))
+    # os.makedirs(out_folder, exist_ok=True)
+    # from toolguard.core import add_log_file_handler
+    # add_log_file_handler(os.path.join(out_folder, "run.log"))
 
-    tool_policies = [load_tool_policy(tool_policy_path, tool_name) 
-        for tool_name, tool_policy_path 
-        in tool_policy_paths.items()]
+    # tool_policies = [load_tool_policy(tool_policy_path, tool_name) 
+    #     for tool_name, tool_policy_path 
+    #     in tool_policy_paths.items()]
     
     # return await generate_toolguards_from_openapi("airline", tool_policies, out_folder, oas_path)
-    return await generate_toolguards_from_functions("airline", tool_policies, out_folder, funcs, ["tau2"])
+    from toolguard.core import step2
+    return await step2(funcs,
+        step1_path="eval/airline/GT/airlines", 
+        step2_path=out_folder, 
+        tools=["cancel_reservation"],
+        app_name="airline")
 
-    # out_folder = "eval/airline/output/last"
-    # result = load(out_folder)
-    # print(result.model_dump_json(indent=2, exclude_none=True, by_alias=True))
 
-    # result.check_tool_call("add_user", {
-    #         "first_name": "A", 
-    #         "last_name": "B:",
-    #         "address": "aasa",
-    #     },
-    #     [])
-    
 if __name__ == '__main__':
     init_logging()
     asyncio.run(gen_all())
