@@ -2,31 +2,19 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 # Importing necessary modules
-from airline.common import *
-from airline.domain import *
+from airline.airline_types import *
+from airline.i_airline import I_Airline
 from airline.update_reservation_flights.guard_update_reservation_flights import guard_update_reservation_flights
+from rt_toolguard.data_types import PolicyViolationException
 
-FLIGHTS_IDS = ["SFO_JFK", "JFK_BLA", "LAX_JFK", "LAX_BLU", "BLU_BLA", "JFK_BLA"] 
-FLIGHTS = { k: GetScheduledFlightResponse.model_construct(
-        flight_number=k,
-        origin=k.split("_")[0],
-        destination=k.split("_")[1]
-    ) for k in FLIGHTS_IDS}
-
-AIRPORTS= {
-    "SFO": "San Francisco", 
-    "JFK": "New York",
-    "BLA":"aete",
-    "BLU": "AAD"
-}
-USER = GetUserDetailsResponse(
+USER = User.model_construct(
     membership = "gold",
     payment_methods={
-        'credit_card_7815826': PaymentMethods(source='credit_card', brand='Visa', last_four='1234', amount=2333),
+        'cc': CreditCard(id="cc", source='credit_card', brand='Visa', last_four='1234'),
     },
 )
 RESERVATIONS = {
-    'RSRV1': GetReservationDetailsResponse(
+    'RSRV1': Reservation.model_construct(
         reservation_id='RSRV1',
         user_id="dav",
         origin='SFO',
@@ -34,17 +22,17 @@ RESERVATIONS = {
         cabin='economy',
         flight_type='round_trip',
         passengers=[
-            Passenger2(first_name="john", last_name="smith", dob="2000"),
-            Passenger2(first_name="maria", last_name="smith", dob="1900"),
+            Passenger(first_name="john", last_name="smith", dob="2000"),
+            Passenger(first_name="maria", last_name="smith", dob="1900"),
         ],
-        flights=[Flight3(flight_number='SFO_JFK', 
+        flights=[ReservationFlight.model_construct(flight_number='SFO_JFK', 
                         date='2024-06-01', #change date
                         origin='SFO', destination='JFK')],
         payment_history=[
-            PaymentHistoryItem2(payment_id='credit_card_7815826', amount=123)
+            Payment(payment_id='cc', amount=123)
         ]
     ),
-    'RSRV1BUSINESS': GetReservationDetailsResponse(
+    'RSRV1BUSINESS': Reservation.model_construct(
         reservation_id='RSRV1',
         user_id="dav",
         origin='SFO',
@@ -52,17 +40,17 @@ RESERVATIONS = {
         cabin='business',
         flight_type='round_trip',
         passengers=[
-            Passenger2(first_name="john", last_name="smith", dob="2000"),
-            Passenger2(first_name="maria", last_name="smith", dob="1900"),
+            Passenger(first_name="john", last_name="smith", dob="2000"),
+            Passenger(first_name="maria", last_name="smith", dob="1900"),
         ],
-        flights=[Flight3(flight_number='SFO_JFK', 
+        flights=[ReservationFlight.model_construct(flight_number='SFO_JFK', 
                         date='2024-06-01', #change date
                         origin='SFO', destination='JFK')],
         payment_history=[
-            PaymentHistoryItem2(payment_id='credit_card_7815826', amount=123)
+            Payment(payment_id='cc', amount=123)
         ]
     ),
-    'RSRV2': GetReservationDetailsResponse(
+    'RSRV2': Reservation.model_construct(
         reservation_id='RSRV2',
         user_id="dav",
         origin='LAX',
@@ -70,17 +58,17 @@ RESERVATIONS = {
         cabin='economy',
         flight_type='round_trip',
         passengers=[
-            Passenger2(first_name="john", last_name="smith", dob="2000"),
-            Passenger2(first_name="maria", last_name="smith", dob="1900"),
+            Passenger(first_name="john", last_name="smith", dob="2000"),
+            Passenger(first_name="maria", last_name="smith", dob="1900"),
         ],
-        flights=[Flight3(flight_number='LAX_JFK', 
+        flights=[ReservationFlight.model_construct(flight_number='LAX_JFK', 
                         date='2024-06-01',
                         origin='LAX', destination='JFK')],
         payment_history=[
-            PaymentHistoryItem2(payment_id='credit_card_7815826', amount=123)
+            Payment(payment_id='cc', amount=123)
         ]
     ),
-    'RSRV2LEGS': GetReservationDetailsResponse(
+    'RSRV2LEGS': Reservation.model_construct(
         reservation_id='RSRV2LEGS',
         user_id="dav",
         origin='LAX',
@@ -88,20 +76,20 @@ RESERVATIONS = {
         cabin='economy',
         flight_type='round_trip',
         passengers=[
-            Passenger2(first_name="john", last_name="smith", dob="2000"),
-            Passenger2(first_name="maria", last_name="smith", dob="1900"),
+            Passenger(first_name="john", last_name="smith", dob="2000"),
+            Passenger(first_name="maria", last_name="smith", dob="1900"),
         ],
-        flights=[Flight3(flight_number='LAX_JFK', 
+        flights=[ReservationFlight.model_construct(flight_number='LAX_JFK', 
                         date='2024-06-01',
                         origin='LAX', destination='JFK'),
-                Flight3(flight_number='JFK_BLA', 
+                ReservationFlight.model_construct(flight_number='JFK_BLA', 
                         date='2024-06-01',
                         origin='JFK', destination='BLA')],
         payment_history=[
-            PaymentHistoryItem2(payment_id='credit_card_7815826', amount=123)
+            Payment(payment_id='cc', amount=123)
         ]
     ),
-    'RSRV_BASIC_ECONMY': GetReservationDetailsResponse(
+    'RSRV_BASIC_ECONMY': Reservation.model_construct(
         reservation_id='RSRV_BASIC_ECONMY',
         user_id="dav",
         origin='SFO',
@@ -109,14 +97,14 @@ RESERVATIONS = {
         cabin='basic_economy',
         flight_type='round_trip',
         passengers=[
-            Passenger2(first_name="john", last_name="smith", dob="2000"),
-            Passenger2(first_name="maria", last_name="smith", dob="1900"),
+            Passenger(first_name="john", last_name="smith", dob="2000"),
+            Passenger(first_name="maria", last_name="smith", dob="1900"),
         ],
-        flights=[Flight3(flight_number='SFO_JFK', 
+        flights=[ReservationFlight.model_construct(flight_number='SFO_JFK', 
                         date='2024-06-01',
                         origin='SFO', destination='JFK')],
         payment_history=[
-            PaymentHistoryItem2(payment_id='credit_card_7815826', amount=123)
+            Payment(payment_id='cc', amount=123)
         ]
     )
 }
@@ -127,35 +115,30 @@ class TestReservationModificationLimitationCompliance(unittest.TestCase):
         api = MagicMock()
 
         api.get_user_details.return_value = USER
-
-        # reservation = GetReservationDetailsResponse(
-        #     user_id="abc",
-        #     total_baggages=1,
-        #     nonfree_baggages=1,
-        #     cabin=cabin,
-        #     payment_history=[
-        #         PaymentHistoryItem2(payment_id='credit_card_7815826', amount=123)
-        #     ]
-        # )
-        api.list_all_airports.return_value = ListAllAirportsResponse(root=AIRPORTS)
-
-        def get_flight_side_effect(args, **kwargs):
-            return FLIGHTS.get(args.flight_id)
-        api.get_scheduled_flight.side_effect = get_flight_side_effect
-
-        api.get_flight_instance.return_value = GetFlightInstanceResponse(
+        api.list_all_airports.return_value = [
+            AirportCode.model_construct(iata="SFO", city="San Francisco"),
+            AirportCode.model_construct(iata="JFK", city="New York")
+        ]
+        api.get_flight_status.side_effect = lambda flight_number, date: "available"
+        api.search_direct_flight.side_effect = lambda origin, dest, date: [DirectFlight(
+            flight_number="FL123",
+            date="2024-05-01",
+            origin="SFO",
+            destination="JFK",
             status="available",
-            available_seats=AvailableSeats(
-                basic_economy= 9,
-                economy= 9,
-                business= 9
-            ),
-            prices=Prices(
-                basic_economy= 900,
-                economy= 912,
-                business= 649
-            )
-        )
+            scheduled_departure_time_est="12",
+            scheduled_arrival_time_est="14",
+            available_seats={
+                "basic_economy": 9,
+                "economy": 9,
+                "business": 9
+            },
+            prices={
+                "basic_economy": 900,
+                "economy": 912,
+                "business": 649
+            }
+        )]if origin=="SFO" and dest=="JFK" and date=="2024-05-01" else []
 
         history = MagicMock()
         history.ask_bool.return_value = True
@@ -168,13 +151,11 @@ class TestReservationModificationLimitationCompliance(unittest.TestCase):
         """
         history, api = self.base_story()
         api.get_reservation_details.return_value = RESERVATIONS.get('RSRV1')
-        args = UpdateReservationFlightsRequest(
+        guard_update_reservation_flights(history, api, 
             reservation_id='RSRV1',
             cabin='economy',
-            flights=[Flight2(flight_number='SFO_JFK', date='2024-06-01')],
-            payment_id='credit_card_7815826'
-        )
-        guard_update_reservation_flights(args, history, api)
+            flights=[ReservationFlight.model_construct(flight_number='SFO_JFK', date='2024-06-01')],
+            payment_id='cc')
 
 
     def test_update_reservation_with_wrong_payment(self):
@@ -183,43 +164,37 @@ class TestReservationModificationLimitationCompliance(unittest.TestCase):
         """
         history, api = self.base_story()
         api.get_reservation_details.return_value = RESERVATIONS.get('RSRV1')
-        args = UpdateReservationFlightsRequest(
+        with self.assertRaises(PolicyViolationException):
+            guard_update_reservation_flights(history, api, 
             reservation_id='RSRV1',
             cabin='economy',
-            flights=[Flight2(flight_number='SFO_JFK', date='2024-06-01')],
-            payment_id='weww'
-        )
-        with self.assertRaises(PolicyViolationException):
-            guard_update_reservation_flights(args, history, api)
+            flights=[ReservationFlight.model_construct(flight_number='SFO_JFK', date='2024-06-01')],
+            payment_id='weww')
 
 
     def test_can_update_connection(self):
         history, api = self.base_story()
         api.get_reservation_details.return_value = RESERVATIONS.get('RSRV2LEGS')
-        args = UpdateReservationFlightsRequest(
+        guard_update_reservation_flights(history, api,
             reservation_id='RSRV2LEGS',
             cabin='economy',
             flights=[
-                Flight2(flight_number='LAX_BLU', date='2024-06-01'),
-                Flight2(flight_number='BLU_BLA', date='2024-06-01'),
+                ReservationFlight.model_construct(flight_number='LAX_BLU', date='2024-06-01'),
+                ReservationFlight.model_construct(flight_number='BLU_BLA', date='2024-06-01'),
             ],
-            payment_id='credit_card_7815826'
-        )
-        guard_update_reservation_flights(args, history, api)
+            payment_id='cc')
 
     def test_update_reservation_with_2legs(self):
         history, api = self.base_story()
         api.get_reservation_details.return_value = RESERVATIONS.get('RSRV2LEGS')
-        args = UpdateReservationFlightsRequest(
+        guard_update_reservation_flights(history, api,
             reservation_id='RSRV2LEGS',
             cabin='economy',
             flights=[
-                Flight2(flight_number='LAX_JFK', date='2024-06-01'),
-                Flight2(flight_number='JFK_BLA', date='2024-06-01'),
+                ReservationFlight.model_construct(flight_number='LAX_JFK', date='2024-06-01'),
+                ReservationFlight.model_construct(flight_number='JFK_BLA', date='2024-06-01'),
             ],
-            payment_id='credit_card_7815826'
-        )
-        guard_update_reservation_flights(args, history, api)
+            payment_id='cc')
 
     def test_update_business_reservation_without_changing_origin_destination_trip_type(self):
         """
@@ -227,13 +202,11 @@ class TestReservationModificationLimitationCompliance(unittest.TestCase):
         """
         history, api = self.base_story()
         api.get_reservation_details.return_value = RESERVATIONS.get('RSRV1BUSINESS')
-        args = UpdateReservationFlightsRequest(
+        guard_update_reservation_flights(history, api, 
             reservation_id='RSRV1BUSINESS',
             cabin='business',
-            flights=[Flight2(flight_number='SFO_JFK', date='2024-06-01')],
-            payment_id='credit_card_7815826'
-        )
-        guard_update_reservation_flights(args, history, api)
+            flights=[ReservationFlight.model_construct(flight_number='SFO_JFK', date='2024-06-01')],
+            payment_id='cc')
 
     def test_change_destination_violation(self):
         """
@@ -241,15 +214,13 @@ class TestReservationModificationLimitationCompliance(unittest.TestCase):
         """
         history, api = self.base_story()
         api.get_reservation_details.return_value = RESERVATIONS.get('RSRV1')
-        args = UpdateReservationFlightsRequest(
-            reservation_id='RSRV1',
-            cabin='economy',
-            flights=[Flight2(flight_number='LAX_JFK', date='2024-06-01')],
-            payment_id='credit_card_7815826'
-        )
 
         with self.assertRaises(PolicyViolationException):
-            guard_update_reservation_flights(args, history, api)
+            guard_update_reservation_flights(history, api,
+            reservation_id='RSRV1',
+            cabin='economy',
+            flights=[ReservationFlight.model_construct(flight_number='LAX_JFK', date='2024-06-01')],
+            payment_id='cc')
 
 
     def test_update_basic_economy_reservation(self):
@@ -258,14 +229,12 @@ class TestReservationModificationLimitationCompliance(unittest.TestCase):
         """
         history, api = self.base_story()
         api.get_reservation_details.return_value = RESERVATIONS.get('RSRV_BASIC_ECONMY')
-        args = UpdateReservationFlightsRequest(
+        with self.assertRaises(PolicyViolationException):
+            guard_update_reservation_flights(history, api, 
             reservation_id='RSRV_BASIC_ECONMY',
             cabin='basic_economy',
-            flights=[Flight2(flight_number='SFO_JFK', date='2024-06-01')],
-            payment_id='credit_card_7815826'
-        )
-        with self.assertRaises(PolicyViolationException):
-            guard_update_reservation_flights(args, history, api)
+            flights=[ReservationFlight.model_construct(flight_number='SFO_JFK', date='2024-06-01')],
+            payment_id='cc')
 
     def test_update_to_basic_economy_reservation(self):
         """
@@ -273,14 +242,12 @@ class TestReservationModificationLimitationCompliance(unittest.TestCase):
         """
         history, api = self.base_story()
         api.get_reservation_details.return_value = RESERVATIONS.get('RSRV1')
-        args = UpdateReservationFlightsRequest(
+        with self.assertRaises(PolicyViolationException):
+            guard_update_reservation_flights(history, api,
             reservation_id='RSRV1',
             cabin='basic_economy',
-            flights=[Flight2(flight_number='SFO_JFK', date='2024-06-01')],
-            payment_id='credit_card_7815826'
-        )
-        with self.assertRaises(PolicyViolationException):
-            guard_update_reservation_flights(args, history, api)
+            flights=[ReservationFlight.model_construct(flight_number='SFO_JFK', date='2024-06-01')],
+            payment_id='cc')
 
     
     def test_update_origin(self):
@@ -289,14 +256,12 @@ class TestReservationModificationLimitationCompliance(unittest.TestCase):
         """
         history, api = self.base_story()
         api.get_reservation_details.return_value = RESERVATIONS.get('RSRV1')
-        args = UpdateReservationFlightsRequest(
+        with self.assertRaises(PolicyViolationException):
+            guard_update_reservation_flights(history, api,
             reservation_id='RSRV1',
             cabin='basic_economy',
-            flights=[Flight2(flight_number='LAX_JFK', date='2024-06-01')],
-            payment_id='credit_card_7815826'
-        )
-        with self.assertRaises(PolicyViolationException):
-            guard_update_reservation_flights(args, history, api)
+            flights=[ReservationFlight.model_construct(flight_number='LAX_JFK', date='2024-06-01')],
+            payment_id='cc')
 
     def test_update_destination(self):
         """
@@ -304,14 +269,12 @@ class TestReservationModificationLimitationCompliance(unittest.TestCase):
         """
         history, api = self.base_story()
         api.get_reservation_details.return_value = RESERVATIONS.get('RSRV1')
-        args = UpdateReservationFlightsRequest(
+        with self.assertRaises(PolicyViolationException):
+            guard_update_reservation_flights(history, api,
             reservation_id='RSRV1',
             cabin='basic_economy',
-            flights=[Flight2(flight_number='JFK_BLA', date='2024-06-01')],
-            payment_id='credit_card_7815826'
-        )
-        with self.assertRaises(PolicyViolationException):
-            guard_update_reservation_flights(args, history, api)
+            flights=[ReservationFlight.model_construct(flight_number='JFK_BLA', date='2024-06-01')],
+            payment_id='cc')
 
 if __name__ == '__main__':
     unittest.main()

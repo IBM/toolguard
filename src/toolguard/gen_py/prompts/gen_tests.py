@@ -31,15 +31,14 @@ async def generate_tool_item_tests(
         - Failure message should describe the test scenario that failed, the expected and the actual outcomes.
 
     **Data population and references:**
-    - When populating domain objects, use pydantic `.model_construct()`. 
-    - If the class extends `pydantic.RootModel`, always pass the `root` argument.
     - For compliance examples, populate all fields. 
         - For collections (arrays, dict and sets) populate at least one item.
     - You should mock the return_value from ALL tools listed in `dependent_tool_names`. 
         - Use side_effect to return the expected value only when the expected parameters are passed.
     - For time dependent attributes, compute the timestamp dynamically (avoid hardcoded times).
         - for example, to set a timestamp occurred 24 hours ago: `created_at = (datetime.now() - timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%S")`.
-    - You should also mock the chat_history services. 
+    - You should also mock the chat_history services.
+    - If you have a choice passing a plain Dict or a Pydantic model, prefer the model.
     
     **Example:** Testing the function `check_create_reservation`, 
     * Policy: `cannot book a room for a date in the past`

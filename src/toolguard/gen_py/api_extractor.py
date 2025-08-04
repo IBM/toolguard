@@ -445,7 +445,6 @@ class APIExtractor:
     
     def _collect_types_recursive(self, typ: type, visited:Set[type], acc:Set[type], dependencies: Dependencies):
         """Recursively collect all types from a type hint."""
-        
         visited.add(typ)
         
         if not self.should_include_type(typ):
@@ -487,6 +486,9 @@ class APIExtractor:
         dep_on_name = _get_type_name(dependency_type)
         if dep_name != dep_on_name:
             dependencies[dependent_type].add(dependency_type)
+
+        for arg in get_args(dependency_type):
+            dependencies[dependent_type].add(arg)
 
     def _topological_sort_types(self, types: List[type], dependencies: Dependencies):
         """Sort types by their dependencies using topological sort."""
