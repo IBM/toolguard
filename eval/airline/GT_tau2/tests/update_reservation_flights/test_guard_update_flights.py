@@ -111,23 +111,26 @@ RESERVATIONS = {
 
 class TestReservationModificationLimitationCompliance(unittest.TestCase):
 
-    def base_story(self):
-        api = MagicMock()
+    def setUp(self):
+        self.api = api = MagicMock()
+        known_flights = ["SFO_JFK", 'LAX_JFK', 'LAX_BLU', 'BLU_BLA', 'JFK_BLA']
 
         api.get_user_details.return_value = USER
         api.list_all_airports.return_value = [
             AirportCode.model_construct(iata="SFO", city="San Francisco"),
             AirportCode.model_construct(iata="JFK", city="New York")
         ]
-        api.get_flight_status.side_effect = lambda flight_number, date: "available"
-        api.search_direct_flight.side_effect = lambda origin, dest, date: [DirectFlight(
-            flight_number="FL123",
-            date="2024-05-01",
-            origin="SFO",
-            destination="JFK",
+        api.get_reservation_details.side_effect = RESERVATIONS.get
+        api.get_flight_status.side_effect = lambda flight_number, date: "available" if flight_number in known_flights and date=="2024-06-01" else None
+        
+        api.get_scheduled_flight.side_effect = lambda flight_number: Flight.model_construct(
             status="available",
-            scheduled_departure_time_est="12",
-            scheduled_arrival_time_est="14",
+            origin=flight_number.split("_")[0],
+            destination=flight_number.split("_")[1],
+        )if flight_number in known_flights else None
+
+        api.get_flight_instance.side_effect = lambda flight_number, date: FlightDateStatusAvailable(
+            status="available",
             available_seats={
                 "basic_economy": 9,
                 "economy": 9,
@@ -138,23 +141,21 @@ class TestReservationModificationLimitationCompliance(unittest.TestCase):
                 "economy": 912,
                 "business": 649
             }
-        )]if origin=="SFO" and dest=="JFK" and date=="2024-05-01" else []
+        )if flight_number in known_flights and date=="2024-06-01" else None
 
-        history = MagicMock()
-        history.ask_bool.return_value = True
 
-        return history, api
+        self.history = MagicMock()
+        self.history.ask_bool.return_value = True
 
     def test_update_reservation_without_changing_origin_destination_trip_type(self):
         """
         An agent updates a reservation while ensuring the origin 'SFO', destination 'JFK', and 'round-trip' type remain unchanged, adhering to policy limitations.
         """
-        history, api = self.base_story()
-        api.get_reservation_details.return_value = RESERVATIONS.get('RSRV1')
-        guard_update_reservation_flights(history, api, 
+
+        guard_update_reservation_flights(self.history, self.api, 
             reservation_id='RSRV1',
             cabin='economy',
-            flights=[ReservationFlight.model_construct(flight_number='SFO_JFK', date='2024-06-01')],
+            flights=[FlightInfo(flight_number='SFO_JFK', date='2024-06-01')],
             payment_id='cc')
 
 
@@ -162,37 +163,33 @@ class TestReservationModificationLimitationCompliance(unittest.TestCase):
         """
         An agent updates a reservation while ensuring the origin 'SFO', destination 'JFK', and 'round-trip' type remain unchanged, adhering to policy limitations.
         """
-        history, api = self.base_story()
-        api.get_reservation_details.return_value = RESERVATIONS.get('RSRV1')
+
         with self.assertRaises(PolicyViolationException):
-            guard_update_reservation_flights(history, api, 
+            guard_update_reservation_flights(self.history, self.api, 
             reservation_id='RSRV1',
             cabin='economy',
-            flights=[ReservationFlight.model_construct(flight_number='SFO_JFK', date='2024-06-01')],
+            flights=[FlightInfo(flight_number='SFO_JFK', date='2024-06-01')],
             payment_id='weww')
 
 
     def test_can_update_connection(self):
-        history, api = self.base_story()
-        api.get_reservation_details.return_value = RESERVATIONS.get('RSRV2LEGS')
-        guard_update_reservation_flights(history, api,
+        guard_update_reservation_flights(self.history, self.api,
             reservation_id='RSRV2LEGS',
             cabin='economy',
             flights=[
-                ReservationFlight.model_construct(flight_number='LAX_BLU', date='2024-06-01'),
-                ReservationFlight.model_construct(flight_number='BLU_BLA', date='2024-06-01'),
+                FlightInfo(flight_number='LAX_BLU', date='2024-06-01'),
+                FlightInfo(flight_number='BLU_BLA', date='2024-06-01'),
             ],
             payment_id='cc')
 
     def test_update_reservation_with_2legs(self):
-        history, api = self.base_story()
-        api.get_reservation_details.return_value = RESERVATIONS.get('RSRV2LEGS')
-        guard_update_reservation_flights(history, api,
+
+        guard_update_reservation_flights(self.history, self.api,
             reservation_id='RSRV2LEGS',
             cabin='economy',
             flights=[
-                ReservationFlight.model_construct(flight_number='LAX_JFK', date='2024-06-01'),
-                ReservationFlight.model_construct(flight_number='JFK_BLA', date='2024-06-01'),
+                FlightInfo(flight_number='LAX_JFK', date='2024-06-01'),
+                FlightInfo(flight_number='JFK_BLA', date='2024-06-01'),
             ],
             payment_id='cc')
 
@@ -200,26 +197,23 @@ class TestReservationModificationLimitationCompliance(unittest.TestCase):
         """
         An agent updates a reservation while ensuring the origin 'SFO', destination 'JFK', and 'round-trip' type remain unchanged, adhering to policy limitations.
         """
-        history, api = self.base_story()
-        api.get_reservation_details.return_value = RESERVATIONS.get('RSRV1BUSINESS')
-        guard_update_reservation_flights(history, api, 
+
+        guard_update_reservation_flights(self.history, self.api, 
             reservation_id='RSRV1BUSINESS',
             cabin='business',
-            flights=[ReservationFlight.model_construct(flight_number='SFO_JFK', date='2024-06-01')],
+            flights=[FlightInfo(flight_number='SFO_JFK', date='2024-06-01')],
             payment_id='cc')
 
-    def test_change_destination_violation(self):
+    def test_change_origin_violation(self):
         """
         The agent calls 'update_reservation_flights' to change the origin airport from 'JFK' to 'LAX', violating the policy prohibiting alterations of origin and destination.
         """
-        history, api = self.base_story()
-        api.get_reservation_details.return_value = RESERVATIONS.get('RSRV1')
 
         with self.assertRaises(PolicyViolationException):
-            guard_update_reservation_flights(history, api,
+            guard_update_reservation_flights(self.history, self.api,
             reservation_id='RSRV1',
             cabin='economy',
-            flights=[ReservationFlight.model_construct(flight_number='LAX_JFK', date='2024-06-01')],
+            flights=[FlightInfo(flight_number='LAX_JFK', date='2024-06-01')],
             payment_id='cc')
 
 
@@ -227,26 +221,24 @@ class TestReservationModificationLimitationCompliance(unittest.TestCase):
         """
         An agent tries to update a basic-economy reservation
         """
-        history, api = self.base_story()
-        api.get_reservation_details.return_value = RESERVATIONS.get('RSRV_BASIC_ECONMY')
+
         with self.assertRaises(PolicyViolationException):
-            guard_update_reservation_flights(history, api, 
+            guard_update_reservation_flights(self.history, self.api, 
             reservation_id='RSRV_BASIC_ECONMY',
             cabin='basic_economy',
-            flights=[ReservationFlight.model_construct(flight_number='SFO_JFK', date='2024-06-01')],
+            flights=[FlightInfo(flight_number='SFO_JFK', date='2024-06-01')],
             payment_id='cc')
 
     def test_update_to_basic_economy_reservation(self):
         """
         An agent tries to update a basic-economy reservation
         """
-        history, api = self.base_story()
-        api.get_reservation_details.return_value = RESERVATIONS.get('RSRV1')
+
         with self.assertRaises(PolicyViolationException):
-            guard_update_reservation_flights(history, api,
+            guard_update_reservation_flights(self.history, self.api,
             reservation_id='RSRV1',
             cabin='basic_economy',
-            flights=[ReservationFlight.model_construct(flight_number='SFO_JFK', date='2024-06-01')],
+            flights=[FlightInfo(flight_number='SFO_JFK', date='2024-06-01')],
             payment_id='cc')
 
     
@@ -254,26 +246,24 @@ class TestReservationModificationLimitationCompliance(unittest.TestCase):
         """
         An agent tries to update a basic-economy reservation
         """
-        history, api = self.base_story()
-        api.get_reservation_details.return_value = RESERVATIONS.get('RSRV1')
+
         with self.assertRaises(PolicyViolationException):
-            guard_update_reservation_flights(history, api,
+            guard_update_reservation_flights(self.history, self.api,
             reservation_id='RSRV1',
             cabin='basic_economy',
-            flights=[ReservationFlight.model_construct(flight_number='LAX_JFK', date='2024-06-01')],
+            flights=[FlightInfo(flight_number='LAX_JFK', date='2024-06-01')],
             payment_id='cc')
 
     def test_update_destination(self):
         """
         An agent tries to update a basic-economy reservation
         """
-        history, api = self.base_story()
-        api.get_reservation_details.return_value = RESERVATIONS.get('RSRV1')
+
         with self.assertRaises(PolicyViolationException):
-            guard_update_reservation_flights(history, api,
+            guard_update_reservation_flights(self.history, self.api,
             reservation_id='RSRV1',
             cabin='basic_economy',
-            flights=[ReservationFlight.model_construct(flight_number='JFK_BLA', date='2024-06-01')],
+            flights=[FlightInfo(flight_number='JFK_BLA', date='2024-06-01')],
             payment_id='cc')
 
 if __name__ == '__main__':

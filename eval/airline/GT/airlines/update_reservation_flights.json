@@ -100,11 +100,10 @@
             ]
         },
         {
-            "policy_name": "Non-Modifiable Basic Economy Flights",
-            "description": "Basic economy flights cannot be modified. Others can be modified selectively.",
+            "policy_name": "Basic economy flights cannot be modified",
+            "description": "Basic economy flights cannot be modified.",
             "references": [
-                "Change flights: Basic economy flights cannot be modified. Other reservations can be modified without changing the origin, destination, and trip type. Some flight segments can be kept, but their prices will not be updated based on the current price.",
-                "The API does not check these for the agent, so the agent must make sure the rules apply before calling the API!"
+                "Change flights: Basic economy flights cannot be modified."
             ],
             "iteration_added": 1,
             "violating_examples": [
@@ -113,9 +112,7 @@
                 "A user requests to update one of the flight segments for their basic economy reservation.",
                 "A user requests to updates origin and destination for their basic economy reservation.",
                 "A user requests to update trip type for their basic economy reservation.",
-                "A user requests to updates origin and destination for their non-basic-economy reservation.",
-                "A gold user requests to updates destination to 'LAX' for their business class reservation.",
-                "A user requests to update trip type from 'round-trip' to 'one-way' for their reservation."
+                "A user requests to updates origin and destination for their non-basic-economy reservation."
             ],
             "compliance_examples": [
                 "A user requests to update multiple flight segments for their economy reservation.",
@@ -123,6 +120,31 @@
                 "A silver user requests to update multiple flight segments for their non-basic-economy reservation.",
                 "A gold user requests to change a single flight segment for their business reservation."
 
+            ]
+        },
+        {
+            "policy_name": "Keep the same origin and destination",
+            "description": "non-basic-economy reservation can be modified without changing the origin, destination, and trip type. Some flight segments can be kept, but their prices will not be updated based on the current price.",
+            "references": [
+                "Other reservations can be modified without changing the origin, destination, and trip type. Some flight segments can be kept, but their prices will not be updated based on the current price."
+            ],
+            "iteration_added": 1,
+            "violating_examples": [
+                "a one way trip economy reservation change to anothr flight from a different origin",
+                "a one way trip business reservation change to anothr flight to a different destination",
+                "change a business reservation with two flights, trip type from one way to round trip",
+                "change the orgin of a roundtrip business reservation",
+                "change the destination of a roundtrip business reservation",
+                "change a roundtrip business reservation to a one way",
+                "A gold user requests to updates destination to 'LAX' for their business class reservation.",
+                "A user requests to update trip type from 'round-trip' to 'one-way' for their reservation."
+            ],
+            "compliance_examples": [
+                "change the date of one-way economy reservation.",
+                "change the flight of one-way economy reservation, keeping the same origin, destination and date.",
+                "change a business classs one way reservation with two flight legs: JFK-LAX, LAX-SFO, to : JFK-SFO.",
+                "change an economy classs one way reservation with two flight legs: JFK-LAX, LAX-SFO, to : JFK-TLV, TLV-SFO.",
+                "change an economy classs round trip reservation from: JFK-LAX, LAX-JFK, to : JFK-TLV, TLV-JFK."
             ]
         },
         {

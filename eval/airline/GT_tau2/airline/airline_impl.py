@@ -116,6 +116,23 @@ class Airlineimpl(I_Airline):
         return self._delegate.get_reservation_details(reservation_id)
 
 
+    def get_scheduled_flight(self, flight_number: str) -> Flight:
+        """
+        Get the flight schedule.
+        
+        Args:
+        flight_number: The flight number.
+        
+        Returns:
+        The flight schedule
+        
+        Raises:
+        ValueError: If the flight is not found.
+        """
+
+        return self._delegate.get_scheduled_flight(flight_number)
+
+
     def get_user_details(self, user_id: str) -> User:
         """
         Get the details of a user, including their reservations.

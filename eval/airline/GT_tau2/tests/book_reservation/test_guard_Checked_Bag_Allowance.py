@@ -23,14 +23,8 @@ class TestCheckedBagAllowance(unittest.TestCase):
         # Mocking the FlightBookingApi
         self.api = MagicMock()
         self.api.get_flight_status.side_effect = lambda flight_number, date: "available"
-        self.api.search_direct_flight.side_effect = lambda origin, dest, date: [DirectFlight(
-            flight_number="FL123",
-            date="2024-05-01",
-            origin="SFO",
-            destination="JFK",
+        self.api.get_flight_instance.side_effect = lambda flight_number, date: FlightDateStatusAvailable(
             status="available",
-            scheduled_departure_time_est="12",
-            scheduled_arrival_time_est="14",
             available_seats={
                 "basic_economy": 9,
                 "economy": 9,
@@ -41,7 +35,7 @@ class TestCheckedBagAllowance(unittest.TestCase):
                 "economy": 912,
                 "business": 649
             }
-        )]if origin=="SFO" and dest=="JFK" and date=="2024-05-01" else []
+        )if flight_number=="FL123" and date=="2024-05-01" else None
 
         self.api.list_all_airports.return_value = [
             AirportCode.model_construct(iata="SFO", city="San Francisco"),
@@ -51,21 +45,21 @@ class TestCheckedBagAllowance(unittest.TestCase):
         silver_user = User.model_construct(
             user_id=self.silver_user_id,
             payment_methods={
-                'asas': CreditCard(id="asas", source='credit_card', brand='Visa', last_four='1234'),
+                'cc': CreditCard(id="cc", source='credit_card', brand='Visa', last_four='1234'),
             },
             membership = "silver"
         )
         gold_user = User.model_construct(
             user_id=self.gold_user_id,
             payment_methods={
-                'asas': CreditCard(id="asas", source='credit_card', brand='Visa', last_four='1234'),
+                'cc': CreditCard(id="cc", source='credit_card', brand='Visa', last_four='1234'),
             },
             membership = "gold"
         )
         regular_user = User.model_construct(
             user_id=self.regular_user_id,
             payment_methods={
-                'asas': CreditCard(id="asas", source='credit_card', brand='Visa', last_four='1234'),
+                'cc': CreditCard(id="cc", source='credit_card', brand='Visa', last_four='1234'),
             },
             membership = "regular"
         )
@@ -86,7 +80,7 @@ class TestCheckedBagAllowance(unittest.TestCase):
             cabin='economy',
             flights=[FlightInfo(flight_number='FL123', date='2024-05-01')],
             passengers=[Passenger(first_name='John', last_name='Doe', dob='1990-01-01')],
-            payment_methods=[Payment(payment_id='asas', amount=200)],
+            payment_methods=[Payment(payment_id='cc', amount=200)],
             total_baggages=1,
             nonfree_baggages=0,
             insurance='no')
@@ -103,7 +97,7 @@ class TestCheckedBagAllowance(unittest.TestCase):
             nonfree_baggages=0,
             insurance="no",
             flights=[FlightInfo(flight_number="FL123", date="2024-05-01")],
-            payment_methods=[Payment(payment_id="credit_card_1234", amount=10)]
+            payment_methods=[Payment(payment_id="cc", amount=10)]
         )
 
     def test_silver_member_business_three_bags(self):
@@ -122,7 +116,7 @@ class TestCheckedBagAllowance(unittest.TestCase):
             nonfree_baggages=0,
             insurance="no",
             flights=[FlightInfo(flight_number="FL123", date="2024-05-01")],
-            payment_methods=[Payment(payment_id="credit_card_5678", amount=30)])
+            payment_methods=[Payment(payment_id="cc", amount=30)])
 
     def test_gold_member_business_three_bags(self):
         """
@@ -142,7 +136,7 @@ class TestCheckedBagAllowance(unittest.TestCase):
             nonfree_baggages=0,
             insurance="no",
             flights=[FlightInfo(flight_number="FL123", date="2024-05-01")],
-            payment_methods=[Payment(payment_id="credit_card_9101", amount=20)])
+            payment_methods=[Payment(payment_id="cc", amount=20)])
 
 
     def test_regular_member_business_three_bags(self):
@@ -162,7 +156,7 @@ class TestCheckedBagAllowance(unittest.TestCase):
                 nonfree_baggages=0,
                 insurance="no",
                 flights=[FlightInfo(flight_number="FL123", date="2024-05-01")],
-                payment_methods=[Payment(payment_id="credit_card_1121", amount=0)])
+                payment_methods=[Payment(payment_id="cc", amount=0)])
 
     def test_silver_member_business_four_bags(self):
         """
@@ -182,7 +176,7 @@ class TestCheckedBagAllowance(unittest.TestCase):
                 nonfree_baggages=0,
                 insurance="no",
                 flights=[FlightInfo(flight_number="FL123", date="2024-05-01")],
-                payment_methods=[Payment(payment_id="credit_card_3141", amount=0)])
+                payment_methods=[Payment(payment_id="cc", amount=0)])
 
     def test_regular_member_business_class_three_free_bags_violation(self):
         """A regular member booking a flight in business class claims 3 free checked bags instead of the allowed 2, resulting in a policy violation."""
@@ -198,7 +192,7 @@ class TestCheckedBagAllowance(unittest.TestCase):
             cabin='business',
             flights=[FlightInfo(flight_number='FL123', date='2024-05-01')],
             passengers=[Passenger(first_name='John', last_name='Doe', dob='1990-01-01')],
-            payment_methods=[Payment(payment_id='credit_card_123', amount=200)],
+            payment_methods=[Payment(payment_id='cc', amount=200)],
             total_baggages=3,
             nonfree_baggages=0,
             insurance='no')

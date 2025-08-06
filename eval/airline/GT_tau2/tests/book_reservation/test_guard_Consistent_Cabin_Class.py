@@ -23,14 +23,8 @@ class TestConsistentCabinClassPolicy(unittest.TestCase):
         # Mocking the FlightBookingApi
         self.api = MagicMock()
         self.api.get_flight_status.side_effect = lambda flight_number, date: "available"
-        self.api.search_direct_flight.side_effect = lambda origin, dest, date: [DirectFlight(
-            flight_number="FL123",
-            date="2024-05-01",
-            origin="SFO",
-            destination="JFK",
+        self.api.get_flight_instance.side_effect = lambda flight_number, date: FlightDateStatusAvailable(
             status="available",
-            scheduled_departure_time_est="12",
-            scheduled_arrival_time_est="14",
             available_seats={
                 "basic_economy": 9,
                 "economy": 1, #<-last seat
@@ -41,7 +35,7 @@ class TestConsistentCabinClassPolicy(unittest.TestCase):
                 "economy": 912,
                 "business": 649
             }
-        )]if origin=="SFO" and dest=="JFK" and date=="2024-05-01" else []
+        )if flight_number=="FL123" and date=="2024-05-01" else None
 
         self.api.list_all_airports.return_value = [
             AirportCode.model_construct(iata="SFO", city="San Francisco"),
@@ -51,7 +45,7 @@ class TestConsistentCabinClassPolicy(unittest.TestCase):
         gold_user = User.model_construct(
             user_id=self.gold_user_id,
             payment_methods={
-                'asas': CreditCard(id="asas", source='credit_card', brand='Visa', last_four='1234'),
+                'cc': CreditCard(id="cc", source='credit_card', brand='Visa', last_four='1234'),
             },
             membership = "gold"
         )
@@ -76,7 +70,7 @@ class TestConsistentCabinClassPolicy(unittest.TestCase):
             passengers=[
                 Passenger(first_name='Maria', last_name='Gonzalez', dob='1990-01-01')
             ],
-            payment_methods=[Payment(payment_id='credit_card_123', amount=500)],
+            payment_methods=[Payment(payment_id='cc', amount=500)],
             total_baggages=2,
             nonfree_baggages=0,
             insurance='no')
@@ -97,7 +91,7 @@ class TestConsistentCabinClassPolicy(unittest.TestCase):
                     Passenger(first_name='Maria', last_name='Gonzalez', dob='1990-01-01'),
                     Passenger(first_name='Luis', last_name='Perez', dob='1985-05-12')
                 ],
-                payment_methods=[Payment(payment_id='credit_card_123', amount=500.0)],
+                payment_methods=[Payment(payment_id='cc', amount=500.0)],
                 total_baggages=2,
                 nonfree_baggages=0,
                 insurance='no')

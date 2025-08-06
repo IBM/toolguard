@@ -20,14 +20,8 @@ class TestPaymentMethodLimitationCompliance(unittest.TestCase):
         # Mocking the FlightBookingApi
         self.api = MagicMock()
         self.api.get_flight_status.side_effect = lambda flight_number, date: "available"
-        self.api.search_direct_flight.side_effect = lambda origin, dest, date: [DirectFlight(
-            flight_number="FL123",
-            date="2024-05-01",
-            origin="SFO",
-            destination="JFK",
+        self.api.get_flight_instance.side_effect = lambda flight_number, date: FlightDateStatusAvailable(
             status="available",
-            scheduled_departure_time_est="12",
-            scheduled_arrival_time_est="14",
             available_seats={
                 "basic_economy": 9,
                 "economy": 9,
@@ -38,7 +32,7 @@ class TestPaymentMethodLimitationCompliance(unittest.TestCase):
                 "economy": 912,
                 "business": 649
             }
-        )]if origin=="SFO" and dest=="JFK" and date=="2024-05-01" else []
+        )if flight_number=="FL123" and date=="2024-05-01" else None
 
         self.api.list_all_airports.return_value = [
             AirportCode.model_construct(iata="SFO", city="San Francisco"),
@@ -118,7 +112,7 @@ class TestPaymentMethodLimitationCompliance(unittest.TestCase):
 
 
     def test_two_credit_cards_one_gift_card(self):
-        """The user books a flight using one credit card and two gift cards, all listed in their profile, adhering to the payment method limitation policy."""
+        """The user books a flight using two credit cards and one gift card, all listed in their profile, violating to the payment method limitation policy."""
         with(self.assertRaises(PolicyViolationException)):
             guard_book_reservation(self.history, self.api,
                 user_id=self.regular_user_id,

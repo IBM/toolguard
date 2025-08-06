@@ -108,6 +108,22 @@ class I_Airline(ABC):
         ...
 
     @abstractmethod
+    def get_scheduled_flight(self, flight_number: str) -> Flight:
+        """
+        Get the flight schedule.
+        
+        Args:
+        flight_number: The flight number.
+        
+        Returns:
+        The flight schedule
+        
+        Raises:
+        ValueError: If the flight is not found.
+        """
+        ...
+
+    @abstractmethod
     def get_user_details(self, user_id: str) -> User:
         """
         Get the details of a user, including their reservations.

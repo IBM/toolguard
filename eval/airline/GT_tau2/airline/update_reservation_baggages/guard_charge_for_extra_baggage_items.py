@@ -4,6 +4,7 @@ from rt_toolguard.data_types import ChatHistory, PolicyViolationException
 from airline.airline_types import *
 from airline.i_airline import I_Airline
 
+
 def guard_charge_for_extra_baggage_items(history: ChatHistory, api: I_Airline, reservation_id: str, total_baggages: int, nonfree_baggages: int, payment_id: str):
     """
     Policy to check: To use the UpdateReservationBaggages tool effectively, verify the user's membership level (regular, silver, or gold) and cabin class (basic economy, economy, business). This will determine the number of free checked bags allowed. Charge $50 for each additional baggage item beyond the free allowance according to the user's membership and cabin class entitlements.
@@ -16,73 +17,41 @@ def guard_charge_for_extra_baggage_items(history: ChatHistory, api: I_Airline, r
         nonfree_baggages: The updated number of non-free baggage items included in the reservation.
         payment_id: The payment id stored in user profile, such as 'credit_card_7815826', 'gift_card_7815826', 'certificate_7815826'.
     """
-    # Retrieve reservation details
-    try:
-        reservation_details = api.get_reservation_details(reservation_id)
-    except ValueError:
-        raise PolicyViolationException("Reservation details not found for the given reservation ID.")
-
-    # Retrieve user details using user_id from reservation
-    user_id = reservation_details.user_id
-    try:
-        user_details = api.get_user_details(user_id)
-    except ValueError:
-        raise PolicyViolationException("User details not found for the given user ID.")
+    # Retrieve user and reservation details
+    reservation = api.get_reservation_details(reservation_id)
+    user = api.get_user_details(reservation.user_id)
 
     # Determine free baggage allowance based on membership and cabin class
-    membership = user_details.membership
-    cabin_class = reservation_details.cabin
+    free_baggage_allowance = {
+        'regular': {'basic_economy': 0, 'economy': 1, 'business': 2},
+        'silver': {'basic_economy': 1, 'economy': 2, 'business': 3},
+        'gold': {'basic_economy': 2, 'economy': 3, 'business': 3}
+    }
 
-    free_baggage_allowance = 0
-    if membership == 'regular':
-        if cabin_class == 'basic_economy':
-            free_baggage_allowance = 0
-        elif cabin_class == 'economy':
-            free_baggage_allowance = 1
-        elif cabin_class == 'business':
-            free_baggage_allowance = 2
-    elif membership == 'silver':
-        if cabin_class == 'basic_economy':
-            free_baggage_allowance = 1
-        elif cabin_class == 'economy':
-            free_baggage_allowance = 2
-        elif cabin_class == 'business':
-            free_baggage_allowance = 3
-    elif membership == 'gold':
-        if cabin_class == 'basic_economy':
-            free_baggage_allowance = 2
-        elif cabin_class == 'economy':
-            free_baggage_allowance = 3
-        elif cabin_class == 'business':
-            free_baggage_allowance = 3
+    # Get the user's membership level and cabin class
+    membership_level = user.membership
+    cabin_class = reservation.cabin
 
-    # Calculate the number of excess baggages
-    excess_baggages = total_baggages - free_baggage_allowance
+    # Calculate the allowed free baggage
+    allowed_free_baggage = free_baggage_allowance[membership_level][cabin_class]
 
-    # Check if the number of non-free baggages matches the excess baggages
-    if nonfree_baggages != excess_baggages:
-        raise PolicyViolationException("Incorrect number of non-free baggages.")
+    # Calculate the expected non-free baggage
+    expected_nonfree_baggages = max(0, total_baggages - allowed_free_baggage)
 
-    # Calculate the expected charge for excess baggages
-    expected_charge = excess_baggages * 50
+    # Check if the non-free baggage count matches the expected count
+    if nonfree_baggages != expected_nonfree_baggages:
+        raise PolicyViolationException("Incorrect number of non-free baggages charged.")
 
-    # Verify payment method
-    payment_methods = user_details.payment_methods
-    if payment_id not in payment_methods:
+    # Check if the payment method is valid
+    if payment_id not in user.payment_methods:
         raise PolicyViolationException("Invalid payment method.")
 
-    # Ensure the payment method can cover the expected charge
-    payment_method = payment_methods[payment_id]
-    if isinstance(payment_method, GiftCard) and payment_method.amount < expected_charge:
-        raise PolicyViolationException("Insufficient gift card balance.")
-    elif isinstance(payment_method, Certificate) and payment_method.amount < expected_charge:
-        raise PolicyViolationException("Insufficient certificate balance.")
-
-    # Ensure the payment method is valid for the expected charge
-    if isinstance(payment_method, CreditCard):
-        # Assuming credit card can always cover the charge
-        pass
-    else:
-        raise PolicyViolationException("Invalid payment method type for the charge.")
-
-    # If all checks pass, the tool-call is valid
+    # Ensure the correct charge is applied for extra baggage
+    expected_charge = expected_nonfree_baggages * 50
+    if expected_charge > 0:
+        # Check if the payment history reflects the correct charge
+        total_paid = sum(payment.amount for payment in reservation.payment_history if payment.payment_id == payment_id)
+        if total_paid < expected_charge:
+            raise PolicyViolationException("Insufficient payment for extra baggage.")
+        elif total_paid > expected_charge:
+            raise PolicyViolationException("Overpayment detected for extra baggage.")

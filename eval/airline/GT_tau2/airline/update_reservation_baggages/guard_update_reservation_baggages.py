@@ -4,7 +4,6 @@ from rt_toolguard.data_types import ChatHistory
 from airline.airline_types import *
 from airline.i_airline import I_Airline
 
-from airline.update_reservation_baggages.guard_obtain_user_and_reservation_ids import guard_obtain_user_and_reservation_ids
 from airline.update_reservation_baggages.guard_only_adding_checked_bags_is_allowed import guard_only_adding_checked_bags_is_allowed
 from airline.update_reservation_baggages.guard_payment_methods_are_pre_authorized import guard_payment_methods_are_pre_authorized
 from airline.update_reservation_baggages.guard_charge_for_extra_baggage_items import guard_charge_for_extra_baggage_items
@@ -24,7 +23,6 @@ def guard_update_reservation_baggages(history: ChatHistory, api: I_Airline, rese
          
     """
     
-    # guard_obtain_user_and_reservation_ids(history, api, reservation_id, total_baggages, nonfree_baggages, payment_id)
     guard_only_adding_checked_bags_is_allowed(history, api, reservation_id, total_baggages, nonfree_baggages, payment_id)
     guard_payment_methods_are_pre_authorized(history, api, reservation_id, total_baggages, nonfree_baggages, payment_id)
     guard_charge_for_extra_baggage_items(history, api, reservation_id, total_baggages, nonfree_baggages, payment_id)

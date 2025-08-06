@@ -19,10 +19,10 @@ def guard_only_adding_checked_bags_is_allowed(history: ChatHistory, api: I_Airli
     # Retrieve the current reservation details
     reservation = api.get_reservation_details(reservation_id)
 
-    # Check if the total baggage count is being reduced
+    # Check if the total_baggages is less than the current total_baggages
     if total_baggages < reservation.total_baggages:
         raise PolicyViolationException("Removing checked bags from the reservation is not permitted.")
 
-    # Ensure payment method is provided for non-free baggage
+    # Ensure payment method is provided for any additional non-free baggage
     if nonfree_baggages > reservation.nonfree_baggages and not payment_id:
-        raise PolicyViolationException("Payment method for additional non-free baggage must be provided.")
+        raise PolicyViolationException("Payment method must be provided for additional non-free baggage.")
