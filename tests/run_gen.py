@@ -51,7 +51,7 @@ async def gen_all():
     return await generate_guards_from_tool_policies(funcs,
         from_step1_path="eval/airline/GT/airlines", 
         to_step2_path=out_folder, 
-        tool_names=["update_reservation_baggages"],
+        tool_names=["update_reservation_flights"],
         app_name="airline"
     )
 
