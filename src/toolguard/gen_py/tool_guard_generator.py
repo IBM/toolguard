@@ -100,9 +100,9 @@ class ToolGuardGenerator:
         test_file_name = join(TESTS_DIR, self.tool_policy.tool_name, f"{test_fn_module_name(item)}.py")
         errors = []
         for trial_no in "a b c".split():
-            logger.debug(f"Generating tests iteration {trial_no} for tool {self.tool_policy.tool_name} '{item.name}'.")
+            logger.debug(f"Generating tests iteration '{trial_no}' for tool {self.tool_policy.tool_name} '{item.name}'.")
             domain = Domain.model_construct(**self.domain.model_dump()) #remove runtime fields
-            first_time = trial_no == 0
+            first_time = (trial_no == "a")
             if first_time:
                 res = await generate_tool_item_tests(fn_name, guard_fn, item, domain, dep_tools)
             else:

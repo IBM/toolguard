@@ -11,18 +11,19 @@ import inspect
 import os
 
 import functools
-from rt_toolguard.data_types import API_PARAM, HISTORY_PARAM, RESULTS_FILENAME, ChatHistory, FileTwin, RuntimeDomain, ToolPolicy
+from toolguard.data_types import API_PARAM, HISTORY_PARAM, RESULTS_FILENAME, ChatHistory, FileTwin, RuntimeDomain, ToolPolicy
 
 class LLM(ABC):
     @abstractmethod
     def generate(self, messages: List[Dict])->str:
         ...
 
-def load_toolguards(directory: str, filename: str = RESULTS_FILENAME) -> "ToolGuardsCodeGenerationResult":
+def load_toolguards(directory: str, filename: str = RESULTS_FILENAME, llm: LLM|None = None) -> "ToolguardRuntime":
     full_path = os.path.join(directory, filename)
     with open(full_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
-    return ToolGuardsCodeGenerationResult(**data)
+    result = ToolGuardsCodeGenerationResult(**data)
+    return ToolguardRuntime(result, full_path, llm)
 
 class ToolGuardCodeResult(BaseModel):
     tool: ToolPolicy
@@ -34,22 +35,6 @@ class ToolGuardCodeResult(BaseModel):
 class ToolGuardsCodeGenerationResult(BaseModel):
     domain: RuntimeDomain
     tools: Dict[str, ToolGuardCodeResult]
-    _llm: LLM = PrivateAttr()
-    _guards: Dict[str, Callable] = PrivateAttr()
-    
-    def model_post_init(self, __context):
-        self._llm = None # type: ignore
-        self._guards = {}
-        for tool_name, tool_result in self.tools.items():
-            module = load_module_from_path(tool_result.guard_file.file_name, self.root_dir)
-            guard_fn =find_function_in_module(module, tool_result.guard_fn_name)
-            assert guard_fn, "Guard not found"
-            self._guards[tool_name] = guard_fn
-
-    @property
-    def root_dir(self):
-        cur_dir = os.path.dirname(os.path.abspath(__file__))
-        return os.path.dirname(cur_dir)
 
     def save(self, directory: str, filename: str = RESULTS_FILENAME) -> 'ToolGuardsCodeGenerationResult':
         full_path = os.path.join(directory, filename)
@@ -57,9 +42,18 @@ class ToolGuardsCodeGenerationResult(BaseModel):
             json.dump(self.model_dump(), f, indent=2)
         return self
 
-    def use_llm(self, llm: LLM):
+class ToolguardRuntime:
+
+    def __init__(self, result: ToolGuardsCodeGenerationResult, ctx_dir: str, llm: LLM|None) -> None:
         self._llm = llm
-        return self
+        self._ctx_dir = ctx_dir
+        self._result = result
+        self._guards = {}
+        for tool_name, tool_result in result.tools.items():
+            module = load_module_from_path(tool_result.guard_file.file_name, ctx_dir)
+            guard_fn =find_function_in_module(module, tool_result.guard_fn_name)
+            assert guard_fn, "Guard not found"
+            self._guards[tool_name] = guard_fn
     
     def _make_args(self, guard_fn:Callable, args: dict, messages: List, delegate:Any)->Dict[str, Any]:
         sig = inspect.signature(guard_fn)
@@ -68,9 +62,9 @@ class ToolGuardsCodeGenerationResult(BaseModel):
             if p_name == HISTORY_PARAM:
                 guard_args[p_name] = ChatHistoryImpl(messages, self._llm)
             elif p_name == API_PARAM:
-                module = load_module_from_path(self.domain.app_api_impl.file_name, self.root_dir)
-                cls = find_class_in_module(module, self.domain.app_api_impl_class_name)
-                assert cls, f"class {self.domain.app_api_impl_class_name} not found in {self.domain.app_api_impl.file_name}"
+                module = load_module_from_path(self._result.domain.app_api_impl.file_name, self._ctx_dir)
+                cls = find_class_in_module(module, self._result.domain.app_api_impl_class_name)
+                assert cls, f"class {self._result.domain.app_api_impl_class_name} not found in {self._result.domain.app_api_impl.file_name}"
                 guard_args[p_name] = cls(delegate)
             else:
                 arg = args.get(p_name)
@@ -172,25 +166,21 @@ Question:
     msg = {"role":"system", "content": prompt}
     return llm.generate([msg])
 
-
-
 T = TypeVar("T")
-def guard_methods(obj: T, guards_folder: str) -> T:
+def guard_methods(obj: T, guards_folder: str, llm: LLM|None) -> T:
     """Wraps all public bound methods of the given instance using the given wrapper."""
     for attr_name in dir(obj):
         if attr_name.startswith("_"):
             continue
         attr = getattr(obj, attr_name)
         if callable(attr):
-            wrapped = guard_before_call(guards_folder)(attr)
+            wrapped = guard_before_call(guards_folder, llm=llm)(attr)
             setattr(obj, attr_name, wrapped)
     return obj
 
-def guard_before_call(guards_folder: str) -> Callable[[Callable], Callable]:
+def guard_before_call(guards_folder: str, llm: LLM|None) -> Callable[[Callable], Callable]:
     """Decorator factory that logs function calls to the given logfile."""
-    toolguards = load_toolguards(guards_folder)
-    llm = Litellm(model_name="ASASA", custom_provider="azure") #FIXME example
-    toolguards.use_llm(llm)
+    toolguards = load_toolguards(guards_folder, llm=llm)
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
