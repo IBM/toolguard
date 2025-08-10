@@ -11,7 +11,7 @@ import inspect
 import os
 
 import functools
-from toolguard.data_types import API_PARAM, HISTORY_PARAM, RESULTS_FILENAME, ChatHistory, FileTwin, RuntimeDomain, ToolPolicy
+from rt_toolguard.data_types import API_PARAM, HISTORY_PARAM, RESULTS_FILENAME, ChatHistory, FileTwin, RuntimeDomain, ToolPolicy
 
 class LLM(ABC):
     @abstractmethod
@@ -23,7 +23,7 @@ def load_toolguards(directory: str, filename: str = RESULTS_FILENAME, llm: LLM|N
     with open(full_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     result = ToolGuardsCodeGenerationResult(**data)
-    return ToolguardRuntime(result, full_path, llm)
+    return ToolguardRuntime(result, directory, llm)
 
 class ToolGuardCodeResult(BaseModel):
     tool: ToolPolicy

@@ -11,6 +11,7 @@ from toolguard.common import py
 from toolguard.common.str import to_snake_case
 from toolguard.data_types import DEBUG_DIR, TESTS_DIR, Domain, FileTwin, RuntimeDomain, ToolPolicy, ToolPolicyItem, ToolPolicyItem
 from toolguard.gen_py.consts import guard_fn_module_name, guard_fn_name, guard_item_fn_module_name, guard_item_fn_name, test_fn_module_name
+from toolguard.gen_py.prompts.pseudo_code import tool_policy_pseudo_code
 from toolguard.runtime import ToolGuardCodeResult, find_class_in_module, load_module_from_path
 import toolguard.utils.pytest as pytest
 import toolguard.utils.pyright as pyright
@@ -76,6 +77,7 @@ class ToolGuardGenerator:
         dep_tools = set()
         if self.domain.app_api_size > 1:
             domain = Domain.model_construct(**self.domain.model_dump()) #remove runtime fields
+            # pseudo_code = await tool_policy_pseudo_code(item, sig_str, domain)
             dep_tools = await tool_dependencies(item, sig_str, domain)
         logger.debug(f"Dependencies of '{item.name}': {dep_tools}")
 
@@ -166,7 +168,7 @@ class ToolGuardGenerator:
                 except Exception as ex:
                     continue #probably a syntax error in the generated code. lets retry...
             else:
-                logger.debug(f"'{item.name}' guard function generated succeffult and is Green 😄🎉. ")
+                logger.debug(f"'{item.name}' guard function generated succefully and is Green 😄🎉. ")
                 return guard #Green
                 
         raise Exception(f"Failed {MAX_TOOL_IMPROVEMENTS} times to generate guard function for tool {to_snake_case(self.tool_policy.tool_name)} policy: {item.name}")

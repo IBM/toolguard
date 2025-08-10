@@ -1,6 +1,6 @@
 
-from typing import List, Set
-from toolguard.data_types import Domain, FileTwin, ToolPolicyItem
+from typing import Set
+from toolguard.data_types import Domain, ToolPolicyItem
 from programmatic_ai import generative
 
 
@@ -22,16 +22,12 @@ async def tool_dependencies(policy_item: ToolPolicyItem, fn_under_test_signature
           this data must be obtained by calling other tools or APIs.
         - **Direct Dependency**: A tool depends on another tool if that tool can be called directly to provide
           required data or perform necessary checks.
-        - **Indirect and Conditional Dependencies**:
-            - Dependencies can be chained: e.g., calling one tool to get data required as input to another tool.
-            - Dependencies may be conditional on policy specifics; for example, if updated inputs contain only partial
-              data, additional calls may be needed to fetch missing context.
-            - Some dependencies may require multiple calls (e.g., calling a data check API once per item in a list).
-        - **Immutable Source Constraint**: A tool may only depend on immutable tools — those that retrieve data but do not modify state.
-        - **Composite Data Comparison**:
-            - Policies that require comparing *existing* and *new* data often require dependencies to both fetch the original
-              state (e.g., `get_reservation`) and to retrieve fresh details about new inputs (e.g., `get_available_rooms`).
-        - **Possible Dependency Sets**: The returned set of dependencies may be empty, contain one tool, or include multiple tools.
+        - **Indirect Dependencies**:  
+            - Dependencies may form chains, where one tool’s output serves as input for another.  
+            - Some policies require multiple calls to the same tool, such as querying a data validation API for each item in a list.  
+            - When policies involve updates, it is often necessary to compare the *existing* state with the *new* state. This typically results in at least two dependencies: one to retrieve the original data, and another to fetch up-to-date details about the new inputs.  
+                For example, when updating a hotel reservation with new room IDs, you cannot rely on the reservation object to contain full details about those rooms. Instead, you would call `get_hotel_reservation` to obtain the existing reservation, and then call `get_room_details` for each new room to acquire current information.
+        - **Immutable Source Constraint**: A tool may only depend on immutable (read only) tools.
 
     Examples:
         ```python
@@ -77,18 +73,12 @@ async def tool_dependencies(policy_item: ToolPolicyItem, fn_under_test_signature
         ) == {"get_person"}
 
         assert tool_dependencies(
-            {"name": "insurance is valid", "description": "when buying a car, check that the insurance is valid."},
+            {"name": "no transfers on holidays", "description": "when buying a car, check that it is not a holiday today"},
             "buy_car(plate_num: str, owner_id: str, insurance_id: str)",
             domain
-        ) == {"get_insurance"}
+        ) == {}
 
-        assert tool_dependencies(
-            {"name": "not holiday", "description": "when buying a car, check that it is not a holiday today"},
-            "buy_car(plate_num: str, owner_id: str, insurance_id: str)",
-            domain
-        ) == set()
-
-        # Indirect dependency
+        # Indirect dependency. are_relatives() should be called multiple times.
         assert tool_dependencies(
             {"name": "Not in the same family", "description": "when buying a car, check that the car was never owned by someone from the buyer's family."},
             "buy_car(plate_num: str, owner_id: str, insurance_id: str)",
