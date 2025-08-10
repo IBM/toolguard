@@ -6,7 +6,7 @@ from programmatic_ai import generative
 from toolguard.gen_py.prompts.python_code import PythonCodeModel
 
 @generative
-async def generate_tool_item_tests(
+async def _generate_init_tests(
     fn_under_test_name: str, 
     fn_src: FileTwin, 
     tool_item: ToolPolicyItem, 
@@ -14,6 +14,16 @@ async def generate_tool_item_tests(
     dependent_tool_names: Set[str])-> PythonCodeModel:
     """
     Generate Python unit tests for a function to verify tool-call compliance with policy constraints.
+
+    Args:
+        fn_under_test_name (str): the name of the function under test.
+        fn_src (FileTwin): Source code containing the function-under-test signature.
+        tool_item (ToolPolicyItem): Specification of the function-under-test, including positive and negative examples.
+        domain (Domain): available data types and interfaces the test can use.
+        dependent_tool_names (Set[str]): other tool names that this tool depends on.
+
+    Returns:
+        PythonCodeModel: Generated Python unit test code.
 
     This function creates unit tests to validate the behavior of a given function-under-test. 
     The function goal is to check the argument data, and raise an exception if they violated the requirements in the policy item.
@@ -100,39 +110,32 @@ def test_book_in_the_past():
         next_week = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%S")
         check_create_reservation(user_id="123", hotel_id="789", reservation_date=next_week, persons=3, history, api)
 ```
-
-    Args:
-        fn_under_test_name (str): the name of the function under test
-        fn_src (FileTwin): Source code containing the function-under-test signature.
-        tool_item (ToolPolicyItem): Specification of the function-under-test, including positive and negative examples.
-        domain (Domain): available data types and interfaces the test can use.
-        dependent_tool_names(Set[str]): other tool names that this tool depends on
-
-    Returns:
-        PythonCodeModel: Generated Python unit test code.
     """
     ...
 
 
 @generative
-async def improve_tool_tests(
+async def _improve_tests(
     prev_impl: PythonCodeModel, 
     domain: Domain, 
     policy_item: ToolPolicyItem, 
-    review_comments: List[str])-> PythonCodeModel:
+    review_comments: List[str],
+    dependent_tool_names: Set[str])-> PythonCodeModel:
     """
     Improve the previous test functions (in Python) to check the given tool policy-items according to the review-comments.
-    **Implementation Rules:**"
-    - Do not change the function signature.
-    - You can add import statements, but ont remove them.
 
     Args:
         prev_impl (PythonCodeModel): previous implementation of a Python function.
         domain (Domain): Python source code defining available data types and APIs that the test can use.
         tool (ToolPolicyItem): Requirements for this tool.
         review_comments (List[str]): Review comments on the current implementation. For example, pylint errors or Failed unit-tests.
+        dependent_tool_names (Set[str]): other tool names that this tool depends on.
 
     Returns:
         PythonCodeModel: Improved implementation pytest test functions.
+
+    **Implementation Rules:**"
+    - Do not change the function signatures.
+    - You can add import statements, but dont remove them.
     """
     ...

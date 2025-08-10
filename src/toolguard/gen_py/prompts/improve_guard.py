@@ -1,12 +1,12 @@
 
-from typing import List
+from typing import List, Set
 from toolguard.data_types import Domain, ToolPolicyItem
 from programmatic_ai import generative
 
 from toolguard.gen_py.prompts.python_code import PythonCodeModel
 
 @generative
-async def improve_tool_guard_fn(prev_impl: PythonCodeModel, domain: Domain, policy_item: ToolPolicyItem, review_comments: List[str])-> PythonCodeModel:
+async def improve_tool_guard(prev_impl: PythonCodeModel, domain: Domain, policy_item: ToolPolicyItem, dependent_tool_names: Set[str], review_comments: List[str])-> PythonCodeModel:
     """
     Improve the previous tool-call guard implementation (in Python) to cover all tool policy-items according to the review-comments.
 
@@ -14,6 +14,7 @@ async def improve_tool_guard_fn(prev_impl: PythonCodeModel, domain: Domain, poli
         prev_impl (PythonCodeModel): previous implementation of the tool-call check.
         domain (Domain): Python code defining available data types and other tool interfaces.
         policy_item (ToolPolicyItem): Requirements for this tool.
+        dependent_tool_names (Set[str]): other tool names that this tool depends on.
         review_comments (List[str]): Review comments on the current implementation. For example, pylint errors or Failed unit-tests.
 
     Returns:
@@ -25,7 +26,7 @@ async def improve_tool_guard_fn(prev_impl: PythonCodeModel, domain: Domain, poli
     - The code should be simple.
     - The code should be well documented.
     - You should just validate the tool-call arguments. You should never call the tool itself.
-    - If needed, you may use the `api` interface to get additional information from the backend.
+    - If needed, you may use the functions listed in `dependent_tool_names` to call the `api` interface to get required information from the backend.
     - If needed to check information in the previous chat messages, you may use the `history` object.
     - `History.ask_bool(question)` function is slow and expensive. 
         - `History.ask_bool(question)` function use an LLM to answer natural language questions on messages in the past conversation .
