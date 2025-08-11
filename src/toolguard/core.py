@@ -11,19 +11,26 @@ from toolguard.logging_utils import add_log_file_handler
 from toolguard.runtime import ToolGuardsCodeGenerationResult
 from toolguard.data_types import ToolPolicy, ToolPolicyItem
 from toolguard.gen_py.gen_toolguards import generate_toolguards_from_functions
-from toolguard.stages_tptd.text_tool_policy_generator import step1_main_with_tools
+from toolguard.stages_tptd.text_tool_policy_generator import ToolInfo, step1_main
 
 logger = logging.getLogger(__name__)
 
 async def build_toolguards(policy_text:str, tools: List[Callable], out_dir:str, step1_llm:TG_LLM, app_name:str="my_app", tools2run:List[str]|None=None, short1=False):
-
 	os.makedirs(out_dir, exist_ok=True)
 	step1_out_dir = join(out_dir, "step1")
 	step2_out_dir = join(out_dir, "step2")
 
-	step1_main_with_tools(policy_text, tools, step1_out_dir,step1_llm, tools2run, short1)
+	tools_info = functions_to_tool_info(tools)
+	await step1_main(policy_text, tools_info, step1_out_dir,step1_llm, tools2run, short1)
 	result = await generate_guards_from_tool_policies(tools, step1_out_dir, step2_out_dir, app_name, tools2run)
 	return result
+
+def functions_to_tool_info(funcs: List[Callable])->List[ToolInfo]:
+	return [ToolInfo(
+				name=func.name if hasattr(func, 'name') else func.__name__,
+				description= func.__doc__.strip() if func.__doc__ else "",
+				parameters=func.args_schema.model_json_schema() if hasattr(func, 'args_schema') else {}
+			) for func in funcs]
 
 async def generate_guards_from_tool_policies(
 		funcs: List[Callable],
