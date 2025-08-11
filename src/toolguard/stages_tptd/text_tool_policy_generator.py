@@ -349,7 +349,7 @@ def step1_main_with_tools(policy_text:str, tools, step1_output_dir:str,llm:TG_LL
 		description = func["description"]
 		tools_descriptions[name] = description
 		tools_details[name] = func
-	step1_main(policy_text, tools_descriptions, tools_details,step1_output_dir, llm, tools2run, short1)
+	step1_main(policy_text, tools_descriptions, tools_details, step1_output_dir, llm, tools2run, short1)
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='parser')
