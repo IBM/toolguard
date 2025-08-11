@@ -62,7 +62,7 @@ class TextToolPolicyGenerator:
 	async def add_policies(self, tool_name:str, tptd:dict, iteration:int=0) -> dict:
 		print("add_policy")
 		system_prompt = read_prompt_file("add_policies")
-		user_content = f"Policy Document:{self.policy_document}\nTools Descriptions:{json.dumps(self.tools_descriptions)}\nTarget Tool:{self.tools_details[tool_name].json()}\nTPTD: {json.dumps(tptd)}"
+		user_content = f"Policy Document:{self.policy_document}\nTools Descriptions:{json.dumps(self.tools_descriptions)}\nTarget Tool:{self.tools_details[tool_name].model_dump_json()}\nTPTD: {json.dumps(tptd)}"
 		response = await self.llm.chat_json(generate_messages(system_prompt, user_content))
 
 		policies = response["additionalProperties"]["policies"] \
@@ -82,7 +82,7 @@ class TextToolPolicyGenerator:
 		# todo: consider addition step to split policy by policy and not overall
 		print("split")
 		system_prompt = read_prompt_file("split")
-		user_content = f"Policy Document:{self.policy_document}\nTools Descriptions:{json.dumps(self.tools_descriptions)}\nTarget Tool:{self.tools_details[tool_name].json()}\nTPTD: {json.dumps(tptd)}"
+		user_content = f"Policy Document:{self.policy_document}\nTools Descriptions:{json.dumps(self.tools_descriptions)}\nTarget Tool:{self.tools_details[tool_name].model_dump_json()}\nTPTD: {json.dumps(tptd)}"
 		tptd = await self.llm.chat_json(generate_messages(system_prompt, user_content))
 		save_output(self.out_dir, f"{tool_name}_split.json", tptd)
 		return tptd
@@ -91,7 +91,7 @@ class TextToolPolicyGenerator:
 		# todo: consider addition step to split policy by policy and not overall
 		print("merge")
 		system_prompt = read_prompt_file("merge")
-		user_content = f"Policy Document:{self.policy_document}\nTools Descriptions:{json.dumps(self.tools_descriptions)}\nTarget Tool:{self.tools_details[tool_name].json()}\nTPTD: {json.dumps(tptd)}"
+		user_content = f"Policy Document:{self.policy_document}\nTools Descriptions:{json.dumps(self.tools_descriptions)}\nTarget Tool:{self.tools_details[tool_name].model_dump_json()}\nTPTD: {json.dumps(tptd)}"
 		tptd = await self.llm.chat_json(generate_messages(system_prompt, user_content))
 		
 		save_output(self.out_dir, f"{tool_name}_merge.json", tptd)
@@ -167,7 +167,7 @@ class TextToolPolicyGenerator:
 		#remove old refs (used to help avoid duplications)
 		for policy in tptd["policies"]:
 			policy["references"] = []
-			user_content = f"Policy Document:{self.policy_document}\nTools Descriptions:{json.dumps(self.tools_descriptions)}\nTarget Tool:{self.tools_details[tool_name].json()}\npolicy: {json.dumps(policy)}"
+			user_content = f"Policy Document:{self.policy_document}\nTools Descriptions:{json.dumps(self.tools_descriptions)}\nTarget Tool:{self.tools_details[tool_name].model_dump_json()}\npolicy: {json.dumps(policy)}"
 			response = await self.llm.chat_json(generate_messages(system_prompt, user_content))
 			if "references" in response:
 				policy["references"] = response["references"]
@@ -193,7 +193,7 @@ class TextToolPolicyGenerator:
 		
 		for policy in tptd["policies"]:
 			#user_content = f"Policy Document:{state['policy_text']}\nTools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nPolicy:{policy}"
-			user_content = f"Tools Descriptions:{json.dumps(self.tools_descriptions)}\nTarget Tool:{self.tools_details[tool_name].json()}\nPolicy:{policy}"
+			user_content = f"Tools Descriptions:{json.dumps(self.tools_descriptions)}\nTarget Tool:{self.tools_details[tool_name].model_dump_json()}\nPolicy:{policy}"
 			
 			response = await self.llm.chat_json(generate_messages(system_prompt, user_content))
 			if 'violating_examples' in response:
@@ -211,7 +211,7 @@ class TextToolPolicyGenerator:
 		system_prompt = system_prompt.replace("ToolX", tool_name)
 		for policy in tptd["policies"]:
 			#user_content = f"Policy Document:{state['policy_text']}\nTools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nPolicy:{policy}"
-			user_content = f"Tools Descriptions:{json.dumps(self.tools_descriptions)}\nTarget Tool:{self.tools_details[tool_name].json()}\nPolicy:{policy}"
+			user_content = f"Tools Descriptions:{json.dumps(self.tools_descriptions)}\nTarget Tool:{self.tools_details[tool_name].model_dump_json()}\nPolicy:{policy}"
 			response = await self.llm.chat_json(generate_messages(system_prompt, user_content))
 			if 'violating_examples' in response:
 				for vexample in response["violating_examples"]:
@@ -235,7 +235,7 @@ class TextToolPolicyGenerator:
 		system_prompt = system_prompt.replace("ToolX", tool_name)
 		for policy in tptd["policies"]:
 			#user_content = f"Policy Document:{state['policy_text']}\nTools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nPolicy Name:{policy['policy_name']}\nPolicy Description:{policy['description']}"
-			user_content = f"Tools Descriptions:{json.dumps(self.tools_descriptions)}\nTarget Tool:{self.tools_details[tool_name].json()}\nPolicy Name:{policy['policy_name']}\nPolicy Description:{policy['description']}"
+			user_content = f"Tools Descriptions:{json.dumps(self.tools_descriptions)}\nTarget Tool:{self.tools_details[tool_name].model_dump_json()}\nPolicy Name:{policy['policy_name']}\nPolicy Description:{policy['description']}"
 			user_content+= f"\n\nViolating Examples: {policy['violating_examples']}"
 			user_content+= f"\n\nCompliance Examples: {policy['compliance_examples']}"
 			response = await self.llm.chat_json(generate_messages(system_prompt, user_content))
@@ -257,7 +257,7 @@ class TextToolPolicyGenerator:
 					system_prompt = system_prompt.replace("__EXAMPLE_TYPE__", "")
 			
 					#user_content = f"Policy Document:{state['policy_text']}\nTools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nPolicy Name:{policy['policy_name']}\nPolicy Description:{policy['description']}\nExample:{example}"
-					user_content = f"Tools Descriptions:{json.dumps(self.tools_descriptions)}\nTarget Tool:{self.tools_details[tool_name].json()}\nPolicy Name:{policy['policy_name']}\nPolicy Description:{policy['description']}\nExample:{example}"
+					user_content = f"Tools Descriptions:{json.dumps(self.tools_descriptions)}\nTarget Tool:{self.tools_details[tool_name].model_dump_json()}\nPolicy Name:{policy['policy_name']}\nPolicy Description:{policy['description']}\nExample:{example}"
 					
 					response = await self.llm.chat_json(generate_messages(system_prompt, user_content))
 					fixed_examples.append(response["revised_example"])
@@ -281,7 +281,7 @@ class TextToolPolicyGenerator:
 					reviews = []
 					for iteration in range(5):
 						#user_content = f"Policy Document:{state['policy_text']}\nTools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nPolicy Name:{policy['policy_name']}\nPolicy Description:{policy['description']}\nExample:{example}"
-						user_content = f"Tools Descriptions:{json.dumps(self.tools_descriptions)}\nTarget Tool:{self.tools_details[tool_name].json()}\nPolicy Name:{policy['policy_name']}\nPolicy Description:{policy['description']}\nExample:{example}"
+						user_content = f"Tools Descriptions:{json.dumps(self.tools_descriptions)}\nTarget Tool:{self.tools_details[tool_name].model_dump_json()}\nPolicy Name:{policy['policy_name']}\nPolicy Description:{policy['description']}\nExample:{example}"
 						response = await self.llm.chat_json(generate_messages(system_prompt, user_content))
 						reviews.append(response)
 					keep = self.keep_example(reviews)
