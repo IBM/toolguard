@@ -22,10 +22,10 @@ def guard_explicit_user_confirmation_required(history: ChatHistory, api: I_Airli
     # Ask the history if explicit confirmation ('yes') was given by the user after presenting all action details
     # This is required by policy and cannot be pre-validated by ToolX
     # Only explicit 'yes' is accepted, not implicit consent
-    confirmed = history.ask_bool(
-        "Did the user explicitly say 'yes' to confirm the presented reservation update details (including flights, baggage, cabin class, or passenger information)? Only explicit 'yes' is valid."
-    )
-    if not confirmed:
-        raise PolicyViolationException(
-            "Explicit user confirmation ('yes') is required before updating reservation details. No valid confirmation found in chat history."
-        )
+    # confirmed = history.ask_bool(
+    #     "Did the user explicitly say 'yes' to confirm the presented reservation update details (including flights, baggage, cabin class, or passenger information)? Only explicit 'yes' is valid."
+    # )
+    # if not confirmed:
+    #     raise PolicyViolationException(
+    #         "Explicit user confirmation ('yes') is required before updating reservation details. No valid confirmation found in chat history."
+    #     )

@@ -31,21 +31,22 @@ async def gen_all():
 
     # Step1
     llm = LitellmModel(model_name='gpt-4o-2024-08-06')
-    step1_out_dir = os.path.join(out_folder, "step1")
     doc_summary = lambda doc: doc.strip().split("\n", 1)[1].strip() if "\n" in doc else None
     tools_info = [ToolInfo(
             name=fn.__name__,
             description=doc_summary(inspect.getdoc(fn)) or "",
             parameters=inspect.getdoc(fn)
         ) for fn in funcs]
+    step1_out_dir = "eval/airline/tau2/step1_long"
+    # step1_out_dir = os.path.join(out_folder, "step1")
     # await step1_main(policy_text, tools_info, step1_out_dir, llm, short1=False)
 
     # Step2
     from toolguard.core import generate_guards_from_tool_policies
     return await generate_guards_from_tool_policies(funcs,
-        from_step1_path="eval/airline/GT_tau2/generated_step1_long", 
+        from_step1_path=step1_out_dir, 
         to_step2_path=out_folder, 
-        # tool_names=["update_reservation_flights"],
+        tool_names=["book_reservation", "cancel_reservation", "update_reservation_passengers", "update_reservation_baggages", "update_reservation_flights"],
         app_name="airline"
     )
 

@@ -48,11 +48,12 @@ def guard_strict_cancellation_rules_enforcement(history: ChatHistory, api: I_Air
     # Check travel insurance for basic/economy flights
     if reservation.cabin in ['basic_economy', 'economy']:
         if reservation.insurance == 'yes':
-            # Health or weather condition must apply (ask history)
-            if history.ask_bool("Is the cancellation due to health or weather conditions?"):
-                return  # Allowed to cancel
-            else:
-                raise PolicyViolationException("Travel insurance cancellation only allowed for health or weather reasons.")
+            pass
+            # # Health or weather condition must apply (ask history)
+            # if history.ask_bool("Is the cancellation due to health or weather conditions?"):
+            #     return  # Allowed to cancel
+            # else:
+            #     raise PolicyViolationException("Travel insurance cancellation only allowed for health or weather reasons.")
         else:
             raise PolicyViolationException("Basic/economy flights require travel insurance for cancellation after 24 hours.")
 

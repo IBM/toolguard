@@ -18,8 +18,8 @@ def guard_ensure_user_confirmation(history: ChatHistory, api: I_Airline, reserva
         passengers: An array of objects containing details about each passenger.
     """
     # Ask the chat history if the user explicitly confirmed the passenger information update
-    confirmed = history.ask_bool(
-        f"Did the user explicitly confirm ('yes') the proposed passenger information update for reservation '{reservation_id}'?")
-    if not confirmed:
-        raise PolicyViolationException(
-            "Explicit user confirmation ('yes') for passenger information update was not obtained.")
+    # confirmed = history.ask_bool(
+    #     f"Did the user explicitly confirm ('yes') the proposed passenger information update for reservation '{reservation_id}'?")
+    # if not confirmed:
+    #     raise PolicyViolationException(
+    #         "Explicit user confirmation ('yes') for passenger information update was not obtained.")

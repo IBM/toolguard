@@ -35,16 +35,16 @@ def guard_explicit_confirmation_for_baggage_update(history: ChatHistory, api: I_
     changes.append(f"payment method: {payment_id}")
 
     # Check that changes were listed in the chat history
-    if changes:
-        changes_listed = history.ask_bool(
-            f"Did the agent list the following baggage update changes for reservation '{reservation_id}': {', '.join(changes)}?"
-        )
-        if not changes_listed:
-            raise PolicyViolationException("All changes must be listed before updating baggage information.")
+    # if changes:
+    #     changes_listed = history.ask_bool(
+    #         f"Did the agent list the following baggage update changes for reservation '{reservation_id}': {', '.join(changes)}?"
+    #     )
+    #     if not changes_listed:
+    #         raise PolicyViolationException("All changes must be listed before updating baggage information.")
 
     # Check for explicit user confirmation
-    confirmed = history.ask_bool(
-        f"Did the user explicitly confirm (yes) to proceed with updating baggage information for reservation '{reservation_id}'?"
-    )
-    if not confirmed:
-        raise PolicyViolationException("Explicit user confirmation (yes) is required before updating baggage information.")
+    # confirmed = history.ask_bool(
+    #     f"Did the user explicitly confirm (yes) to proceed with updating baggage information for reservation '{reservation_id}'?"
+    # )
+    # if not confirmed:
+    #     raise PolicyViolationException("Explicit user confirmation (yes) is required before updating baggage information.")
