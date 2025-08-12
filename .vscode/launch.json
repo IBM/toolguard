@@ -13,10 +13,18 @@
             "args": [],
             "justMyCode": false
         },{
-            "name": "Gen Tau2",
+            "name": "Gen Tau2 airline",
             "type": "debugpy",
             "request": "launch",
-            "program": "tests/run_tau2.py",
+            "program": "tests/run_tau2_airline.py",
+            "console": "integratedTerminal",
+            "args": [],
+            "justMyCode": false
+        },{
+            "name": "Gen Tau2 telecom",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "tests/run_tau2_telecom.py",
             "console": "integratedTerminal",
             "args": [],
             "justMyCode": false

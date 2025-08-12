@@ -97,7 +97,8 @@ class LitellmModel(TG_LLM):
 				custom_llm_provider="openai",
 				base_url=model_to_endpoint[self.model_name],
 				extra_headers={
-					'RITS_API_KEY': os.getenv("RITS_API_KEY")
+					'RITS_API_KEY': os.getenv("RITS_API_KEY"),
+					'Content-Type': 'application/json'
 				},
 			)
 			return response.choices[0].message.content
@@ -107,7 +108,11 @@ class LitellmModel(TG_LLM):
 			response = await acompletion(
 				messages=messages,
 				model=self.model_name,
-				custom_llm_provider=llm_provider)
+				custom_llm_provider=llm_provider,
+				extra_headers={
+					'Content-Type': 'application/json'
+				},
+			)
 
 		# the same format for OpenAI and Anthropic
 		return response["choices"][0]["message"]["content"]

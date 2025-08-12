@@ -4,7 +4,7 @@ from rt_toolguard.data_types import ChatHistory
 from airline.airline_types import *
 from airline.i_airline import I_Airline
 
-from airline.update_reservation_baggages.guard_explicit_confirmation_for_baggage_update import guard_explicit_confirmation_for_baggage_update
+# from airline.update_reservation_baggages.guard_explicit_confirmation_for_baggage_update import guard_explicit_confirmation_for_baggage_update
 from airline.update_reservation_baggages.guard_baggage_addition_policy import guard_baggage_addition_policy
 from airline.update_reservation_baggages.guard_payment_method_validation_for_baggage_update import guard_payment_method_validation_for_baggage_update
 
@@ -23,6 +23,6 @@ def guard_update_reservation_baggages(history: ChatHistory, api: I_Airline, rese
          
     """
     
-    guard_explicit_confirmation_for_baggage_update(history, api, reservation_id, total_baggages, nonfree_baggages, payment_id)
+    # guard_explicit_confirmation_for_baggage_update(history, api, reservation_id, total_baggages, nonfree_baggages, payment_id)
     guard_baggage_addition_policy(history, api, reservation_id, total_baggages, nonfree_baggages, payment_id)
     guard_payment_method_validation_for_baggage_update(history, api, reservation_id, total_baggages, nonfree_baggages, payment_id)

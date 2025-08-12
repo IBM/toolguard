@@ -324,7 +324,7 @@ async def step1_main(policy_text:str, tools:List[ToolInfo], step1_output_dir:str
 			final_output = await tpg.generate_policy(fname)
 
 		with open(os.path.join(step1_output_dir, fname + ".json"), "w") as outfile1:
-			outfile1.write(json.dumps(final_output))
+			outfile1.write(json.dumps(final_output, indent=2))
 
 	await asyncio.gather(*[do_one_tool(tool.name) for tool in tools if ((tools_shortlist is None) or (tool.name in tools_shortlist))])
 	print("All tools done")

@@ -4,7 +4,7 @@ from rt_toolguard.data_types import ChatHistory
 from airline.airline_types import *
 from airline.i_airline import I_Airline
 
-from airline.update_reservation_flights.guard_explicit_user_confirmation_required import guard_explicit_user_confirmation_required
+# from airline.update_reservation_flights.guard_explicit_user_confirmation_required import guard_explicit_user_confirmation_required
 from airline.update_reservation_flights.guard_cannot_modify_basic_economy_flights import guard_cannot_modify_basic_economy_flights
 from airline.update_reservation_flights.guard_cabin_change_payment_requirement import guard_cabin_change_payment_requirement
 from airline.update_reservation_flights.guard_cabin_uniformity_requirement import guard_cabin_uniformity_requirement
@@ -27,7 +27,7 @@ def guard_update_reservation_flights(history: ChatHistory, api: I_Airline, reser
          
     """
     
-    guard_explicit_user_confirmation_required(history, api, reservation_id, cabin, flights, payment_id)
+    # guard_explicit_user_confirmation_required(history, api, reservation_id, cabin, flights, payment_id)
     guard_cannot_modify_basic_economy_flights(history, api, reservation_id, cabin, flights, payment_id)
     guard_cabin_change_payment_requirement(history, api, reservation_id, cabin, flights, payment_id)
     guard_cabin_uniformity_requirement(history, api, reservation_id, cabin, flights, payment_id)

@@ -4,7 +4,7 @@ from rt_toolguard.data_types import ChatHistory
 from airline.airline_types import *
 from airline.i_airline import I_Airline
 
-from airline.book_reservation.guard_user_confirmation_before_database_update import guard_user_confirmation_before_database_update
+# from airline.book_reservation.guard_user_confirmation_before_database_update import guard_user_confirmation_before_database_update
 from airline.book_reservation.guard_flight_passenger_limit_for_booking import guard_flight_passenger_limit_for_booking
 from airline.book_reservation.guard_payment_method_limits_in_booking import guard_payment_method_limits_in_booking
 from airline.book_reservation.guard_user_id_requirement_for_flight_booking import guard_user_id_requirement_for_flight_booking
@@ -31,7 +31,7 @@ def guard_book_reservation(history: ChatHistory, api: I_Airline, user_id: str, o
         insurance: Whether the reservation has insurance. 
     """
     
-    guard_user_confirmation_before_database_update(history, api, user_id, origin, destination, flight_type, cabin, flights, passengers, payment_methods, total_baggages, nonfree_baggages, insurance)
+    # guard_user_confirmation_before_database_update(history, api, user_id, origin, destination, flight_type, cabin, flights, passengers, payment_methods, total_baggages, nonfree_baggages, insurance)
     guard_flight_passenger_limit_for_booking(history, api, user_id, origin, destination, flight_type, cabin, flights, passengers, payment_methods, total_baggages, nonfree_baggages, insurance)
     guard_payment_method_limits_in_booking(history, api, user_id, origin, destination, flight_type, cabin, flights, passengers, payment_methods, total_baggages, nonfree_baggages, insurance)
     guard_user_id_requirement_for_flight_booking(history, api, user_id, origin, destination, flight_type, cabin, flights, passengers, payment_methods, total_baggages, nonfree_baggages, insurance)

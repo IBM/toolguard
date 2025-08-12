@@ -133,12 +133,12 @@ class ToolGuardGenerator:
                 ).save(self.py_path)
             
             if syntax_report.summary.errorCount>0:
-                logger.warning(f"{syntax_report.summary.errorCount} syntax errors in tests iteration {trial_no} in tool {item.name}.")
+                logger.warning(f"{syntax_report.summary.errorCount} syntax errors in tests iteration '{trial_no}' in item '{item.name}'.")
                 errors = syntax_report.list_error_messages(test_file.content)
                 continue
 
             #syntax ok, try to run it...
-            logger.debug(f"Generated Tests for tool {self.tool_policy.tool_name} '{item.name}'(trial=t{trial_no})")
+            logger.debug(f"Generated Tests for tool '{self.tool_policy.tool_name}' '{item.name}'(trial='{trial_no}')")
             report_file_name = self.debug_dir(item, f"test_{trial_no}_pytest.json")
             pytest_report = pytest.run(self.py_path, test_file.file_name, report_file_name)
             if pytest_report.all_tests_collected_successfully() and pytest_report.non_empty_tests():

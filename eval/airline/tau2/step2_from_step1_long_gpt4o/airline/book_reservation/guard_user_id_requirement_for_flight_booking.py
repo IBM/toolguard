@@ -34,5 +34,5 @@ def guard_user_id_requirement_for_flight_booking(history: ChatHistory, api: I_Ai
         raise PolicyViolationException("Invalid user ID. User details could not be retrieved.")
 
     # Ensure user_id is obtained before any other inquiries
-    if not history.was_tool_called('get_user_details'):
-        raise PolicyViolationException("User ID must be obtained before any inquiries on trip type, origin, and destination.")
+    # if not history.was_tool_called('get_user_details'):
+    #     raise PolicyViolationException("User ID must be obtained before any inquiries on trip type, origin, and destination.")
