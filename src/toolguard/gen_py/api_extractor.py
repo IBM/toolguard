@@ -1,3 +1,4 @@
+from enum import Enum
 import inspect
 import os
 import textwrap
@@ -124,15 +125,16 @@ class APIExtractor:
         lines.append(f"class {interface_name}(ABC):") #Abstract class
         lines.append("")
 
+        indent = ' '*4
         if not funcs:
-            lines.append("    pass")
+            lines.append(f"{indent}pass")
         else:
             for func in funcs:
                 # Add method docstring and signature
-                lines.append("    @abstractmethod")
+                lines.append(f"{indent}@abstractmethod")
                 method_lines = self._get_function_with_docstring(func, _get_type_name(func))
                 lines.extend([line if line else "" for line in method_lines])
-                lines.append("        ...")
+                lines.append(f"{indent}{indent}...")
                 lines.append("")
         
         return "\n".join(lines)
@@ -196,12 +198,12 @@ class APIExtractor:
         
         # Add method docstring if available
         if func.__doc__:
-            docstring = func.__doc__.strip()
+            docstring = func.__doc__
+            indent = ' '*8
             if docstring:
-                lines.append('        """')
-                for line in docstring.split('\n'):
-                    lines.append(f'        {line.strip()}')
-                lines.append('        """')
+                lines.append(indent + '"""')
+                lines.extend(docstring.strip('\n').split('\n'))
+                lines.append(indent + '"""')
         
         return lines
     
@@ -228,21 +230,19 @@ class APIExtractor:
         #     if hasattr(base, '__module__') and 'pydantic' in str(base.__module__):
         #         is_pydantic = True
 
+        indent = ' '*4
         # Add class docstring if available
         if typ.__doc__:
-            docstring = typ.__doc__.strip()
+            docstring = typ.__doc__
             if docstring:
-                lines.append(f'    """')
-                # Handle multi-line docstrings
-                for line in docstring.split('\n'):
-                    lines.append(f'    {line.strip()}')
-                lines.append(f'    """')
-        
-        annotations = getattr(typ, '__annotations__', {})
-        field_descriptions = self._extract_field_descriptions(typ)
+                lines.append(indent + '"""')
+                lines.extend(docstring.strip('\n').split('\n'))
+                lines.append(indent + '"""')
         
         #Fields
+        annotations = getattr(typ, '__annotations__', {})
         if annotations:
+            field_descriptions = self._extract_field_descriptions(typ)
             for field_name, field_type in annotations.items():
                 if field_name.startswith('_'):
                     continue
@@ -279,12 +279,20 @@ class APIExtractor:
                 #     lines.append(f'    {field_name}: {type_str} = Field(description="{description}")')
                 if description:
                     # Add description as comment for non-Pydantic classes
-                    lines.append(f'    {field_name}: {type_str}  # {description}')
+                    lines.append(f'{indent}{field_name}: {type_str}  # {description}')
                 else:
                     # No description available
-                    lines.append(f'    {field_name}: {type_str}')
+                    lines.append(f'{indent}{field_name}: {type_str}')
+        
+        #Enum
+        elif issubclass(typ, Enum):
+            if issubclass(typ, str):
+                lines.extend([f"{indent}{entry.name} = \"{entry.value}\""  for entry in typ])
+            else:
+                lines.extend([f"{indent}{entry.name} = {entry.value}"  for entry in typ])
+
         else:
-            lines.append("    pass")
+            lines.append(f"{indent}pass")
         
         return lines
     
@@ -539,8 +547,8 @@ class APIExtractor:
         """Generate the types file content."""
         lines = []
         lines.append("# Auto-generated type definitions")
+        lines.append("from datetime import date, datetime")
         lines.append("from enum import Enum")
-        lines.append("from abc import ABC")
         lines.append("from typing import *")
         lines.append("from pydantic import BaseModel, Field")
         lines.append("")

@@ -5,39 +5,20 @@ import json
 from typing import List, Optional
 
 
-
-class TPTDState(Dict[str, Any]):
-	policy_text: str
-	tools: List[str]
-	target_tool: str
-	target_tool_description: Dict
-	TPTD: Optional[Dict]
-	reference_mismatch: List[str]
-	review_comments: Optional[str]
-	review_score: Optional[int]
-	iteration: int
-	next_step: str
-	outdir: str
-	policy_name: Optional[str]
-	policy_num: Optional[int]
-	stop: Optional[bool]
-
-
-
 def read_prompt_file(filename: str) -> str:
 	with open(os.path.join(os.path.dirname(__file__), "prompts", filename + ".txt"), "r") as f:
 		return f.read()
 
 
 def generate_messages(system_prompt: str, user_content: str) -> List[Dict[str, str]]:
-	return [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_content}]
-
+	return [
+		{"role": "system", "content": system_prompt}, 
+		{"role": "user", "content": user_content}
+	]
 
 def save_output(outdir: str, filename: str, content: Any):
 	with open(os.path.join(outdir, filename), "w") as outfile:
 		json.dump(content, outfile, indent=4)
-
-
 
 
 def normalize_text(text):
