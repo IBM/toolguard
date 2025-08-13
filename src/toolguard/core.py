@@ -7,7 +7,6 @@ import json
 import logging
 
 from toolguard.llm.tg_llm import TG_LLM
-from toolguard.logging_utils import add_log_file_handler
 from toolguard.runtime import ToolGuardsCodeGenerationResult
 from toolguard.data_types import ToolPolicy, ToolPolicyItem
 from toolguard.gen_py.gen_toolguards import generate_toolguards_from_functions

@@ -1,29 +1,23 @@
 
-from abc import ABC, abstractmethod
 import inspect
 import json
 import os
 from types import ModuleType
 from typing import Any, Dict, List, Optional, Type, Callable, TypeVar
-from pydantic import BaseModel, PrivateAttr
+from pydantic import BaseModel
 import importlib.util
 import inspect
 import os
 
 import functools
-from toolguard.data_types import API_PARAM, HISTORY_PARAM, RESULTS_FILENAME, ChatHistory, FileTwin, RuntimeDomain, ToolPolicy
+from toolguard.data_types import API_PARAM, RESULTS_FILENAME, FileTwin, RuntimeDomain, ToolPolicy
 
-class LLM(ABC):
-    @abstractmethod
-    def generate(self, messages: List[Dict])->str:
-        ...
-
-def load_toolguards(directory: str, filename: str = RESULTS_FILENAME, llm: LLM|None = None) -> "ToolguardRuntime":
+def load_toolguards(directory: str, filename: str = RESULTS_FILENAME) -> "ToolguardRuntime":
     full_path = os.path.join(directory, filename)
     with open(full_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     result = ToolGuardsCodeGenerationResult(**data)
-    return ToolguardRuntime(result, directory, llm)
+    return ToolguardRuntime(result, directory)
 
 class ToolGuardCodeResult(BaseModel):
     tool: ToolPolicy
@@ -44,8 +38,7 @@ class ToolGuardsCodeGenerationResult(BaseModel):
 
 class ToolguardRuntime:
 
-    def __init__(self, result: ToolGuardsCodeGenerationResult, ctx_dir: str, llm: LLM|None) -> None:
-        self._llm = llm
+    def __init__(self, result: ToolGuardsCodeGenerationResult, ctx_dir: str) -> None:
         self._ctx_dir = ctx_dir
         self._result = result
         self._guards = {}
@@ -59,9 +52,7 @@ class ToolguardRuntime:
         sig = inspect.signature(guard_fn)
         guard_args = {}
         for p_name, param in sig.parameters.items():
-            if p_name == HISTORY_PARAM:
-                guard_args[p_name] = ChatHistoryImpl(messages, self._llm)
-            elif p_name == API_PARAM:
+            if p_name == API_PARAM:
                 module = load_module_from_path(self._result.domain.app_api_impl.file_name, self._ctx_dir)
                 cls = find_class_in_module(module, self._result.domain.app_api_impl_class_name)
                 assert cls, f"class {self._result.domain.app_api_impl_class_name} not found in {self._result.domain.app_api_impl.file_name}"
@@ -114,73 +105,21 @@ def find_class_in_module(module: ModuleType, class_name:str)-> Optional[Type]:
         return cls
     return None
 
-class ChatHistoryImpl(ChatHistory):
-    messages: List[Dict]
-    llm: LLM
-
-    def __init__(self, messages: List[Dict], llm: LLM) -> None:
-        self.messages = messages
-        self.llm = llm
-    
-    def ask_bool(self, question:str)->bool:
-        return bool(ask_llm(question, self.messages, self.llm))
-
-    def did_tool_return_value(self, tool_name:str,expected_value)->bool:
-        for msg in self.messages:
-            if msg.get('tool_name') == tool_name and msg.get('content') == expected_value:
-                return True
-        return False
-
-    def was_tool_called(self, tool_name: str) -> bool:
-        for msg in self.messages:
-            if msg.get('tool_name') == tool_name:
-                return True
-        return False
-
-class Litellm(LLM):
-    model_name: str
-    custom_provider: str
-
-    def __init__(self, model_name: str, custom_provider: str = "azure") -> None:
-        self.model_name=model_name
-        self.custom_provider=custom_provider
-        
-    def generate(self, messages: List[Dict])->str:
-        from litellm import completion
-        resp = completion(
-            messages=messages,
-            model=self.model_name,
-            custom_llm_provider= self.custom_provider)
-        return resp.choices[0].message.content
-
-def ask_llm(question:str, conversation: List[Dict], llm: LLM)->str:
-    prompt = f"""You are given a question and an historical conversation between a user and an ai-agent.
-Your task is to answer the question according to the conversation.
-
-Conversation:
-{json.dumps(conversation, indent=4)}
-
-Question:
-{question}
-"""
-    msg = {"role":"system", "content": prompt}
-    return llm.generate([msg])
-
 T = TypeVar("T")
-def guard_methods(obj: T, guards_folder: str, llm: LLM|None) -> T:
+def guard_methods(obj: T, guards_folder: str) -> T:
     """Wraps all public bound methods of the given instance using the given wrapper."""
     for attr_name in dir(obj):
         if attr_name.startswith("_"):
             continue
         attr = getattr(obj, attr_name)
         if callable(attr):
-            wrapped = guard_before_call(guards_folder, llm=llm)(attr)
+            wrapped = guard_before_call(guards_folder)(attr)
             setattr(obj, attr_name, wrapped)
     return obj
 
-def guard_before_call(guards_folder: str, llm: LLM|None) -> Callable[[Callable], Callable]:
+def guard_before_call(guards_folder: str) -> Callable[[Callable], Callable]:
     """Decorator factory that logs function calls to the given logfile."""
-    toolguards = load_toolguards(guards_folder, llm=llm)
+    toolguards = load_toolguards(guards_folder)
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:

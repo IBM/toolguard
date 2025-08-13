@@ -48,7 +48,6 @@ async def _generate_init_tests(
     - For time dependent attributes, compute the timestamp dynamically (avoid hardcoded times).
         - for example, to set a timestamp occurred 24 hours ago, use something like: `created_at = (datetime.now() - timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%S")`.
         - import the required date and time libraries. for example: `from datetime import datetime, timedelta`
-    - You should also mock the chat_history services.
     - If you have a choice passing a plain a Pydantic model or a `Dictionary`, prefer Pydantic.
     
     **Example:** Testing the function `check_create_reservation`, 
@@ -75,13 +74,13 @@ class SomeAPI(ABC):
     * fn_src:
 ```python
 # file: my_app/guard_create_reservation.py
-def guard_create_reservation(history: ChatHistory, api: SomeAPI, user_id: str, hotel_id: str, reservation_date: str, persons: int):
+def guard_create_reservation(api: SomeAPI, user_id: str, hotel_id: str, reservation_date: str, persons: int):
     ...
 ```
 
     Should return this snippet:
 ```python
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 import pytest
 from toolguard.data_types import PolicyViolationException
 from my_app.guard_create_reservation import guard_create_reservation
@@ -93,10 +92,6 @@ def test_book_in_the_past():
     Example: "book a room for a hotel, one week ago"
     \"\"\" 
     
-    # mock the history service:
-    history = MagicMock()
-    history.ask_bool.return_value = True #Mock that True is the answer to the question
-
     # mock other tools function return values 
     user = User(user_id="123", ...)
     hotel = Hotel(hotel_id="789", ...)
@@ -108,7 +103,7 @@ def test_book_in_the_past():
     #invoke function under test.
     with pytest.raises(PolicyViolationException):
         next_week = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%S")
-        check_create_reservation(user_id="123", hotel_id="789", reservation_date=next_week, persons=3, history, api)
+        check_create_reservation(api, user_id="123", hotel_id="789", reservation_date=next_week, persons=3)
 ```
     """
     ...
