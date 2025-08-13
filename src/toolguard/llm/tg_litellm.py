@@ -127,8 +127,6 @@ class LitellmModel(TG_LLM):
 				if res is None:
 					wait_time = backoff_factor ** retries
 					print(f"Error: not json format. Retrying in {wait_time:.1f} seconds... (attempt {retries + 1}/{max_retries})")
-					print(f"Error: not json format. Retrying in {wait_time:.1f} seconds... (attempt {retries + 1}/{max_retries})")
-					print(response["choices"][0]["message"]["content"])
 					time.sleep(wait_time)
 					retries += 1
 				else:
