@@ -235,9 +235,9 @@ class APIExtractor:
         if typ.__doc__:
             docstring = typ.__doc__
             if docstring:
-                lines.append(indent + '"""')
-                lines.extend(docstring.strip('\n').split('\n'))
-                lines.append(indent + '"""')
+                lines.append(f'{indent}"""')
+                lines.extend([f"{indent}{line}" for line in docstring.strip('\n').split('\n')])
+                lines.append(f'{indent}"""')
         
         #Fields
         annotations = getattr(typ, '__annotations__', {})
@@ -413,7 +413,6 @@ class APIExtractor:
         processed_types = set()
         collected = set()
         dependencies = defaultdict(set)
-        literals = defaultdict(tuple)
         
         for func in funcs:
             for param, hint in get_type_hints(func).items():

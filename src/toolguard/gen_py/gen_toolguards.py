@@ -13,6 +13,7 @@ from toolguard.gen_py.tool_guard_generator import ToolGuardGenerator
 import toolguard.utils.pytest as pytest
 import toolguard.utils.venv as venv
 import toolguard.utils.pyright as pyright
+from toolguard.common.py import unwrap_fn
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,7 @@ async def generate_toolguards_from_functions(app_name: str, tool_policies: List[
 
     if not module_roots:
         if len(funcs)>0:
-            module_roots = list({func.__module__.split(".")[0] for func in funcs})
+            module_roots = list({unwrap_fn(func).__module__.split(".")[0] for func in funcs})
     assert module_roots
 
     #Domain from functions
