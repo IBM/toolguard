@@ -7,8 +7,6 @@ from typing import Any, List, Optional
 DEBUG_DIR = "debug"
 TESTS_DIR = "tests"
 RESULTS_FILENAME = "result.json"
-HISTORY_PARAM = "history"
-HISTORY_PARAM_TYPE = "ChatHistory"
 API_PARAM = "api"
 
 class FileTwin(BaseModel):
@@ -75,49 +73,6 @@ class Domain(BaseModel):
 class RuntimeDomain(Domain):
     app_api_impl_class_name: str = Field(..., description="Python class (implementaton) class name.")
     app_api_impl: FileTwin = Field(..., description="Python class containing all the API method implementations.")
-
-class ChatHistory(ABC):
-    """Represents a history of chat messages and provides methods check if specific events already happened."""
-
-    @abstractmethod
-    def ask_bool(self, question:str)->bool:
-        """
-        Asks a yes/no question and returns the response as a boolean.
-
-        Args:
-            question (str): The yes/no question to be asked. Example: "Did the user accepted the agent's proposal?"
-
-        Returns:
-            bool: The interpreted boolean response from the language model.
-        """
-        pass
-    
-    @abstractmethod
-    def did_tool_return_value(self, tool_name:str, expected_value:Any)->bool:
-        """
-        Checks whether a specific tool was called in the chat history and validates if the expected value was returned
-            Example: "did_tool_return_value("book_hotel",True) checks if the history shows calling the function book_hotel and if the returned value was true did_tool_return_value will return true else false
-        
-        Args:
-            tool_name (str): The name of the tool to check for in the message history.
-            expected_value: The expected value of the tool call.
-        
-        Returns:
-            bool: True if the tool was called returning expected_value, False otherwise.
-        """
-        pass
-
-    @abstractmethod
-    def was_tool_called(self, tool_name: str) -> bool:
-        """
-        Checks whether a specific tool was called in the chat history.
-		Args:
-			tool_name (str): The name of the tool to check for in the message history.
-		Returns:
-			bool: True if the tool was called, False otherwise.
-		"""
-        pass
-
 
 class PolicyViolationException(Exception):
     _msg: str
