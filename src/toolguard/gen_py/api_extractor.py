@@ -1,3 +1,4 @@
+from dataclasses import is_dataclass
 from enum import Enum
 import inspect
 import os
@@ -153,8 +154,8 @@ class APIExtractor:
         
         lines.append(f"class {class_name}({interface_name}):") #class
         lines.append("")
-        lines.append(f"""    def __init__(self, delegate: {interface_name}):
-        self._delegate = delegate
+        lines.append(f"""    def __init__(self, delegates: Dict[str, Callable]):
+        self._delegates = delegates
     """)
 
         if not funcs:
@@ -185,7 +186,9 @@ class APIExtractor:
         # return unwrap_fn({func_name})({call_args_str})
         # """
         return f"""
-        return self._delegate.{func_name}({call_args_str})
+        fn = self._delegates.get('{func_name}')
+        assert(fn, f"Expected function {func_name} does not exist in the API")
+        return fn({call_args_str})
 """
     
     def _get_function_with_docstring(self, func:FunctionType, func_name:str)->List[str]:
@@ -219,6 +222,9 @@ class APIExtractor:
         lines = []
         class_name = _get_type_name(typ)
         
+        if is_dataclass(typ):
+            lines.append(f"@dataclass")
+            
         # Determine base classes
         bases = [_get_type_name(b) for b in _get_type_bases(typ)]
         inheritance = f"({', '.join(bases)})" if bases else ""
@@ -550,6 +556,7 @@ class APIExtractor:
         lines.append("from enum import Enum")
         lines.append("from typing import *")
         lines.append("from pydantic import BaseModel, Field")
+        lines.append("from dataclasses import dataclass")
         lines.append("")
         
         custom_classes = []
