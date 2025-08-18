@@ -48,7 +48,7 @@ class ToolguardRuntime:
             assert guard_fn, "Guard not found"
             self._guards[tool_name] = guard_fn
     
-    def _make_args(self, guard_fn:Callable, args: dict, messages: List, delegate:Any)->Dict[str, Any]:
+    def _make_args(self, guard_fn:Callable, args: dict,  delegate:Any)->Dict[str, Any]:
         sig = inspect.signature(guard_fn)
         guard_args = {}
         for p_name, param in sig.parameters.items():
@@ -65,11 +65,11 @@ class ToolguardRuntime:
                     guard_args[p_name] = arg
         return guard_args
 
-    def check_toolcall(self, tool_name:str, args: dict, messages: List, delegate: Any):
+    def check_toolcall(self, tool_name:str, args: dict, delegate: Any):
         guard_fn = self._guards.get(tool_name)
         if guard_fn is None: #No guard assigned to this tool
             return
-        guard_fn(**self._make_args(guard_fn, args, messages, delegate))
+        guard_fn(**self._make_args(guard_fn, args, delegate))
 
 def file_to_module(file_path:str):
     return file_path.removesuffix('.py').replace('/', '.')
@@ -124,7 +124,7 @@ def guard_before_call(guards_folder: str) -> Callable[[Callable], Callable]:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             api_object = func.__self__ # type: ignore
-            toolguards.check_toolcall(func.__name__, kwargs, [], api_object)
+            toolguards.check_toolcall(func.__name__, kwargs, api_object)
             return func(*args, **kwargs)
         return wrapper  # type: ignore
     return decorator

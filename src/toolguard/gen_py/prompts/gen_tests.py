@@ -11,7 +11,7 @@ async def _generate_init_tests(
     fn_src: FileTwin, 
     tool_item: ToolPolicyItem, 
     domain: Domain, 
-    dependent_tool_names: Set[str])-> PythonCodeModel:
+    dependent_tool_names: List[str])-> PythonCodeModel:
     """
     Generate Python unit tests for a function to verify tool-call compliance with policy constraints.
 
@@ -20,7 +20,7 @@ async def _generate_init_tests(
         fn_src (FileTwin): Source code containing the function-under-test signature.
         tool_item (ToolPolicyItem): Specification of the function-under-test, including positive and negative examples.
         domain (Domain): available data types and interfaces the test can use.
-        dependent_tool_names (Set[str]): other tool names that this tool depends on.
+        dependent_tool_names (List[str]): other tool names that this tool depends on.
 
     Returns:
         PythonCodeModel: Generated Python unit test code.
@@ -115,7 +115,7 @@ async def _improve_tests(
     domain: Domain, 
     policy_item: ToolPolicyItem, 
     review_comments: List[str],
-    dependent_tool_names: Set[str])-> PythonCodeModel:
+    dependent_tool_names: List[str])-> PythonCodeModel:
     """
     Improve the previous test functions (in Python) to check the given tool policy-items according to the review-comments.
 
@@ -124,7 +124,7 @@ async def _improve_tests(
         domain (Domain): Python source code defining available data types and APIs that the test can use.
         tool (ToolPolicyItem): Requirements for this tool.
         review_comments (List[str]): Review comments on the current implementation. For example, pylint errors or Failed unit-tests.
-        dependent_tool_names (Set[str]): other tool names that this tool depends on.
+        dependent_tool_names (List[str]): other tool names that this tool depends on.
 
     Returns:
         PythonCodeModel: Improved implementation pytest test functions.
