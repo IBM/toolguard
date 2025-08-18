@@ -40,7 +40,6 @@ async def gen_all():
         if getattr(member, "__tool__", None)]  # only @is_tool]
 
     # Step1
-    llm = LitellmModel(model_name='gpt-4o-2024-08-06')
     def doc_summary(doc): 
         paragraphs = [p.strip() for p in doc.split("\n\n") if p.strip()]
         return paragraphs[0] if paragraphs else ""
@@ -49,17 +48,21 @@ async def gen_all():
             description=doc_summary(inspect.getdoc(fn)) or "",
             parameters=inspect.getdoc(fn)
         ) for fn in funcs]
-    step1_out_dir = os.path.join(out_folder, "step1")
-    await step1_main(policy_text, tools_info, step1_out_dir, llm, short1=False, tools_shortlist=["resume_line"])
+    # step1_out_dir = os.path.join(out_folder, "step1")
+    # await step1_main(policy_text, tools_info, step1_out_dir, 
+    #     LitellmModel(model_name='gpt-4o-2024-08-06'), 
+    #     short1=False, 
+    #     # tools_shortlist=["resume_line"]
+    # )
 
-    return
     # Step2
+    step1_out_dir = "eval/telecom/step1_long"
     from toolguard.core import generate_guards_from_tool_policies
     return await generate_guards_from_tool_policies(funcs,
         from_step1_path=step1_out_dir, 
         to_step2_path=out_folder, 
-        # tool_names=["book_reservation", "cancel_reservation", "update_reservation_passengers", "update_reservation_baggages", "update_reservation_flights"],
-        app_name="airline"
+        tool_names=["disable_roaming"],
+        app_name="telecom"
     )
 
 

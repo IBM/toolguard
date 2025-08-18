@@ -52,9 +52,8 @@ class ToolguardRuntime:
             self._guards[tool_name] = guard_fn
     
     def _functions_by_name(self, delegate: FuncDelegate):
-        fn_by_name = {}
         if isinstance(delegate, list):
-            return {fn: fn for fn in delegate}
+            return {fn.__name__: fn for fn in delegate}
         return {name: member
             for name, member in inspect.getmembers(delegate, predicate=inspect.isroutine)
             if not name.startswith("_")   # exclude private/special
