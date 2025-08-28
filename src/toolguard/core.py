@@ -38,12 +38,13 @@ async def generate_guards_from_tool_policies(
 		from_step1_path: str,
 		to_step2_path: str,
 		app_name: str,
+		lib_names: Optional[List[str]] = None,
 		tool_names: Optional[List[str]] = None) -> ToolGuardsCodeGenerationResult:
 	os.makedirs(to_step2_path, exist_ok=True)
 
 	tool_policies = load_policies_in_folder(from_step1_path)
 	tool_policies = [policy for policy in tool_policies if (not tool_names) or (policy.tool_name in tool_names)]
-	return await generate_toolguards_from_functions(app_name, tool_policies, to_step2_path, funcs=funcs)
+	return await generate_toolguards_from_functions(app_name, tool_policies, to_step2_path, funcs=funcs, module_roots=lib_names)
 	
 def load_policies_in_folder(folder:str, ):
 	files = [f for f in os.listdir(folder) 

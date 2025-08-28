@@ -121,6 +121,7 @@ class APIExtractor:
             "from typing import * # type: ignore",
             "from abc import ABC, abstractmethod",
             f"from {types_module} import *",
+            f"from decimal import Decimal",
             ""]
         
         lines.append(f"class {interface_name}(ABC):") #Abstract class
@@ -144,6 +145,7 @@ class APIExtractor:
         lines = [
             "# Auto-generated class",
             "from typing import *",
+            f"from decimal import Decimal",
             f"from {interface_module_name} import {interface_name}",
             f"from {types_module} import *",
             "",
@@ -549,6 +551,7 @@ class APIExtractor:
         lines.append("# Auto-generated type definitions")
         lines.append("from datetime import date, datetime")
         lines.append("from enum import Enum")
+        lines.append("from decimal import Decimal")
         lines.append("from typing import *")
         lines.append("from pydantic import BaseModel, Field")
         lines.append("from dataclasses import dataclass")

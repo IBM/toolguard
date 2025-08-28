@@ -1,7 +1,7 @@
 import dotenv
 import json
 
-from middleware_core.llm import ValidatingLLMClient, get_llm
+#from middleware_core.llm import ValidatingLLMClient, get_llm
 
 
 class TG_LLMEval:
@@ -50,7 +50,6 @@ if __name__ == '__main__':
 	
 	
 
-	
 	
 	
 	

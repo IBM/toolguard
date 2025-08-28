@@ -155,8 +155,10 @@ if __name__ == '__main__':
 	gtdir = os.path.join('eval', 'airline', 'GT', 'airlines')
 
 	#gendir = os.path.join('src', 'policy_adherence', 'output', 'gpt-4.1-2025-04-14', 'Step1')
-	gendir = os.path.join('src', 'policy_adherence', 'output', 'gpt-4o-2024-08-06', 'Step1')
+
+	#gendir = os.path.join('src', 'policy_adherence', 'output', 'gpt-4.1-mini-2025-04-14', 'Step1')
 	#gendir = os.path.join('src', 'policy_adherence', 'output', 'gpt-4o-mini-2024-07-18', 'Step1')
+	gendir = os.path.join('src', 'policy_adherence', 'output', 'gpt-4o-2024-08-06', 'Step1')
 	#gendir = os.path.join('src', 'policy_adherence', 'output', 'claude-3-5-sonnet-latest', 'Step1')
 	#gendir = os.path.join('src', 'policy_adherence', 'output', 'llama-3-3-70b-instruct', 'Step1')
 	#gendir = os.path.join('src', 'policy_adherence', 'output', 'Qwen2.5-72B-Instruct', 'Step1')
