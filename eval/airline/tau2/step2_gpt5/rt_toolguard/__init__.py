@@ -36,8 +36,12 @@ class ToolGuardsCodeGenerationResult(BaseModel):
             json.dump(self.model_dump(), f, indent=2)
         return self
 
-FuncList = list[Callable[..., Any]]
-FuncDelegate = Union[FuncList, object]
+from abc import ABC, abstractmethod
+class IToolInvoker(ABC):
+    @abstractmethod
+    def invoke(self, toolname: str, arguments: Dict[str, Any])->object:
+        ...
+
 
 class ToolguardRuntime:
 
@@ -50,25 +54,16 @@ class ToolguardRuntime:
             guard_fn =find_function_in_module(module, tool_result.guard_fn_name)
             assert guard_fn, "Guard not found"
             self._guards[tool_name] = guard_fn
-    
-    def _functions_by_name(self, delegate: FuncDelegate):
-        if isinstance(delegate, list):
-            return {fn.__name__: fn for fn in delegate}
-        return {name: member
-            for name, member in inspect.getmembers(delegate, predicate=inspect.isroutine)
-            if not name.startswith("_")   # exclude private/special
-        }
 
-    def _make_args(self, guard_fn:Callable, args: dict,  delegate: FuncDelegate)->Dict[str, Any]:
+    def _make_args(self, guard_fn:Callable, args: dict,  delegate: IToolInvoker)->Dict[str, Any]:
         sig = inspect.signature(guard_fn)
         guard_args = {}
         for p_name, param in sig.parameters.items():
             if p_name == API_PARAM:
                 module = load_module_from_path(self._result.domain.app_api_impl.file_name, self._ctx_dir)
-                cls = find_class_in_module(module, self._result.domain.app_api_impl_class_name)
-                assert cls, f"class {self._result.domain.app_api_impl_class_name} not found in {self._result.domain.app_api_impl.file_name}"
-                fn_by_name = self._functions_by_name(delegate)
-                guard_args[p_name] = cls(fn_by_name)
+                clazz = find_class_in_module(module, self._result.domain.app_api_impl_class_name)
+                assert clazz, f"class {self._result.domain.app_api_impl_class_name} not found in {self._result.domain.app_api_impl.file_name}"
+                guard_args[p_name] = clazz(delegate)
             else:
                 arg = args.get(p_name)
                 if inspect.isclass(param.annotation) and issubclass(param.annotation, BaseModel):
@@ -77,7 +72,7 @@ class ToolguardRuntime:
                     guard_args[p_name] = arg
         return guard_args
 
-    def check_toolcall(self, tool_name:str, args: dict, delegate: FuncDelegate):
+    def check_toolcall(self, tool_name:str, args: dict, delegate: IToolInvoker):
         guard_fn = self._guards.get(tool_name)
         if guard_fn is None: #No guard assigned to this tool
             return
@@ -129,14 +124,29 @@ def guard_methods(obj: T, guards_folder: str) -> T:
             setattr(obj, attr_name, wrapped)
     return obj
 
+class ToolMethodsInvoker(IToolInvoker):
+    def __init__(self, object:object) -> None:
+        self._obj = object
+    def invoke(self, toolname: str, arguments: Dict[str, Any])->object:
+        attr = getattr(self._obj, toolname)
+        assert callable(attr), f"Tool {toolname} was not found"
+        attr(**arguments)
+
+class ToolFunctionsInvoker(IToolInvoker):
+    def __init__(self, funcs: List[Callable]) -> None:
+        self._funcs_by_name = {func.__name__: func for func in funcs}
+    def invoke(self, toolname: str, arguments: Dict[str, Any])->object:
+        func = self._funcs_by_name.get(toolname)
+        assert callable(func), f"Tool {toolname} was not found"
+        func(**arguments)
+
 def guard_before_call(guards_folder: str) -> Callable[[Callable], Callable]:
     """Decorator factory that logs function calls to the given logfile."""
     toolguards = load_toolguards(guards_folder)
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            api_object = func.__self__ # type: ignore
-            toolguards.check_toolcall(func.__name__, kwargs, api_object)
+            toolguards.check_toolcall(func.__name__, kwargs, ToolMethodsInvoker(func.__self__))
             return func(*args, **kwargs)
         return wrapper  # type: ignore
     return decorator

@@ -1,17 +1,17 @@
 # Auto-generated class
 from typing import *
-from abc import ABC, abstractmethod
 from airline.i_airline import I_Airline
 from airline.airline_types import *
 
-class ToolInvoker(ABC):
+from abc import ABC, abstractmethod
+class IToolInvoker(ABC):
     @abstractmethod
     def invoke(self, toolname: str, arguments: Dict[str, Any])->object:
         ...
 
 class Airlineimpl(I_Airline):
 
-    def __init__(self, delegate: ToolInvoker):
+    def __init__(self, delegate: IToolInvoker):
         self._delegate = delegate
     
     def book_reservation(self, user_id: str, origin: str, destination: str, flight_type: Literal['round_trip', 'one_way'], cabin: Literal['business', 'economy', 'basic_economy'], flights: list[FlightInfo], passengers: list[Passenger| dict], payment_methods: list[Payment| dict], total_baggages: int, nonfree_baggages: int, insurance: Literal['yes', 'no']) -> Reservation:

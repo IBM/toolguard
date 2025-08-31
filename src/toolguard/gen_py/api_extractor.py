@@ -151,7 +151,7 @@ class APIExtractor:
             f"from {interface_module_name} import {interface_name}",
             f"from {types_module} import *",
             "",
-            """class ToolInvoker(ABC):
+            """class IToolInvoker(ABC):
     @abstractmethod
     def invoke(self, toolname: str, arguments: Dict[str, Any])->object:
         ...""",
@@ -160,7 +160,7 @@ class APIExtractor:
         
         lines.append(f"class {class_name}({interface_name}):") #class
         lines.append("")
-        lines.append(f"""    def __init__(self, delegate: ToolInvoker):
+        lines.append(f"""    def __init__(self, delegate: IToolInvoker):
         self._delegate = delegate
     """)
 
@@ -183,8 +183,7 @@ class APIExtractor:
         func_name = _get_type_name(func)
 
         return f"""
-        args = locals().copy()
-        args.pop("self", None)
+        args = {k: v for k, v in locals().items() if k != "self"}
         return self._delegate.invoke('{func_name}', args)
 """
     
