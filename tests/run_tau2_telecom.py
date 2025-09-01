@@ -50,7 +50,7 @@ async def gen_all():
         ) for fn in funcs]
     # step1_out_dir = os.path.join(out_folder, "step1")
     # await step1_main(policy_text, tools_info, step1_out_dir, 
-    #     LitellmModel(model_name='gpt-4o-2024-08-06'), 
+    #     LitellmModel(model_name='gpt-4o-2024-08-06', provider="azure"), 
     #     short1=False, 
     #     # tools_shortlist=["resume_line"]
     # )

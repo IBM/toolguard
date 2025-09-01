@@ -31,7 +31,7 @@ def main():
 	policy_text = open(policy_path, 'r', encoding='utf-8').read()
 	policy_text = markdown.markdown(policy_text)
 
-	llm = LitellmModel(args.step1_model_name)
+	llm = LitellmModel(args.step1_model_name, "azure") #FIXME from args
 	tools = extract_functions(args.tools_py_file)
 	asyncio.run(
 		build_toolguards(

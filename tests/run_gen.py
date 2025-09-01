@@ -62,7 +62,7 @@ async def gen_all():
     #     app_name="airline"
     # )
 
-    llm = LitellmModel(model_name='gpt-4o-2024-08-06')
+    llm = LitellmModel(model_name='gpt-4o-2024-08-06', provider="azure")
     step1_out_dir = os.path.join(out_folder, "step1")
     
     doc_summary = lambda doc: doc.strip().split("\n", 1)[1].strip() if "\n" in doc else None

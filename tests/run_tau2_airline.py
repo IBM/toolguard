@@ -30,7 +30,7 @@ async def gen_all():
         if getattr(member, "__tool__", None)]  # only @is_tool]
 
     # Step1
-    llm = LitellmModel(model_name='gpt-4o-2024-08-06')
+    llm = LitellmModel(model_name='gpt-5-chat-2025-08-07', provider="azure")
     def doc_summary(doc): 
         paragraphs = [p.strip() for p in doc.split("\n\n") if p.strip()]
         return paragraphs[0] if paragraphs else ""
@@ -39,7 +39,7 @@ async def gen_all():
             description=doc_summary(inspect.getdoc(fn)) or "",
             parameters=inspect.getdoc(fn)
         ) for fn in funcs]
-    step1_out_dir = "eval/airline/tau2/step1_long"
+    step1_out_dir = "eval/airline/tau2/step1_long_gpt5"
     # step1_out_dir = os.path.join(out_folder, "step1")
     # await step1_main(policy_text, tools_info, step1_out_dir, llm, short1=False)
 

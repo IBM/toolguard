@@ -171,7 +171,7 @@ class APIExtractor:
                 # Add method docstring and signature
                 method_lines = self._get_function_with_docstring(func, _get_type_name(func))
                 lines.extend([line if line else "" for line in method_lines])
-                lines.append(self._generate_delegate_code(func))
+                lines.extend(self._generate_delegate_code(func))
                 lines.append("")
         
         if any(["Decimal" in line for line in lines]):
@@ -179,13 +179,13 @@ class APIExtractor:
 
         return "\n".join(lines)
     
-    def _generate_delegate_code(self, func:Callable)->str:
+    def _generate_delegate_code(self, func:Callable)->List[str]:
         func_name = _get_type_name(func)
-
-        return f"""
-        args = {k: v for k, v in locals().items() if k != "self"}
-        return self._delegate.invoke('{func_name}', args)
-"""
+        indent = " "*4*2
+        return [
+            indent+"args = {k: v for k, v in locals().items() if k != 'self'}",
+            indent+f"return self._delegate.invoke('{func_name}', args)"
+        ]
     
     def _get_function_with_docstring(self, func:FunctionType, func_name:str)->List[str]:
         """Extract method signature with type hints and docstring."""

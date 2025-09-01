@@ -387,7 +387,7 @@ if __name__ == '__main__':
 	
 	# for k in tools_details.keys():
 	# 	print(k)
-	llm = LitellmModel(args.model_name)
+	llm = LitellmModel(args.model_name, "azure")
 	
 	asyncio.run(
 		step1_main(policy_text, tools_info, args.out_dir, llm, args.tools, args.short_step1)

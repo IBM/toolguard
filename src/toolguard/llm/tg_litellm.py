@@ -76,21 +76,15 @@ model_to_endpoint = {
 }
 
 anthropic_models = ['claude-3-5-sonnet-latest', 'claude-3-5-haiku']
-
+RITS = "RITS"
 
 class LitellmModel(TG_LLM):
-	def __init__(self,model_name):
-		super().__init__(model_name)
-		self.rits = False
-		self.anthropic = False
-		if self.model_name in model_to_endpoint:
-			self.rits = True
-		if self.model_name in anthropic_models:
-			self.anthropic = True
-		
+	def __init__(self, model_name:str, provider: str):
+		self.model_name = model_name
+		self.provider = provider
 
 	async def generate(self, messages: List[Dict])->str:
-		if self.rits:
+		if self.provider and self.provider.upper() == RITS:
 			response = await acompletion(
 				messages=messages,
 				model=self.model_name,
@@ -103,18 +97,14 @@ class LitellmModel(TG_LLM):
 			)
 			return response.choices[0].message.content
 
-		else:
-			llm_provider = "anthropic" if self.anthropic else "azure"
-			response = await acompletion(
-				messages=messages,
-				model=self.model_name,
-				custom_llm_provider=llm_provider,
-				extra_headers={
-					'Content-Type': 'application/json'
-				},
-			)
-
-		# the same format for OpenAI and Anthropic
+		response = await acompletion(
+			messages=messages,
+			model=self.model_name,
+			custom_llm_provider=self.provider,
+			extra_headers={
+				'Content-Type': 'application/json'
+			},
+		)
 		return response["choices"][0]["message"]["content"]
 
 	
@@ -175,7 +165,7 @@ if __name__ == '__main__':
 	model = "gpt-4o-2024-08-06"
 	#model = "claude-3-5-sonnet-20240620"
 	#model = "meta-llama/llama-3-3-70b-instruct"
-	aw = LitellmModel(model)
+	aw = LitellmModel(model, "azure")
 
 	async def my_test():
 		resp = await aw.generate([{"role": "user", "content": "what is the weather?"}])

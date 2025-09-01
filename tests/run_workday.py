@@ -35,7 +35,7 @@ async def gen_all():
     # todo: use unwrap_fn for pythontool (uncomment @tool(s))
 
     # # step1
-    # llm = LitellmModel(model_name='gpt-4o-2024-08-06')
+    # llm = LitellmModel(model_name='gpt-4o-2024-08-06', provider = "azure")
     #
     # def doc_summary(doc, fn):
     #     paragraphs = [p.strip() for p in doc.split("\n\n") if p.strip()]
