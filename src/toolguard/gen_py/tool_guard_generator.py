@@ -7,6 +7,7 @@ import re
 from typing import Callable, List, Set, Tuple
 
 from toolguard.common import py
+from toolguard.common.llm_py import get_code_content
 from toolguard.common.py_doc_str import extract_docstr_args
 from toolguard.common.str import to_snake_case
 from toolguard.data_types import DEBUG_DIR, TESTS_DIR, Domain, FileTwin, RuntimeDomain, ToolPolicy, ToolPolicyItem, ToolPolicyItem
@@ -15,9 +16,9 @@ from toolguard.gen_py.consts import guard_fn_module_name, guard_fn_name, guard_i
 from toolguard.runtime import ToolGuardCodeResult, find_class_in_module, load_module_from_path
 import toolguard.utils.pytest as pytest
 import toolguard.utils.pyright as pyright
-from toolguard.gen_py.prompts.gen_tests import _generate_init_tests, _improve_tests
+from toolguard.gen_py.prompts.gen_tests import generate_init_tests, improve_tests
 from toolguard.gen_py.prompts.improve_guard import improve_tool_guard
-from toolguard.gen_py.prompts.python_code import PythonCodeModel
+# from toolguard.gen_py.prompts.python_code import PythonCodeModel
 from toolguard.gen_py.prompts.tool_dependencies import tool_dependencies
 from toolguard.gen_py.templates import load_template
 
@@ -78,7 +79,7 @@ class ToolGuardGenerator:
         if self.domain.app_api_size > 1:
             domain = Domain.model_construct(**self.domain.model_dump()) #remove runtime fields
             # pseudo_code = await tool_policy_pseudo_code(item, sig_str, domain)
-            dep_tools = list(await tool_dependencies(item, sig_str, domain))
+            dep_tools = list(set(await tool_dependencies(item, sig_str, domain)))
         logger.debug(f"Dependencies of '{item.name}': {dep_tools}")
 
         # Generate tests
@@ -115,14 +116,14 @@ class ToolGuardGenerator:
             domain = Domain.model_construct(**self.domain.model_dump()) #remove runtime fields
             first_time = (trial_no == "a")
             if first_time:
-                res = await _generate_init_tests(fn_name, guard, item, domain, dep_tools)
+                res = await generate_init_tests(guard, item, domain, dep_tools)
             else:
                 assert test_file
-                res = await _improve_tests(test_file, domain, item, errors, dep_tools)
+                res = await improve_tests(test_file, domain, item, errors, dep_tools)
 
             test_file = FileTwin(
                     file_name= test_file_name,
-                    content=res.get_code_content()
+                    content=get_code_content(res)
                 )\
                 .save(self.py_path)
             test_file.save_as(self.py_path, self.debug_dir(item, f"test_{trial_no}.py"))
@@ -181,12 +182,12 @@ class ToolGuardGenerator:
         for trial in trials:
             logger.debug(f"Improving guard function '{module_name}'... (trial = {round}.{trial})")
             domain = Domain.model_construct(**self.domain.model_dump()) #omit runtime fields
-            prev_python = PythonCodeModel.create(python_code=prev_guard.content)
+            prev_python = get_code_content(prev_guard.content)
             res = await improve_tool_guard(prev_python, domain, item, dep_tools, review_comments + errors)
 
             guard = FileTwin(
                     file_name=prev_guard.file_name,
-                    content=res.get_code_content()
+                    content=get_code_content(res)
                 ).save(self.py_path)
             guard.save_as(self.py_path, self.debug_dir(item, f"guard_{round}_{trial}.py"))
 

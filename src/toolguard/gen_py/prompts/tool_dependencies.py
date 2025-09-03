@@ -1,11 +1,11 @@
 
-from typing import Set
+from typing import List
 from toolguard.data_types import Domain, ToolPolicyItem
 from programmatic_ai import generative
 
 
 @generative
-async def tool_dependencies(policy_item: ToolPolicyItem, fn_under_test_signature: str, domain: Domain) -> Set[str]:
+async def tool_dependencies(policy_item: ToolPolicyItem, fn_under_test_signature: str, domain: Domain) -> List[str]:
     """
     Determine other tool names that the given tool depends on, based on its business policy.
 
@@ -17,6 +17,9 @@ async def tool_dependencies(policy_item: ToolPolicyItem, fn_under_test_signature
     Returns:
         Set[str]: Names of tools that the analyzed tool depends on.
 
+    Implementation Rules:
+        - If no depencies were identified, return an empty set: {}
+    
     Dependency Rules:
         - **Missing Information**: If enforcing a policy requires data not present in the tool’s function parameters,
           this data must be obtained by calling other tools or APIs.
@@ -64,26 +67,26 @@ async def tool_dependencies(policy_item: ToolPolicyItem, fn_under_test_signature
             {"name": "documents exists", "description": "when buying a car, check that the car owner has a driving licence and that the insurance is valid."},
             "buy_car(plate_num: str, owner_id: str, insurance_id: str)",
             domain
-        ) == {"get_person", "get_insurance"}
+        ) == ["get_person", "get_insurance"]
 
         assert tool_dependencies(
             {"name": "has driving licence", "description": "when buying a car, check that the car owner has a driving licence"},
             "buy_car(plate_num: str, owner_id: str, insurance_id: str)",
             domain
-        ) == {"get_person"}
+        ) == ["get_person"]
 
         assert tool_dependencies(
             {"name": "no transfers on holidays", "description": "when buying a car, check that it is not a holiday today"},
             "buy_car(plate_num: str, owner_id: str, insurance_id: str)",
             domain
-        ) == {}
+        ) == []
 
         # Indirect dependency. are_relatives() should be called multiple times.
         assert tool_dependencies(
             {"name": "Not in the same family", "description": "when buying a car, check that the car was never owned by someone from the buyer's family."},
             "buy_car(plate_num: str, owner_id: str, insurance_id: str)",
             domain
-        ) == {"get_car", "are_relatives"}
+        ) == ["get_car", "are_relatives"]
         ```
     """
     ...

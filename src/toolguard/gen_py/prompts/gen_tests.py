@@ -3,34 +3,32 @@ from typing import List, Set
 from toolguard.data_types import Domain, FileTwin, ToolPolicyItem
 from programmatic_ai import generative
 
-from toolguard.gen_py.prompts.python_code import PythonCodeModel
+# from toolguard.gen_py.prompts.python_code import PythonCodeModel
 
 @generative
-async def _generate_init_tests(
-    fn_under_test_name: str, 
+async def generate_init_tests(
     fn_src: FileTwin, 
-    tool_item: ToolPolicyItem, 
+    policy_item: ToolPolicyItem, 
     domain: Domain, 
-    dependent_tool_names: List[str])-> PythonCodeModel:
+    dependent_tool_names: List[str])-> str:
     """
     Generate Python unit tests for a function to verify tool-call compliance with policy constraints.
 
     Args:
-        fn_under_test_name (str): the name of the function under test.
         fn_src (FileTwin): Source code containing the function-under-test signature.
-        tool_item (ToolPolicyItem): Specification of the function-under-test, including positive and negative examples.
+        policy_item (ToolPolicyItem): Specification of the function-under-test, including positive and negative examples.
         domain (Domain): available data types and interfaces the test can use.
         dependent_tool_names (List[str]): other tool names that this tool depends on.
 
     Returns:
-        PythonCodeModel: Generated Python unit test code.
+        str: Generated Python unit test code.
 
     This function creates unit tests to validate the behavior of a given function-under-test. 
-    The function goal is to check the argument data, and raise an exception if they violated the requirements in the policy item.
+    The function-under-test checks the argument data, and raise an exception if they violated the requirements in the policy item.
 
-    **Test Generation Rules:**
+    Test Generation Rules:
     - Make sure to Python import all items in fn_src, common and domain modules.
-    - Each `tool_item` has multiple `compliance_examples` and `violation_examples` examples.
+    - A `policy_item` has multiple `compliance_examples` and `violation_examples` examples.
         - For each `compliance_examples`, ONE test method is generated. 
         - For each `violation_examples`, ONE test method is generated.
             - The function-under-test is EXPECTED to raise a `PolicyViolationException`.
@@ -40,7 +38,7 @@ async def _generate_init_tests(
         - For each test, add a comment quoting the policy item case that this function is testing 
         - Failure message should describe the test scenario that failed, the expected and the actual outcomes.
 
-    **Data population and references:**
+    Data population and references:
     - For compliance examples, populate all fields. 
         - For collections (arrays, dict and sets) populate at least one item.
     - You should mock the return_value from ALL tools listed in `dependent_tool_names`. 
@@ -50,9 +48,15 @@ async def _generate_init_tests(
         - import the required date and time libraries. for example: `from datetime import datetime, timedelta`
     - If you have a choice passing a plain a Pydantic model or a `Dictionary`, prefer Pydantic.
     
-    **Example:** Testing the function `check_create_reservation`, 
-    * Policy: `cannot book a room for a date in the past`
-    * Violation example: `book a room for a hotel, one week ago`
+    Example: 
+    * fn_src:
+```python
+# file: my_app/guard_create_reservation.py
+def guard_create_reservation(api: SomeAPI, user_id: str, hotel_id: str, reservation_date: str, persons: int):
+    ...
+```
+    * policy_item.description = "cannot book a room for a date in the past"
+    * policy_item.violation_examples = ["book a room for a hotel, one week ago"]
     * Dependent_tool_names: `["get_user", "get_hotel"]`
     * Domain: 
 ```python
@@ -70,13 +74,6 @@ class SomeAPI(ABC):
         \"\"\"
         ...
 ```
-    * fn_under_test_name: `guard_create_reservation`
-    * fn_src:
-```python
-# file: my_app/guard_create_reservation.py
-def guard_create_reservation(api: SomeAPI, user_id: str, hotel_id: str, reservation_date: str, persons: int):
-    ...
-```
 
     Should return this snippet:
 ```python
@@ -86,7 +83,7 @@ from toolguard.data_types import PolicyViolationException
 from my_app.guard_create_reservation import guard_create_reservation
 from my_app.api import *
 
-def test_book_in_the_past():
+def test_violation_book_room_in_the_past():
     \"\"\" 
     Policy: "cannot book room for a date in the past"
     Example: "book a room for a hotel, one week ago"
@@ -103,33 +100,33 @@ def test_book_in_the_past():
     #invoke function under test.
     with pytest.raises(PolicyViolationException):
         next_week = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%dT%H:%M:%S")
-        check_create_reservation(api, user_id="123", hotel_id="789", reservation_date=next_week, persons=3)
+        guard_create_reservation(api, user_id="123", hotel_id="789", reservation_date=next_week, persons=3)
 ```
     """
     ...
 
 
 @generative
-async def _improve_tests(
-    prev_impl: PythonCodeModel, 
+async def improve_tests(
+    prev_impl: str, 
     domain: Domain, 
     policy_item: ToolPolicyItem, 
     review_comments: List[str],
-    dependent_tool_names: List[str])-> PythonCodeModel:
+    dependent_tool_names: List[str])-> str:
     """
     Improve the previous test functions (in Python) to check the given tool policy-items according to the review-comments.
 
     Args:
-        prev_impl (PythonCodeModel): previous implementation of a Python function.
+        prev_impl (str): previous implementation of a Python function.
         domain (Domain): Python source code defining available data types and APIs that the test can use.
         tool (ToolPolicyItem): Requirements for this tool.
         review_comments (List[str]): Review comments on the current implementation. For example, pylint errors or Failed unit-tests.
         dependent_tool_names (List[str]): other tool names that this tool depends on.
 
     Returns:
-        PythonCodeModel: Improved implementation pytest test functions.
+        str: Improved implementation pytest test functions.
 
-    **Implementation Rules:**"
+    Implementation Rules:
     - Do not change the function signatures.
     - You can add import statements, but dont remove them.
     """

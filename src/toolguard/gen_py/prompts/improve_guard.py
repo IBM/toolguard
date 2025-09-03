@@ -3,22 +3,22 @@ from typing import List, Set
 from toolguard.data_types import Domain, ToolPolicyItem
 from programmatic_ai import generative
 
-from toolguard.gen_py.prompts.python_code import PythonCodeModel
+# from toolguard.gen_py.prompts.python_code import PythonCodeModel
 
 @generative
-async def improve_tool_guard(prev_impl: PythonCodeModel, domain: Domain, policy_item: ToolPolicyItem, dependent_tool_names: List[str], review_comments: List[str])-> PythonCodeModel:
+async def improve_tool_guard(prev_impl: str, domain: Domain, policy_item: ToolPolicyItem, dependent_tool_names: List[str], review_comments: List[str])-> str:
     """
     Improve the previous tool-call guard implementation (in Python) so that it fully adheres to the given policy and addresses all review comments.
 
     Args:
-        prev_impl (PythonCodeModel): The previous implementation of the tool-call check.
+        prev_impl (str): The previous implementation of the tool-call check.
         domain (Domain): Python code defining available data types and other tool interfaces.
         policy_item (ToolPolicyItem): Requirements for this tool.
         dependent_tool_names (List[str]): Names of other tools that this tool may call to obtain required information.
         review_comments (List[str]): Review feedback on the current implementation (e.g., pylint errors, failed unit tests).
 
     Returns:
-        PythonCodeModel: The improved implementation of the tool-call check.
+        str: The improved implementation of the tool-call check.
 
     Implementation Rules:
         - Do not modify the function signature, parameter names, or type annotations.
