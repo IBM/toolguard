@@ -19,7 +19,7 @@ class GenPolicyFromRefs:
 			
 			
 		model = 'gpt-4o-2024-08-06'
-		llm = LitellmModel(model)
+		llm = LitellmModel(model, "azure")
 		
 		
 		for tool_file in os.listdir(dir):

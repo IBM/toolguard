@@ -1,6 +1,8 @@
 {
     "python.testing.pytestArgs": [
-        "tests", "tau_airline"
+        "tests",
+        "-s",
+        "--log-cli-level=DEBUG"
     ],
     "python.testing.pytestEnabled": true,
 }

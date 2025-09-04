@@ -1,24 +1,35 @@
+
+from typing import List
 from toolguard.data_types import Domain, ToolPolicyItem
 from programmatic_ai import generative
 
 
 @generative
-async def tool_policy_pseudo_code(policy_item: ToolPolicyItem, fn_to_analyze: str, domain: Domain) -> str:
+async def tool_dependencies(policy_item: ToolPolicyItem, tool_signature: str, domain: Domain) -> List[str]:
     """
-    Returns a pseudo code to check business constraints on a tool cool using an API
+Identify the names of other tools that the given tool relies on, according to its business policy.
 
-    Args:
-        policy_item (ToolPolicyItem): Business policy, in natural language, specifying a constraint on a process involving the tool under analysis.
-        fn_to_analyze (str): The function signature of the tool under analysis.
-        domain (Domain): Python code defining available data types and APIs for invoking other tools.
+Parameters:
+    * policy_item (ToolPolicyItem): A natural-language business rule that specifies a constraint on how the tool under analysis should be used.
+    * tool_signature (str): The tool’s function signature, including its documentation and parameters.
+    * domain (Domain): Python definitions of the available tool names (API function names) and their associated data types.
 
-    Returns:
-        str: A pseudo code descibing how to use the API to check the tool call
+Output:
+    * List[str]: A list of tool names that the analyzed tool depends on.
 
-    You must list all the required API calls. You should analyze the tool's signatures and parameters passing. If needed, show the chain of calls.    
-    
-    Examples:
-```python
+Implementation Guidelines:
+    * A dependency exists if another tool must be called in order to enforce the given policy when invoking the tool under analysis.
+    * Direct dependencies occur when a tool can be invoked directly to supply missing data, to transform or map the data, or to validate constraints.
+    * Indirect dependencies may involve chains of calls, repeated invocations of the same tool, or comparisons between old and new states (e.g., when updating data).
+        Examples of Indirect Dependencies:
+        * Calling a validation API once per list item.
+        * Fetching both the existing state and the new state when updates are involved (e.g., verifying a hotel reservation update requires both get_hotel_reservation and get_room_details).
+
+Constraint:
+    * A tool may only depend on immutable (read-only) tools.
+
+Examples:
+    ```python
     domain = {
         "app_types": {
             "file_name": "car_types.py",
@@ -47,57 +58,31 @@ async def tool_policy_pseudo_code(policy_item: ToolPolicyItem, fn_to_analyze: st
             '''
         }
     }
-```
-* Example 1:
-```
-    tool_policy_pseudo_code(
+
+    assert tool_dependencies(
         {"name": "documents exists", "description": "when buying a car, check that the car owner has a driving licence and that the insurance is valid."},
         "buy_car(plate_num: str, owner_id: str, insurance_id: str)",
         domain
-    )
-``` 
-may return: 
-```
-    assert api.get_person(owner_id).driving_licence
-    assert api.get_insurance(insurance_id)
-```
+    ) == ["get_person", "get_insurance"]
 
-* Example 2:
-```
-    tool_policy_pseudo_code(
+    assert tool_dependencies(
         {"name": "has driving licence", "description": "when buying a car, check that the car owner has a driving licence"},
         "buy_car(plate_num: str, owner_id: str, insurance_id: str)",
         domain
-    )
-```
-    may return: 
-```
-    assert api.get_insurance(insurance_id)
-```
+    ) == ["get_person"]
 
-* Example 3:
-```
-    tool_policy_pseudo_code(
+    assert tool_dependencies(
         {"name": "no transfers on holidays", "description": "when buying a car, check that it is not a holiday today"},
         "buy_car(plate_num: str, owner_id: str, insurance_id: str)",
         domain
-    )
-``` 
-    should return an empty string.
+    ) == []
 
-* Example 4:
-```
-    tool_policy_pseudo_code(
+    # Indirect dependency. are_relatives() should be called multiple times.
+    assert tool_dependencies(
         {"name": "Not in the same family", "description": "when buying a car, check that the car was never owned by someone from the buyer's family."},
         "buy_car(plate_num: str, owner_id: str, insurance_id: str)",
         domain
-    )
-``` 
-    should return: 
-```
-    car = api.get_car(plate_num)
-    for each prev_owner_id in car.previous_owner_ids:
-        assert(not api.are_relatives(prev_owner_id, owner_id))
-```
+    ) == ["get_car", "are_relatives"]
+    ```
 """
     ...
