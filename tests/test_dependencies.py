@@ -1,17 +1,19 @@
 import inspect
+import logging
 from pathlib import Path
+import os
 from dotenv import load_dotenv
 import pytest
 load_dotenv()
 
 from toolguard.gen_py.tool_dependencies import tool_dependencies
-from toolguard.data_types import Domain, ToolPolicyItem
+from toolguard.data_types import ToolPolicyItem
 from toolguard.gen_py.domain_from_funcs import generate_domain_from_functions
-from toolguard.gen_py.prompts.pseudo_code import tool_policy_pseudo_code
-
+from programmatic_ai.config import settings
 from tau2.domains.airline.tools import AirlineTools
 
 current_dir = str(Path(__file__).parent)
+settings.sdk = os.getenv("PROG_AI_PROVIDER") # type: ignore
 
 book_reservation_signature = """
     def guard_book_reservation(api: I_Airline, user_id: str, origin: str, destination: str, flight_type: Literal['round_trip', 'one_way'], cabin: Literal['business', 'economy', 'basic_economy'], flights: List[FlightInfo], passengers: List[Passenger], payment_methods: List[Payment], total_baggages: int, nonfree_baggages: int, insurance: Literal['yes', 'no']):
@@ -73,7 +75,11 @@ class TestToolsDependencies:
             compliance_examples=[],
             violation_examples=[]
         )
-        assert await tool_dependencies(policy, book_reservation_signature, self.domain) == set()
+        try:
+            assert await tool_dependencies(policy, book_reservation_signature, self.domain) == set()
+        except Exception as ex:
+            logging.exception(ex)
+            assert False
 
     @pytest.mark.asyncio
     async def test_payment_in_user(self):
@@ -147,5 +153,5 @@ class TestToolsDependencies:
             compliance_examples=[],
             violation_examples=[]
         )
-        deps = set(await tool_dependencies(policy, update_flights_signature, self.domain))
+        deps = await tool_dependencies(policy, update_flights_signature, self.domain)
         assert deps == {"get_reservation_details", "get_scheduled_flight"}
