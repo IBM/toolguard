@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+import mellea
 import pytest
 load_dotenv()
 
@@ -66,6 +67,16 @@ class TestToolsDependencies:
         """Run once after all tests."""
         print("Tearing down class resources")
 
+    @pytest.fixture(autouse=True)
+    def _context(self):
+        with mellea.start_session(
+            backend_name= "openai", 
+            model_id=os.getenv("TOOLGUARD_STEP2_GENAI_MODEL", ""),
+            base_url=os.getenv("OPENAI_API_BASE"),
+            api_key=os.getenv("OPENAI_API_KEY")
+        ):
+            yield
+
     @pytest.mark.asyncio
     async def test_args_only(self):
         policy = ToolPolicyItem(
@@ -75,11 +86,7 @@ class TestToolsDependencies:
             compliance_examples=[],
             violation_examples=[]
         )
-        try:
-            assert await tool_dependencies(policy, book_reservation_signature, self.domain) == set()
-        except Exception as ex:
-            logging.exception(ex)
-            assert False
+        assert await tool_dependencies(policy, book_reservation_signature, self.domain) == set()
 
     @pytest.mark.asyncio
     async def test_payment_in_user(self):

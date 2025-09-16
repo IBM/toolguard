@@ -1,12 +1,12 @@
 
 from typing import List, Set
 from toolguard.data_types import Domain, ToolPolicyItem
-from programmatic_ai import generative
+from mellea import generative
 
 # from toolguard.gen_py.prompts.python_code import PythonCodeModel
 
 @generative
-async def improve_tool_guard(prev_impl: str, domain: Domain, policy_item: ToolPolicyItem, dependent_tool_names: List[str], review_comments: List[str])-> str:
+def improve_tool_guard(prev_impl: str, domain: Domain, policy_item: ToolPolicyItem, dependent_tool_names: List[str], review_comments: List[str])-> str:
     """
     Improve the previous tool-call guard implementation (in Python) so that it fully adheres to the given policy and addresses all review comments.
 

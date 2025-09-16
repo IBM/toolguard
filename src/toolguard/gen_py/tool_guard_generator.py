@@ -119,10 +119,16 @@ class ToolGuardGenerator:
             domain = self.domain.get_definitions_only() #remove runtime fields
             first_time = (trial_no == "a")
             if first_time:
-                res = await generate_init_tests(guard, item, domain, dep_tools)
+                #FIXME when melea will support aysnc
+                res = await asyncio.to_thread(
+                    lambda: generate_init_tests(fn_src=guard, policy_item=item, domain=domain, dependent_tool_names=dep_tools)
+                )
             else:
                 assert test_file
-                res = await improve_tests(test_file, domain, item, errors, dep_tools)
+                #FIXME when melea will support aysnc
+                res = await asyncio.to_thread(
+                    lambda: improve_tests(prev_impl=test_file.content, domain=domain, policy_item=item, review_comments=errors, dependent_tool_names=dep_tools)
+                )
 
             test_file = FileTwin(
                     file_name= test_file_name,
@@ -186,7 +192,10 @@ class ToolGuardGenerator:
             logger.debug(f"Improving guard function '{module_name}'... (trial = {round}.{trial})")
             domain = self.domain.get_definitions_only() #omit runtime fields
             prev_python = get_code_content(prev_guard.content)
-            res = await improve_tool_guard(prev_python, domain, item, dep_tools, review_comments + errors)
+            #FIXME when melea will support aysnc
+            res = await asyncio.to_thread(
+                lambda: improve_tool_guard(prev_impl=prev_python, domain=domain, policy_item=item, dependent_tool_names=dep_tools, review_comments=review_comments + errors)
+            )
 
             guard = FileTwin(
                     file_name=prev_guard.file_name,

@@ -1,12 +1,14 @@
 import asyncio
 import logging
-import json
+import os
 from os.path import join
-from typing import Callable, List, Optional
+from typing import Callable, List, Literal, Optional, cast
+
+import mellea
 
 from toolguard.gen_py.consts import *
 from toolguard.gen_py.domain_from_funcs import generate_domain_from_functions
-from toolguard.data_types import RuntimeDomain, ToolPolicy, FileTwin
+from toolguard.data_types import RuntimeDomain, ToolPolicy
 from toolguard.gen_py.domain_from_openapi import generate_domain_from_openapi
 from toolguard.runtime import ToolGuardsCodeGenerationResult
 from toolguard.gen_py.tool_guard_generator import ToolGuardGenerator
@@ -43,13 +45,22 @@ async def generate_toolguards_from_domain(app_name: str, tool_policies: List[Too
     pyright.config(py_root)
     pytest.configure(py_root)
     
-    #tools
-    tools_w_poilicies = [tool_policy for tool_policy in tool_policies if len(tool_policy.policy_items) > 0]
-    tool_results = await asyncio.gather(*[
-        ToolGuardGenerator(app_name, tool_policy, py_root, domain, PY_ENV)\
-            .generate()
-        for tool_policy in tools_w_poilicies
-    ])
+    genai_backend = cast(Literal["ollama", "hf", "openai", "watsonx", "litellm"], os.getenv("TOOLGUARD_STEP2_GENAI_BACKEND", "openai"))
+    genai_model = os.getenv("TOOLGUARD_STEP2_GENAI_MODEL")
+    assert genai_model, "'TOOLGUARD_STEP2_GENAI_MODEL' environment variable not set"
+    with mellea.start_session(
+        backend_name= genai_backend,
+        model_id=genai_model,
+        base_url=os.getenv("OPENAI_API_BASE"),
+        api_key=os.getenv("OPENAI_API_KEY")
+    ):
+        #tools
+        tools_w_poilicies = [tool_policy for tool_policy in tool_policies if len(tool_policy.policy_items) > 0]
+        tool_results = await asyncio.gather(*[
+            ToolGuardGenerator(app_name, tool_policy, py_root, domain, PY_ENV)\
+                .generate()
+            for tool_policy in tools_w_poilicies
+        ])
 
     tools_result = {tool.tool_name: res 
         for tool, res 

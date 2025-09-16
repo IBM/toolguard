@@ -1,9 +1,9 @@
 from toolguard.data_types import Domain, ToolPolicyItem
-from programmatic_ai import generative
+from mellea import generative
 
 
 @generative
-async def tool_policy_pseudo_code(policy_item: ToolPolicyItem, fn_to_analyze: str, domain: Domain) -> str:
+def tool_policy_pseudo_code(policy_item: ToolPolicyItem, fn_to_analyze: str, domain: Domain) -> str:
     """
     Returns a pseudo code to check business constraints on a tool cool using an API
 
@@ -15,11 +15,13 @@ async def tool_policy_pseudo_code(policy_item: ToolPolicyItem, fn_to_analyze: st
     Returns:
         str: A pseudo code descibing how to use the API to check the tool call
 
-    * Analyze the tool's signatures (input and output parameter types).
+    * The available API functions are listed in the `domain.app_api.content`. 
+    * Analyze the API functions' signatures (input and output parameter types).
+    * You cannot assume other API functions.
     * For data objects (dataclasses or Pydantic models), only reference the explicitly declared fields.
         * Do not assume the presence of any additional fields.
         * Do not assume any implicit logic or relationships between field values (e.g., naming conventions).
-    * List all the required API calls to check the business constraints. 
+    * List all the required API calls to check the business constraints.
     * If some information is missing, you should call another api function declared in the domain API. 
     
     Examples:

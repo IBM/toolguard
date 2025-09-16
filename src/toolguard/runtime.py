@@ -128,6 +128,7 @@ def guard_methods(obj: T, guards_folder: str) -> T:
 class ToolMethodsInvoker(IToolInvoker):
     def __init__(self, object:object) -> None:
         self._obj = object
+        
     def invoke(self, toolname: str, arguments: Dict[str, Any], model: Type[T])->T:
         mtd = getattr(self._obj, toolname)
         assert callable(mtd), f"Tool {toolname} was not found"
@@ -136,6 +137,7 @@ class ToolMethodsInvoker(IToolInvoker):
 class ToolFunctionsInvoker(IToolInvoker):
     def __init__(self, funcs: List[Callable]) -> None:
         self._funcs_by_name = {func.__name__: func for func in funcs}
+
     def invoke(self, toolname: str, arguments: Dict[str, Any], model: Type[T])->T:
         func = self._funcs_by_name.get(toolname)
         assert callable(func), f"Tool {toolname} was not found"

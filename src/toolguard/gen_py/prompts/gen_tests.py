@@ -1,12 +1,12 @@
 
 from typing import List, Set
 from toolguard.data_types import Domain, FileTwin, ToolPolicyItem
-from programmatic_ai import generative
+from mellea import generative
 
 # from toolguard.gen_py.prompts.python_code import PythonCodeModel
 
 @generative
-async def generate_init_tests(
+def generate_init_tests(
     fn_src: FileTwin, 
     policy_item: ToolPolicyItem, 
     domain: Domain, 
@@ -107,7 +107,7 @@ def test_violation_book_room_in_the_past():
 
 
 @generative
-async def improve_tests(
+def improve_tests(
     prev_impl: str, 
     domain: Domain, 
     policy_item: ToolPolicyItem, 
