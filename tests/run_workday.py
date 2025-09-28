@@ -63,9 +63,8 @@ async def gen_all():
     )
 
 
-from programmatic_ai.config import settings
-settings.sdk = os.getenv("PROG_AI_PROVIDER")  # type: ignore
-
+#from programmatic_ai.config import settings
+#settings.sdk = os.getenv("PROG_AI_PROVIDER")  # type: ignore
 
 if __name__ == '__main__':
     from toolguard.logging_utils import init_logging
