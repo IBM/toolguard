@@ -5,7 +5,7 @@ from typing import List, Dict
 import dotenv
 import markdown
 
-from tests.calculator_tools import divide_tool
+from tests.calculator.tools import divide_tool
 # from toolguard import build_toolguards
 from toolguard.llm.tg_litellm import LitellmModel
 from toolguard.stages_tptd.text_tool_policy_generator import ToolInfo, step1_main
@@ -34,11 +34,11 @@ class FullAgent:
 		llm = LitellmModel(model_name=self.model, provider="azure")
 		tools_info = [ToolInfo.from_function(tool) for tool in self.tools]
 		
-		await step1_main(self.policy_doc, tools_info, self.step1_out_dir, llm, short1=True)
+		await step1_main(self.policy_doc, tools_info, self.step1_out_dir, llm, short=True)
 		await generate_guards_from_tool_policies(self.tools, from_step1_path=self.step1_out_dir, to_step2_path=self.step2_out_dir,
 												 app_name=self.app_name)
 	
-	def guard_tool(self, tool_name:str,tool_params:Dict) -> str:
+	def guard_tool_pass(self, tool_name:str,tool_params:Dict) -> bool:
 		print("validate_tool_node")
 		import sys
 		sys.path.insert(0, self.step2_out_dir)
@@ -50,20 +50,11 @@ class FullAgent:
 			# app_guards.check_tool_call(tool_name, tool_parms, state["messages"])
 			toolguards.check_toolcall(tool_name, tool_params, list(self.tool_registry.values()))
 			print("ok to invoke tool")
+			return True
 		except Exception as e:
 			error_message = "it is against the policy to invoke tool: " + tool_name + " Error: " + str(e)
 			print(error_message)
+			return False
 
 
-if __name__ == '__main__':
-	dotenv.load_dotenv()
-	work_dir = "/Users/naamazwerdling/Documents/OASB/policy_validation/calculator"
-	policy_doc_path = "/Users/naamazwerdling/workspace/ToolGuardAgent/src/calculator/calculator_policy_doc.md"
-
-	
-	tools = [divide_tool]  # [add_tool, subtract_tool, multiply_tool, divide_tool]
-	fa = FullAgent("calculator", tools, work_dir, policy_doc_path, llm_model="gpt-4o-2024-08-06", short1=True)
-	asyncio.run(fa.build_time())
-	fa.guard_tool("divide_tool",{"g": 5, "h": 0})
-	fa.guard_tool("divide_tool", {"g": 5, "h": 4})
 
