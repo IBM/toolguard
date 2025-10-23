@@ -23,7 +23,7 @@ async def build_toolguards(policy_text:str, tools: List[Callable]|str, out_dir:s
 	if isinstance(tools, list): #supports list of functions or list of langgraph tools
 		tools_info = [ToolInfo.from_function(tool) for tool in tools]
 		await extract_policies(policy_text, tools_info, step1_out_dir, step1_llm, tools2run, short1)
-		await generate_guards_from_tool_policies(tools, step1_out_dir, step2_out_dir, app_name, tools2run)
+		await generate_guards_from_tool_policies(tools, step1_out_dir, step2_out_dir, app_name, None, tools2run)
 	
 	elif isinstance(tools, str): #Backward compatibility to support OpenAPI specs
 		oas_path = tools
@@ -31,8 +31,8 @@ async def build_toolguards(policy_text:str, tools: List[Callable]|str, out_dir:s
 			oas = json.load(file)
 		summarizer = OASSummarizer(oas)
 		tools_info = summarizer.summarize()
-		await extract_policies(policy_text, tools_info, step1_out_dir, step1_llm,tools2run,short1)
-		await generate_guards_from_tool_policies_oas(tools, step1_out_dir, step2_out_dir, app_name)
+		await extract_policies(policy_text, tools_info, step1_out_dir, step1_llm, tools2run, short1)
+		await generate_guards_from_tool_policies_oas(oas_path, step1_out_dir, step2_out_dir, app_name, tools2run)
 	
 	return step2_out_dir
 
