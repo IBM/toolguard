@@ -28,7 +28,7 @@ def generate_domain_from_functions(py_path:str, app_name: str, funcs: List[Calla
     extractor = APIExtractor(py_path=py_path, include_module_roots = include_module_roots)
     api_cls_name = f"I_{to_camel_case(app_name)}"
     impl_module_name = to_snake_case(f"{app_name}.{app_name}_impl")
-    impl_class_name = to_camel_case(f"{app_name}Impl")
+    impl_class_name = to_camel_case(f"{app_name}_Impl")
     api, types, impl = extractor.extract_from_functions(funcs, 
         interface_name=api_cls_name,
         interface_module_name=to_snake_case(f"{app_name}.i_{app_name}"),
