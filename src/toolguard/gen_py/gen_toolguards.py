@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import os
 from os.path import join
@@ -18,6 +19,10 @@ import toolguard.gen_py.utils.pyright as pyright
 from toolguard.common.py import unwrap_fn
 
 logger = logging.getLogger(__name__)
+
+ENV_GENPY_BACKEND_NAME = 'TOOLGUARD_GENPY_BACKEND_NAME'
+ENV_GENPY_MODEL_ID = 'TOOLGUARD_GENPY_MODEL_ID'
+ENV_GENPY_ARGS = 'TOOLGUARD_GENPY_ARGS'
 
 async def generate_toolguards_from_functions(app_name: str, tool_policies: List[ToolPolicy], py_root:str, funcs: List[Callable], module_roots: Optional[List[str]]=None)->ToolGuardsCodeGenerationResult:
     assert funcs, "Funcs cannot be empty"
@@ -39,21 +44,38 @@ async def generate_toolguards_from_openapi(app_name: str, tool_policies: List[To
     domain = generate_domain_from_openapi(py_root, app_name, openapi_file)
     return await generate_toolguards_from_domain(app_name, tool_policies, py_root, domain)
 
+def start_melea_session()->mellea.MelleaSession:    
+    backend_name = cast(
+        Literal["ollama", "hf", "openai", "watsonx", "litellm"], 
+        os.getenv(ENV_GENPY_BACKEND_NAME, "openai")
+    )
+    
+    model_id = os.getenv(ENV_GENPY_MODEL_ID)
+    assert model_id, f"'{ENV_GENPY_MODEL_ID}' environment variable not set"
+    
+    kw_args_val = os.getenv(ENV_GENPY_ARGS)
+    kw_args = {}
+    if kw_args_val:
+        try:
+            kw_args = json.loads(kw_args_val)
+        except Exception as e:
+            logger.warning(
+                f"Failed to parse {ENV_GENPY_ARGS}: {e}. Using empty dict instead."
+            )
+
+    return mellea.start_session(
+        backend_name= backend_name,
+        model_id=model_id,
+        **kw_args
+    )
+
 async def generate_toolguards_from_domain(app_name: str, tool_policies: List[ToolPolicy], py_root:str, domain: RuntimeDomain)->ToolGuardsCodeGenerationResult:
     #Setup env
     venv.run(join(py_root, PY_ENV), PY_PACKAGES)
     pyright.config(py_root)
     pytest.configure(py_root)
-    
-    genai_backend = cast(Literal["ollama", "hf", "openai", "watsonx", "litellm"], os.getenv("TOOLGUARD_STEP2_GENAI_BACKEND", "openai"))
-    genai_model = os.getenv("TOOLGUARD_STEP2_GENAI_MODEL")
-    assert genai_model, "'TOOLGUARD_STEP2_GENAI_MODEL' environment variable not set"
-    with mellea.start_session(
-        backend_name= genai_backend,
-        model_id=genai_model,
-        base_url=os.getenv("OPENAI_API_BASE"),
-        api_key=os.getenv("OPENAI_API_KEY")
-    ):
+
+    with start_melea_session():
         #tools
         tools_w_poilicies = [tool_policy for tool_policy in tool_policies if len(tool_policy.policy_items) > 0]
         tool_results = await asyncio.gather(*[
