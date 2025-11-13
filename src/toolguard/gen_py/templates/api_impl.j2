@@ -1,9 +1,21 @@
-from typing import Any, Dict, List
+from typing import *
+from abc import ABC, abstractmethod
 from datetime import date, datetime
 from {{ types_module }} import *
 from {{ api_module }} import *
 
+class IToolInvoker(ABC):
+    T = TypeVar("T")
+    @abstractmethod
+    def invoke(self, toolname: str, arguments: Dict[str, Any], model: Type[T])->T:
+        ...
+
+
 class {{ class_name }}({{ api_cls_name }}):
+
+    def __init__(self, delegate: IToolInvoker):
+        self._delegate = delegate
+
 {% for method in methods %}
     def {{ method.name }}{{ method.signature }}:
         {% if method.doc %}"""{{ method.doc }}"""{% endif %}

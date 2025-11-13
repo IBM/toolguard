@@ -2,7 +2,7 @@ import asyncio
 import os
 from os.path import join
 import shutil
-from typing import List
+from typing import Callable, List
 
 import markdown
 
@@ -12,7 +12,7 @@ from toolguard.tool_policy_extractor.text_tool_policy_generator import extract_f
 
 
 class ToolGuardFullFlow:
-	def __init__(self,wiki_path,work_dir,tools,llm_model:str="gpt-4o-2024-08-06",app_name:str="my_app"):
+	def __init__(self, wiki_path:str, work_dir:str, tools: List[Callable]|str, llm_model:str="gpt-4o-2024-08-06", app_name:str="my_app"):
 		self.llm_model = llm_model
 		self.wiki_path = wiki_path
 		self.app_name = app_name

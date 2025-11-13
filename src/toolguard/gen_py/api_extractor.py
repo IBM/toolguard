@@ -184,10 +184,17 @@ class APIExtractor:
     def _generate_delegate_code(self, func:Callable)->List[str]:
         func_name = _get_type_name(func)
         indent = " "*4*2
-        T = "bla" #FIXME
+        sig = inspect.signature(func)
+        ret = sig.return_annotation
+        if ret is inspect._empty:
+            ret_name = "None"
+        elif hasattr(ret, "__name__"):
+            ret_name = ret.__name__
+        else:
+            ret_name = str(ret)
         return [
             indent+"args = {k: v for k, v in locals().items() if k != 'self'}",
-            indent+f"return self._delegate.invoke('{func_name}', args, T)"
+            indent+f"return self._delegate.invoke('{func_name}', args, {ret_name})"
         ]
     
     def _get_function_with_docstring(self, func:FunctionType, func_name:str)->List[str]:
