@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 class IToolInvoker(ABC):
     T = TypeVar("T")
     @abstractmethod
-    def invoke(self, toolname: str, arguments: Dict[str, Any], model: Type[T])->T:
+    def invoke(self, toolname: str, arguments: Dict[str, Any], return_type: Type[T])->T:
         ...
 
 
@@ -69,7 +69,7 @@ class ToolguardRuntime:
             else:
                 arg = args.get(p_name)
                 if inspect.isclass(param.annotation) and issubclass(param.annotation, BaseModel):
-                    guard_args[p_name] = param.annotation.model_construct(arg)
+                    guard_args[p_name] = param.annotation.model_construct(**arg)
                 else:
                     guard_args[p_name] = arg
         return guard_args

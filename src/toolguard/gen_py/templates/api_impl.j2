@@ -7,7 +7,7 @@ from {{ api_module }} import *
 class IToolInvoker(ABC):
     T = TypeVar("T")
     @abstractmethod
-    def invoke(self, toolname: str, arguments: Dict[str, Any], model: Type[T])->T:
+    def invoke(self, toolname: str, arguments: Dict[str, Any], return_type: Type[T])->T:
         ...
 
 
