@@ -12,6 +12,8 @@ from toolguard.gen_py.utils.datamodel_codegen import run as dm_codegen
 from toolguard.common.open_api import OpenAPI, Operation, Parameter, ParameterIn, PathItem, Reference, RequestBody, Response, JSchema, read_openapi
 from toolguard.data_types import FileTwin, RuntimeDomain
 
+ARGS = "args"
+
 def generate_domain_from_openapi(py_path:str, app_name: str, openapi_file:str)->RuntimeDomain:
     #ToolGuard Runtime
     os.makedirs(join(py_path, RUNTIME_PACKAGE_NAME), exist_ok=True)
@@ -89,7 +91,7 @@ def _get_oas_methods(oas:OpenAPI):
             args_str = ', '.join(["self"]+[f"{arg}:{type}" for arg,type in args])
             sig = f"({args_str})->{ret}"
 
-            body = "pass"
+            body = f"return self._delegate.invoke('{to_snake_case(op.operationId)}', {ARGS}.model_dump(), {ret})"
             # if orign_funcs:
             #     func = find(orign_funcs or [], lambda fn: fn.__name__ == op.operationId) # type: ignore
             #     if func:
@@ -162,7 +164,7 @@ def _make_signature(op: Operation, params: List[Parameter], oas:OpenAPI)->Tuple[
 
     if find(params, lambda p: p.in_ == ParameterIn.query):
         query_type = f"{fn_name}ParametersQuery"
-        args.append(("args", query_type))
+        args.append((ARGS, query_type))
 
     req_body = oas.resolve_ref(op.requestBody, RequestBody)
     if req_body:
@@ -170,7 +172,7 @@ def _make_signature(op: Operation, params: List[Parameter], oas:OpenAPI)->Tuple[
         body_type = _oas_to_py_type(scm_or_ref, oas)
         if body_type is None:
             body_type = f"{fn_name}Request"
-        args.append(("args", body_type))
+        args.append((ARGS, body_type))
 
     rsp_or_ref = op.responses.get("200")
     rsp = oas.resolve_ref(rsp_or_ref, Response)

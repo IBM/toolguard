@@ -2,87 +2,11 @@
 import asyncio
 import json
 import os
-import inspect
-import sys
-from typing import Any, Callable, List, Optional
+from typing import List, Optional
 
-from langchain_core.tools import BaseTool
-from pydantic import BaseModel
-
-
-from toolguard.data_types import ToolPolicy,load_tool_policy
+from toolguard.data_types import ToolInfo, ToolPolicy, load_tool_policy
 from toolguard.llm.i_tg_llm import I_TG_LLM
 from toolguard.tool_policy_extractor.utils import read_prompt_file, generate_messages, save_output, find_mismatched_references
-
-class ToolInfo(BaseModel):
-	name: str
-	description: str
-	parameters: Any
-	signature: str
-	full_description:str
-
-	@classmethod
-	def from_function(cls, fn: Callable) -> "ToolInfo":
-		# Assumes @tool decorator from langchain https://python.langchain.com/docs/how_to/custom_tools/
-		# or a plain function with doc string
-		def doc_summary(doc:str): 
-			paragraphs = [p.strip() for p in doc.split("\n\n") if p.strip()]
-			return paragraphs[0] if paragraphs else ""
-		
-		fn_name = fn.name if hasattr(fn, 'name') else fn.__name__
-		sig =fn_name + str(get_tool_signature(fn))
-		full_desc = fn.description if hasattr(fn,'description') else fn.__doc__.strip() if fn.__doc__ else (inspect.getdoc(fn) or "")
-		return cls(
-            name=fn_name,
-			description=doc_summary(full_desc),
-			full_description = full_desc,
-            parameters=fn.args_schema.model_json_schema() if hasattr(fn, 'args_schema') else inspect.getdoc(fn),
-			signature=sig,
-        )
-
-
-def get_tool_signature(obj):
-	if inspect.isfunction(obj):
-		return inspect.signature(obj)
-	if hasattr(obj, "func") and inspect.isfunction(obj.func):
-		return inspect.signature(obj.func)
-	if hasattr(obj, "args_schema"):
-		schema = obj.args_schema
-		fields = schema.model_fields
-		params = ", ".join(
-			f"{name}: {field.annotation.__name__ if hasattr(field.annotation, '__name__') else field.annotation}"
-			for name, field in fields.items()
-		)
-		return f"({params})"
-	return None
-
-def extract_functions(file_path: str) -> List[Callable]:
-	import importlib.util
-	import inspect
-	module_name = os.path.splitext(os.path.basename(file_path))[0]
-	
-	# Add project root to sys.path
-	project_root = os.path.abspath(os.path.join(file_path, "..", ".."))  # Adjust as needed
-	if project_root not in sys.path:
-		sys.path.insert(0, project_root)
-	
-	spec = importlib.util.spec_from_file_location(module_name, file_path)
-	if not spec or not spec.loader:
-		raise ImportError(f"Could not load module from {file_path}")
-	
-	module = importlib.util.module_from_spec(spec)
-	spec.loader.exec_module(module)
-	tools = []
-	for name, obj in inspect.getmembers(module):
-		if isinstance(obj, BaseTool):
-			if hasattr(obj, 'name') and hasattr(obj, 'args_schema'):
-				tools.append(obj)
-		else:
-			if callable(obj) and obj.__name__ !="tool":
-				tools.append(obj)
-			
-	return tools
-
 
 class TextToolPolicyGenerator:
 	def __init__(self, llm:I_TG_LLM, policy_document:str, tools:List[ToolInfo], out_dir:str) -> None:
@@ -165,7 +89,7 @@ class TextToolPolicyGenerator:
 		return tptd
 
 	
-	def move2archive(self, reviews) -> (bool,str):
+	def move2archive(self, reviews) -> (bool, str):
 		comments = ""
 		num = len(reviews)
 		if num == 0:

@@ -1,8 +1,7 @@
 import json
 from typing import Any, Dict, List
 
-from toolguard.tool_policy_extractor.text_tool_policy_generator import ToolInfo
-
+from toolguard.data_types import ToolInfo
 
 class OASSummarizer:
     def __init__(self, oas: Dict[str, Any]):
@@ -14,10 +13,12 @@ class OASSummarizer:
         for path, methods in self.oas.get("paths", {}).items():
             for method, operation in methods.items():
                 summary = self._format_operation(path, method, operation)
-                tool_info = ToolInfo(name=summary.get("name"),description=summary.get("description"),
-                                     signature=summary.get("signature"),parameters=summary.get("params"),
-                                     full_description=json.dumps(summary, indent=4))
-                operations.append(tool_info)
+                tool_info = ToolInfo(name=summary.get("name"),
+                    description=summary.get("description"),
+                    signature=summary.get("signature"),
+                    parameters=summary.get("params"),
+                    full_description=json.dumps(summary, indent=4)
+                )
                 operations.append(tool_info)
         return operations
 

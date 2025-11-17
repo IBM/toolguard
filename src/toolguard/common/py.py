@@ -1,15 +1,17 @@
 
+import importlib
 import os
 import inspect
+from types import ModuleType
 from typing import Callable
-
+import importlib.util
 from toolguard.common.str import to_snake_case
 
 def py_extension(filename:str)->str:
     return filename if filename.endswith(".py") else filename+".py" 
 
 def un_py_extension(filename:str)->str:
-    return filename[:-3] if filename.endswith(".py") else filename
+    return filename.removesuffix(".py") if filename.endswith(".py") else filename
     
 def path_to_module(file_path:str)->str:
     assert file_path
@@ -24,6 +26,25 @@ def module_to_path(module:str)->str:
 
 def unwrap_fn(fn: Callable)->Callable: 
     return fn.func if hasattr(fn, "func") else fn
+
+def load_module_from_path(file_path: str, py_root:str) -> ModuleType:
+    full_path = os.path.abspath(os.path.join(py_root, file_path))
+    if not os.path.exists(full_path):
+        raise ImportError(f"Module file does not exist: {full_path}")
+
+    module_name = path_to_module(file_path)
+
+    spec = importlib.util.spec_from_file_location(module_name, full_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Could not load module spec from {full_path}")
+
+    module = importlib.util.module_from_spec(spec)
+    try:
+        spec.loader.exec_module(module)  # type: ignore
+    except Exception as e:
+        raise ImportError(f"Failed to execute module '{module_name}': {e}")
+
+    return module
 
 import sys
 from pathlib import Path
@@ -74,3 +95,18 @@ def extract_docstr_args(func:Callable) -> str:
         return ""
 
     return "\n".join(args_lines)
+
+def get_func_signature(obj)->str:
+	if inspect.isfunction(obj):
+		return inspect.signature(obj)
+	if hasattr(obj, "func") and inspect.isfunction(obj.func):
+		return inspect.signature(obj.func)
+	if hasattr(obj, "args_schema"):
+		schema = obj.args_schema
+		fields = schema.model_fields
+		params = ", ".join(
+			f"{name}: {field.annotation.__name__ if hasattr(field.annotation, '__name__') else field.annotation}"
+			for name, field in fields.items()
+		)
+		return f"({params})"
+	return None

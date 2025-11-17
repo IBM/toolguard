@@ -1,12 +1,11 @@
 
 import inspect
 import json
-import os
+import sys
 from types import ModuleType
 from typing import Any, Dict, List, Optional, Type, Callable, TypeVar, Union
 from pydantic import BaseModel
-import importlib.util
-import inspect
+import importlib
 import os
 
 import functools
@@ -19,13 +18,14 @@ class IToolInvoker(ABC):
     def invoke(self, toolname: str, arguments: Dict[str, Any], return_type: Type[T])->T:
         ...
 
-
-def load_toolguards(directory: str, filename: str = RESULTS_FILENAME) -> "ToolguardRuntime":
+def load_toolguard_code_result(directory: str, filename: str = RESULTS_FILENAME):
     full_path = os.path.join(directory, filename)
     with open(full_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
-    result = ToolGuardsCodeGenerationResult(**data)
-    return ToolguardRuntime(result, directory)
+    return ToolGuardsCodeGenerationResult(**data)
+
+def load_toolguards(directory: str, filename: str = RESULTS_FILENAME) -> "ToolguardRuntime":
+    return ToolguardRuntime(load_toolguard_code_result(directory, filename), directory)
 
 class ToolGuardCodeResult(BaseModel):
     tool: ToolPolicy
@@ -44,34 +44,52 @@ class ToolGuardsCodeGenerationResult(BaseModel):
         with open(full_path, 'w', encoding='utf-8') as f:
             json.dump(self.model_dump(), f, indent=2)
         return self
-
+    
 class ToolguardRuntime:
+    _original_pypath:list[str] = []
 
     def __init__(self, result: ToolGuardsCodeGenerationResult, ctx_dir: str) -> None:
         self._ctx_dir = ctx_dir
         self._result = result
+
+    def __enter__(self):
+        #add folder to python path
+        self._original_pypath = list(sys.path) #remember old path
+        sys.path.insert(0, os.path.abspath(self._ctx_dir))
+
+        #cache the tool guards
         self._guards = {}
-        for tool_name, tool_result in result.tools.items():
-            module = load_module_from_path(tool_result.guard_file.file_name, ctx_dir)
-            guard_fn =find_function_in_module(module, tool_result.guard_fn_name)
+        for tool_name, tool_result in self._result.tools.items():
+            mod_name = file_to_module_name(tool_result.guard_file.file_name)
+            module = importlib.import_module(mod_name)
+            guard_fn = find_function_in_module(module, tool_result.guard_fn_name)
             assert guard_fn, "Guard not found"
             self._guards[tool_name] = guard_fn
 
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        del self._guards
+        #back to original python path
+        sys.path[:] = self._original_pypath
+        return False
+    
     def _make_args(self, guard_fn:Callable, args: dict,  delegate: IToolInvoker)->Dict[str, Any]:
         sig = inspect.signature(guard_fn)
         guard_args = {}
         for p_name, param in sig.parameters.items():
             if p_name == API_PARAM:
-                module = load_module_from_path(self._result.domain.app_api_impl.file_name, self._ctx_dir)
+                mod_name = file_to_module_name(self._result.domain.app_api_impl.file_name)
+                module = importlib.import_module(mod_name)
                 clazz = find_class_in_module(module, self._result.domain.app_api_impl_class_name)
                 assert clazz, f"class {self._result.domain.app_api_impl_class_name} not found in {self._result.domain.app_api_impl.file_name}"
                 guard_args[p_name] = clazz(delegate)
             else:
-                arg = args.get(p_name)
+                arg_val = args.get(p_name)
                 if inspect.isclass(param.annotation) and issubclass(param.annotation, BaseModel):
-                    guard_args[p_name] = param.annotation.model_construct(**arg)
+                    guard_args[p_name] = param.annotation.model_construct(**arg_val)
                 else:
-                    guard_args[p_name] = arg
+                    guard_args[p_name] = arg_val
         return guard_args
 
     def check_toolcall(self, tool_name:str, args: dict, delegate: IToolInvoker):
@@ -80,27 +98,8 @@ class ToolguardRuntime:
             return
         guard_fn(**self._make_args(guard_fn, args, delegate))
 
-def file_to_module(file_path:str):
+def file_to_module_name(file_path:str):
     return file_path.removesuffix('.py').replace('/', '.')
-
-def load_module_from_path(file_path: str, py_root:str) -> ModuleType:
-    full_path = os.path.abspath(os.path.join(py_root, file_path))
-    if not os.path.exists(full_path):
-        raise ImportError(f"Module file does not exist: {full_path}")
-
-    module_name = file_to_module(file_path)
-
-    spec = importlib.util.spec_from_file_location(module_name, full_path)
-    if spec is None or spec.loader is None:
-        raise ImportError(f"Could not load module spec from {full_path}")
-
-    module = importlib.util.module_from_spec(spec)
-    try:
-        spec.loader.exec_module(module)  # type: ignore
-    except Exception as e:
-        raise ImportError(f"Failed to execute module '{module_name}': {e}")
-
-    return module
 
 def find_function_in_module(module: ModuleType, function_name:str):
     func = getattr(module, function_name, None)
@@ -154,4 +153,3 @@ def guard_before_call(guards_folder: str) -> Callable[[Callable], Callable]:
             return func(*args, **kwargs)
         return wrapper  # type: ignore
     return decorator
-

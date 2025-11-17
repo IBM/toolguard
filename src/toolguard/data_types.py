@@ -1,14 +1,44 @@
+import inspect
 import json
-from abc import ABC, abstractmethod
 import os
 from pathlib import Path
 from pydantic import BaseModel, Field
-from typing import Any, List, Optional
+from typing import Any, Callable, List, Optional
+
+from langchain_core.tools import BaseTool
+from toolguard.common import py
 
 DEBUG_DIR = "debug"
 TESTS_DIR = "tests"
 RESULTS_FILENAME = "result.json"
 API_PARAM = "api"
+
+
+class ToolInfo(BaseModel):
+	name: str
+	description: str
+	parameters: Any
+	signature: str
+	full_description:str
+
+	@classmethod
+	def from_function(cls, fn: Callable) -> "ToolInfo":
+		# Assumes @tool decorator from langchain https://python.langchain.com/docs/how_to/custom_tools/
+		# or a plain function with doc string
+		def doc_summary(doc:str): 
+			paragraphs = [p.strip() for p in doc.split("\n\n") if p.strip()]
+			return paragraphs[0] if paragraphs else ""
+		
+		fn_name = fn.name if hasattr(fn, 'name') else fn.__name__
+		sig =fn_name + str(py.get_func_signature(fn))
+		full_desc = fn.description if hasattr(fn,'description') else fn.__doc__.strip() if fn.__doc__ else (inspect.getdoc(fn) or "")
+		return cls(
+            name=fn_name,
+			description=doc_summary(full_desc),
+			full_description = full_desc,
+            parameters=fn.args_schema.model_json_schema() if hasattr(fn, 'args_schema') else inspect.getdoc(fn),
+			signature=sig,
+        )
 
 class FileTwin(BaseModel):
     file_name: str
@@ -79,7 +109,6 @@ def load_tool_policy(file_path: str, tool_name: str) -> ToolPolicy:
         if not item.get("skip")]
     return ToolPolicy(tool_name=tool_name, policy_items=items)
 
-
 class Domain(BaseModel):
     app_name: str = Field(..., description="Application name")
     toolguard_common: FileTwin = Field(..., description="Pydantic data types used by toolguard framework.")
@@ -104,3 +133,15 @@ class PolicyViolationException(Exception):
     @property
     def message(self):
         return self._msg
+
+
+def load_functions_in_file(py_root:str, file_path: str) -> List[Callable]:
+	with py.temp_python_path(py_root):
+		module = py.load_module_from_path(file_path, py_root)
+	funcs = []
+	for name, obj in inspect.getmembers(module):
+		if isinstance(obj, BaseTool):
+			funcs.append(py.unwrap_fn(obj))
+		elif callable(obj) and not (name=='tool' and obj.__module__ =='langchain_core.tools.convert'):
+			funcs.append(obj)
+	return funcs

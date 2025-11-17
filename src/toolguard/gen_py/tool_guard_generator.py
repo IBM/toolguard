@@ -13,7 +13,7 @@ from toolguard.common.str import to_snake_case
 from toolguard.data_types import DEBUG_DIR, TESTS_DIR, FileTwin, RuntimeDomain, ToolPolicy, ToolPolicyItem
 from toolguard.gen_py.consts import guard_fn_module_name, guard_fn_name, guard_item_fn_module_name, guard_item_fn_name, test_fn_module_name
 from toolguard.gen_py.tool_dependencies import tool_dependencies
-from toolguard.runtime import ToolGuardCodeResult, find_class_in_module, load_module_from_path
+from toolguard.runtime import ToolGuardCodeResult, find_class_in_module
 import toolguard.gen_py.utils.pytest as pytest
 import toolguard.gen_py.utils.pyright as pyright
 from toolguard.gen_py.prompts.gen_tests import generate_init_tests, improve_tests
@@ -223,7 +223,7 @@ class ToolGuardGenerator:
 
     def _find_api_function(self, tool_fn_name:str):
         with py.temp_python_path(self.py_path):
-            module = load_module_from_path(self.domain.app_api.file_name, self.py_path)
+            module = py.load_module_from_path(self.domain.app_api.file_name, self.py_path)
         assert module, f"File not found {self.domain.app_api.file_name}"
         cls = find_class_in_module(module, self.domain.app_api_class_name)
         return getattr(cls, tool_fn_name)

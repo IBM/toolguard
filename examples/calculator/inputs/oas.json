@@ -221,6 +221,64 @@
           }
         }
       }
+    },
+    "/tools/map_kdi_number": {
+      "post": {
+        "operationId": "map_kdi_number",
+        "summary": "Compute the kdi number",
+        "description": "Compute the kdi number",
+        "x-input-examples": [
+          "map_kdi_number(2.0)"
+        ],
+        "x-output-examples": [-2.0],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "i": {
+                    "type": "number",
+                    "description": "The number to compute.",
+                    "example": 10.0
+                  }
+                },
+                "required": ["g", "h"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The kdi index.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "number",
+                  "example": 5.0
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "not a number"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }
