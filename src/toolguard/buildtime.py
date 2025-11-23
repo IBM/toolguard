@@ -1,19 +1,20 @@
-import asyncio
 import os
 from os.path import join
-from typing import Callable, List, Optional
-import inspect
+from typing import Callable, List, Optional, Any, Dict
 import json
 import logging
-from langchain_core.tools import BaseTool
+
+from langchain.tools import BaseTool
+from pydantic import BaseModel
+
+from toolguard.common.open_api import OpenAPI
 
 from .llm.i_tg_llm import I_TG_LLM
 from .runtime import ToolGuardsCodeGenerationResult
-from .data_types import ToolPolicy, ToolPolicyItem, load_tool_policy, ToolInfo
+from .data_types import ToolPolicy, load_tool_policy, ToolInfo
 from .gen_py.gen_toolguards import generate_toolguards_from_functions, generate_toolguards_from_openapi
 from .gen_spec.oas_summary import OASSummarizer
 from .gen_spec.spec_generator import extract_policies
-from .common import py
 
 logger = logging.getLogger(__name__)
 
@@ -26,14 +27,19 @@ async def build_toolguards(
 		app_name:str= "my_app", 
 		tools2run: List[str] | None=None, 
 		short1=True)->ToolGuardsCodeGenerationResult:
-	
-	if isinstance(tools, list): #supports list of functions or list of langgraph tools
-		tools_info = [ToolInfo.from_function(tool) for tool in tools]
-		tool_policies = await extract_policies(policy_text, tools_info, step1_out_dir, step1_llm, tools2run, short1)
-		return await generate_guards_from_tool_policies(tools, tool_policies, step2_out_dir, app_name, None, tools2run)
-	
-	if isinstance(tools, str): #Backward compatibility to support OpenAPI specs
-		oas_path = tools
+	os.makedirs(step1_out_dir, exist_ok=True)
+	os.makedirs(step2_out_dir, exist_ok=True)
+
+	# case1: path to OpenAPI spec
+	oas_path = tools if isinstance(tools, str) else None
+
+	# case2: List of Langchain tools
+	if isinstance(tools, list) and all([isinstance(tool, BaseTool) for tool in tools]):
+		oas =_langchain_tools_to_openapi(tools) # type: ignore
+		oas_path = f"{step1_out_dir}/oas.json"
+		oas.save(oas_path)
+
+	if oas_path: # for cases 1 and 2
 		with open(oas_path, 'r', encoding='utf-8') as file:
 			oas = json.load(file)
 		summarizer = OASSummarizer(oas)
@@ -41,7 +47,13 @@ async def build_toolguards(
 		tool_policies = await extract_policies(policy_text, tools_info, step1_out_dir, step1_llm, tools2run, short1)
 		return await generate_guards_from_tool_policies_oas(oas_path, tool_policies, step2_out_dir, app_name, tools2run)
 	
-	raise "Unknown tools"
+	# Case 3: List of functions + case 4: List of methods
+	if isinstance(tools, list) and not oas_path:
+		tools_info = [ToolInfo.from_function(tool) for tool in tools]
+		tool_policies = await extract_policies(policy_text, tools_info, step1_out_dir, step1_llm, tools2run, short1)
+		return await generate_guards_from_tool_policies(tools, tool_policies, step2_out_dir, app_name, None, tools2run)
+	
+	raise Exception("Unknown tools")
 
 
 async def generate_guards_from_tool_policies(
@@ -51,7 +63,6 @@ async def generate_guards_from_tool_policies(
 		app_name: str,
 		lib_names: Optional[List[str]] = None,
 		tool_names: Optional[List[str]] = None) -> ToolGuardsCodeGenerationResult:
-	os.makedirs(step2_path, exist_ok=True)
 	
 	tool_policies = [policy for policy in tool_policies if (not tool_names) or (policy.tool_name in tool_names)]
 	return await generate_toolguards_from_functions(app_name, tool_policies, step2_path, funcs=funcs, module_roots=lib_names)
@@ -63,13 +74,12 @@ async def generate_guards_from_tool_policies_oas(
 		to_step2_path: str,
 		app_name: str,
 		tool_names: Optional[List[str]] = None) -> ToolGuardsCodeGenerationResult:
-	os.makedirs(to_step2_path, exist_ok=True)
 	
 	tool_policies = [policy for policy in tool_policies if (not tool_names) or (policy.tool_name in tool_names)]
 	return await generate_toolguards_from_openapi(app_name, tool_policies, to_step2_path, oas_path)
 
 
-def load_policies_in_folder(folder:str, ):
+def load_policies_in_folder(folder:str)->List[ToolPolicy]:
 	files = [f for f in os.listdir(folder) 
 		if os.path.isfile(join(folder, f)) and f.endswith(".json")]
 	tool_policies = []
@@ -80,13 +90,51 @@ def load_policies_in_folder(folder:str, ):
 			tool_policies.append(policy)
 	return tool_policies
 
-def load_functions_in_file(py_root:str, file_path: str) -> List[Callable]:
-	with py.temp_python_path(py_root):
-		module = py.load_module_from_path(file_path, py_root)
-	funcs = []
-	for name, obj in inspect.getmembers(module):
-		if isinstance(obj, BaseTool):
-			funcs.append(py.unwrap_fn(obj))
-		elif callable(obj) and not (name=='tool' and obj.__module__ =='langchain_core.tools.convert'):
-			funcs.append(obj)
-	return funcs
+
+def _langchain_tools_to_openapi(
+    tools: List[BaseTool],
+    title: str = "LangChain Tools API",
+    version: str = "1.0.0",
+)->OpenAPI:
+    paths = {}
+    components = {"schemas": {}}
+
+    for tool in tools:
+        # Get JSON schema from the args model
+        if hasattr(tool, "args_schema") and issubclass(tool.args_schema, BaseModel):
+            schema = tool.args_schema.model_json_schema()
+            components["schemas"][tool.name + "Args"] = schema
+
+            request_body = {
+                "description": tool.description,
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": {"$ref": f"#/components/schemas/{tool.name}Args"}
+                    }
+                },
+            }
+        else:
+            # Tools without args → empty schema
+            request_body = None
+
+        paths[f"/tools/{tool.name}"] = {
+            "post": {
+                "summary": tool.description,
+                "operationId": tool.name,
+                "requestBody": request_body,
+                "responses": {
+                    "200": {
+                        "description": "Tool result",
+                        "content": {"application/json": {}},
+                    }
+                },
+            }
+        }
+
+    return OpenAPI.model_validate({
+        "openapi": "3.1.0",
+        "info": {"title": title, "version": version},
+        "paths": paths,
+        "components": components,
+    })
