@@ -1,3 +1,4 @@
+from importlib import import_module
 import inspect
 import os
 import asyncio
@@ -50,13 +51,15 @@ class ToolGuardGenerator:
 
     async def generate(self)->ToolGuardCodeResult:
         self.start()
-        tool_guard, init_item_guards = self._create_initial_tool_guards()
     
-        # Generate guards for all tool items
-        tests_and_guards = await asyncio.gather(* [
-            self._generate_item_tests_and_guard(item, item_guard)
-                for item, item_guard in zip(self.tool_policy.policy_items, init_item_guards)
-        ])
+        with py.temp_python_path(self.py_path):
+            tool_guard, init_item_guards = self._create_initial_tool_guards()
+    
+            # Generate guards for all tool items
+            tests_and_guards = await asyncio.gather(* [
+                self._generate_item_tests_and_guard(item, item_guard)
+                    for item, item_guard in zip(self.tool_policy.policy_items, init_item_guards)
+            ])
 
         item_tests, item_guards = zip(*tests_and_guards)
         return ToolGuardCodeResult(
@@ -221,8 +224,7 @@ class ToolGuardGenerator:
         raise Exception(f"Syntax error generating for tool '{item.name}'.")
 
     def _find_api_function(self, tool_fn_name:str):
-        with py.temp_python_path(self.py_path):
-            module = py.load_module_from_path(self.domain.app_api.file_name, self.py_path)
+        module = import_module(py.path_to_module(self.domain.app_api.file_name))
         assert module, f"File not found {self.domain.app_api.file_name}"
         cls = find_class_in_module(module, self.domain.app_api_class_name)
         return getattr(cls, tool_fn_name)

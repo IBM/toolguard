@@ -9,7 +9,7 @@ from typing import Callable, DefaultDict, Dict, List, Literal, Optional, Set, Tu
 from typing import Annotated, Union
 from collections import defaultdict, deque
 import typing
-from ..common.py import module_to_path, unwrap_fn
+from ..common.py import module_to_path
 from ..data_types import FileTwin
 
 Dependencies = DefaultDict[type, Set[type]]
@@ -20,7 +20,7 @@ class APIExtractor:
         self.include_module_roots = include_module_roots
 
     def extract_from_functions(self, funcs: List[Callable], interface_name: str, interface_module_name:str, types_module_name:str, impl_module_name:str, impl_class_name:str)->Tuple[FileTwin, FileTwin, FileTwin]:
-        funcs = [unwrap_fn(func) for func in funcs]
+        # funcs = [unwrap_fn(func) for func in funcs]
         assert all([_is_global_or_class_function(func) for func in funcs])
 
         os.makedirs(self.py_path, exist_ok=True)

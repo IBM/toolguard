@@ -14,7 +14,6 @@ from .domain_from_openapi import generate_domain_from_openapi
 from ..runtime import ToolGuardsCodeGenerationResult
 from .tool_guard_generator import ToolGuardGenerator
 from .utils import pytest, venv, pyright
-from ..common.py import unwrap_fn
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +33,7 @@ async def generate_toolguards_from_functions(
 
     if not module_roots:
         if len(funcs)>0:
-            module_roots = list({unwrap_fn(func).__module__.split(".")[0] for func in funcs})
+            module_roots = list({func.__module__.split(".")[0] for func in funcs})
     assert module_roots
 
     #Domain from functions

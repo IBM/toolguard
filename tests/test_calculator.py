@@ -25,7 +25,8 @@ STEP2 = "step2"
 async def _build_toolguards(
     model:str,
     work_dir: str,
-    tools: List[Callable]| str
+    tools: List[Callable]| str,
+    app_sufix: str = ""
 ):
     policy_text = markdown.markdown(open(wiki_path, 'r', encoding='utf-8').read())
     llm = LitellmModel(model, llm_provider)
@@ -42,7 +43,7 @@ async def _build_toolguards(
 		step1_out_dir = step1_out_dir, 
 		step2_out_dir = step2_out_dir, 
 		step1_llm = llm, 
-		app_name= app_name, 
+		app_name= app_name+app_sufix, 
 		# tools2run = [], 
 		short1=True
     )
@@ -84,20 +85,20 @@ def assert_toolgurards_run(gen_result: ToolGuardsCodeGenerationResult, tool_invo
 from calculator.inputs import tool_functions as fn_tools
 @pytest.mark.asyncio
 async def test_tool_functions():
-    work_dir = "examples/calculator/outputs/callable"
+    work_dir = "examples/calculator/outputs/tool_functions"
     funcs = [fn_tools.divide_tool, fn_tools.add_tool, fn_tools.subtract_tool, fn_tools.multiply_tool, fn_tools.map_kdi_number]
 
-    gen_result = await _build_toolguards(model, work_dir, funcs)
+    gen_result = await _build_toolguards(model, work_dir, funcs, "_fns")
     gen_result = load_toolguard_code_result(join(work_dir, model, STEP2))
     assert_toolgurards_run(gen_result, ToolFunctionsInvoker(funcs))
 
 @pytest.mark.asyncio
 async def test_tool_methods():
-    work_dir = "examples/calculator/outputs/class_of_tools"
+    work_dir = "examples/calculator/outputs/tool_methods"
     from calculator.inputs.tool_methods import CalculatorTools
     mtds = [member for name, member in inspect.getmembers(CalculatorTools, predicate=inspect.isfunction)]
 
-    gen_result = await _build_toolguards(model, work_dir, mtds)
+    gen_result = await _build_toolguards(model, work_dir, mtds, "_mtds")
     gen_result = load_toolguard_code_result(join(work_dir, model, STEP2))
     assert_toolgurards_run(gen_result, ToolMethodsInvoker(CalculatorTools()))
 
@@ -107,17 +108,17 @@ async def test_tools_langchain():
     work_dir = "examples/calculator/outputs/lg_tools"
     tools = [lg_tools.divide_tool, lg_tools.add_tool, lg_tools.subtract_tool, lg_tools.multiply_tool, lg_tools.map_kdi_number]
 
-    gen_result = await _build_toolguards(model, work_dir, tools)
+    gen_result = await _build_toolguards(model, work_dir, tools, "_lg")
     gen_result = load_toolguard_code_result(join(work_dir, model, STEP2))
 
     assert_toolgurards_run(gen_result, LangchainToolInvoker(tools), True)
 
 @pytest.mark.asyncio
 async def test_tools_openapi_spec():
-    work_dir = "examples/calculator/outputs/oas"
+    work_dir = "examples/calculator/outputs/oas_tools"
     oas_path = "examples/calculator/inputs/oas.json"
     
-    gen_result = await _build_toolguards(model, work_dir, tools=oas_path)
+    gen_result = await _build_toolguards(model, work_dir, tools=oas_path, app_sufix="_oas")
     gen_result = load_toolguard_code_result(join(work_dir, model, STEP2))
 
     #instead of calling a remote web method, compute inline

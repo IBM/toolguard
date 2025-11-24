@@ -51,9 +51,10 @@ def main():
 		)
 	)
 
+from importlib import import_module
 def load_functions_in_file(py_root:str, file_path: str) -> List[Callable]:
 	with py.temp_python_path(py_root):
-		module = py.load_module_from_path(file_path, py_root)
+		module = import_module(py.path_to_module(file_path))
 	funcs = []
 	for name, obj in inspect.getmembers(module):
 		# if isinstance(obj, BaseTool):
