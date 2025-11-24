@@ -136,7 +136,7 @@ def _run_safe_python(folder:str, test_file:str, report_file:str):
     }
     code = f"""
 import pytest
-with temp_sys_path("{folder}")
+with temp_sys_path("{folder}"):
     pytest.main(["{join(folder, test_file)}", "--quiet", "--json-report", "--json-report-file={join(folder, report_file)}"])
 """
     out = exec(code)
