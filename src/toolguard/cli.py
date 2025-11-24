@@ -8,9 +8,9 @@ from typing import Callable, List
 import markdown
 import logging
 
-from toolguard.buildtime import build_toolguards
-from toolguard.common import py
-from toolguard.llm.tg_litellm import LitellmModel
+from .buildtime import build_toolguards
+from .common import py
+from .llm.tg_litellm import LitellmModel
 
 logger = logging.getLogger(__name__)
 

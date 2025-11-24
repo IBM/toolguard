@@ -7,7 +7,7 @@ import logging
 from langchain.tools import BaseTool
 from pydantic import BaseModel
 
-from toolguard.common.open_api import OpenAPI
+from .common.open_api import OpenAPI
 
 from .llm.i_tg_llm import I_TG_LLM
 from .runtime import ToolGuardsCodeGenerationResult
