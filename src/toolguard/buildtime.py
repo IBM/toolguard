@@ -1,13 +1,11 @@
 import os
 from os.path import join
-from typing import Callable, List, Optional, Any, Dict
+from typing import Callable, List, Optional
 import json
 import logging
 
 from langchain.tools import BaseTool
-from pydantic import BaseModel
 
-from .common.open_api import OpenAPI
 
 from .llm.i_tg_llm import I_TG_LLM
 from .runtime import ToolGuardsCodeGenerationResult
@@ -15,6 +13,7 @@ from .data_types import ToolPolicy, load_tool_policy, ToolInfo
 from .gen_py.gen_toolguards import generate_toolguards_from_functions, generate_toolguards_from_openapi
 from .gen_spec.oas_summary import OASSummarizer
 from .gen_spec.spec_generator import extract_policies
+from .common.langchain import langchain_tools_to_openapi
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +34,7 @@ async def build_toolguards(
 
 	# case2: List of Langchain tools
 	if isinstance(tools, list) and all([isinstance(tool, BaseTool) for tool in tools]):
-		oas =_langchain_tools_to_openapi(tools) # type: ignore
+		oas = langchain_tools_to_openapi(tools) # type: ignore
 		oas_path = f"{step1_out_dir}/oas.json"
 		oas.save(oas_path)
 
@@ -89,52 +88,3 @@ def load_policies_in_folder(folder:str)->List[ToolPolicy]:
 		if policy.policy_items:
 			tool_policies.append(policy)
 	return tool_policies
-
-
-def _langchain_tools_to_openapi(
-    tools: List[BaseTool],
-    title: str = "LangChain Tools API",
-    version: str = "1.0.0",
-)->OpenAPI:
-    paths = {}
-    components = {"schemas": {}}
-
-    for tool in tools:
-        # Get JSON schema from the args model
-        if hasattr(tool, "args_schema") and issubclass(tool.args_schema, BaseModel):
-            schema = tool.args_schema.model_json_schema()
-            components["schemas"][tool.name + "Args"] = schema
-
-            request_body = {
-                "description": tool.description,
-                "required": True,
-                "content": {
-                    "application/json": {
-                        "schema": {"$ref": f"#/components/schemas/{tool.name}Args"}
-                    }
-                },
-            }
-        else:
-            # Tools without args → empty schema
-            request_body = None
-
-        paths[f"/tools/{tool.name}"] = {
-            "post": {
-                "summary": tool.description,
-                "operationId": tool.name,
-                "requestBody": request_body,
-                "responses": {
-                    "200": {
-                        "description": "Tool result",
-                        "content": {"application/json": {}},
-                    }
-                },
-            }
-        }
-
-    return OpenAPI.model_validate({
-        "openapi": "3.1.0",
-        "info": {"title": title, "version": version},
-        "paths": paths,
-        "components": components,
-    })
