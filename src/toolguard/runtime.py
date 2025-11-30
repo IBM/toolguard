@@ -9,7 +9,7 @@ import importlib
 import os
 
 import functools
-from .data_types import API_PARAM, RESULTS_FILENAME, FileTwin, RuntimeDomain, ToolPolicy
+from .data_types import API_PARAM, RESULTS_FILENAME, FileTwin, RuntimeDomain, ToolGuardSpec
 
 from abc import ABC, abstractmethod
 class IToolInvoker(ABC):
@@ -28,7 +28,7 @@ def load_toolguards(directory: str, filename: str = RESULTS_FILENAME) -> "Toolgu
     return ToolguardRuntime(load_toolguard_code_result(directory, filename), directory)
 
 class ToolGuardCodeResult(BaseModel):
-    tool: ToolPolicy
+    tool: ToolGuardSpec
     guard_fn_name: str
     guard_file: FileTwin
     item_guard_files: List[FileTwin|None]

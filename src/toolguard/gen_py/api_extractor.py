@@ -20,7 +20,6 @@ class APIExtractor:
         self.include_module_roots = include_module_roots
 
     def extract_from_functions(self, funcs: List[Callable], interface_name: str, interface_module_name:str, types_module_name:str, impl_module_name:str, impl_class_name:str)->Tuple[FileTwin, FileTwin, FileTwin]:
-        # funcs = [unwrap_fn(func) for func in funcs]
         assert all([_is_global_or_class_function(func) for func in funcs])
 
         os.makedirs(self.py_path, exist_ok=True)

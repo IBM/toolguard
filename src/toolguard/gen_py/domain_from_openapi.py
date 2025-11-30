@@ -22,7 +22,7 @@ def generate_domain_from_openapi(py_path:str, app_name: str, openapi_file:str)->
     common = FileTwin.load_from(root, "data_types.py")\
         .save_as(py_path, join(RUNTIME_PACKAGE_NAME, RUNTIME_TYPES_PY))
     runtime = FileTwin.load_from(root, "runtime.py")
-    runtime.content = runtime.content.replace("toolguard.", f"{RUNTIME_PACKAGE_NAME}.")
+    # runtime.content = runtime.content.replace("toolguard.", f"{RUNTIME_PACKAGE_NAME}.")
     runtime.save_as(py_path, join(RUNTIME_PACKAGE_NAME, RUNTIME_INIT_PY))
 
     #APP Types

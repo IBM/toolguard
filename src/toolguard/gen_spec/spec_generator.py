@@ -4,11 +4,11 @@ import json
 import os
 from typing import List, Optional
 
-from ..data_types import ToolInfo, ToolPolicy, load_tool_policy
+from ..data_types import ToolInfo, ToolGuardSpec, load_tool_policy
 from ..llm.i_tg_llm import I_TG_LLM
 from .utils import read_prompt_file, generate_messages, save_output, find_mismatched_references
 
-class TextToolPolicyGenerator:
+class ToolGuardSpecGenerator:
 	def __init__(self, llm:I_TG_LLM, policy_document:str, tools:List[ToolInfo], out_dir:str) -> None:
 		self.llm = llm
 		self.policy_document = policy_document
@@ -299,12 +299,12 @@ class TextToolPolicyGenerator:
 			return False
 		return True
 
-async def extract_policies(policy_text:str, tools:List[ToolInfo], step1_output_dir:str, llm:I_TG_LLM, tools_shortlist: Optional[List[str]]=None, short=False)->List[ToolPolicy]:
+async def extract_toolguard_specs(policy_text:str, tools:List[ToolInfo], step1_output_dir:str, llm:I_TG_LLM, tools_shortlist: Optional[List[str]]=None, short=False)->List[ToolGuardSpec]:
 	process_dir = os.path.join(step1_output_dir, "process")
 	if not os.path.isdir(process_dir):
 		os.makedirs(process_dir)
 	output_tool_policies  = []
-	tpg = TextToolPolicyGenerator(llm, policy_text, tools, process_dir)
+	tpg = ToolGuardSpecGenerator(llm, policy_text, tools, process_dir)
 	async def do_one_tool(tool_name):
 		if short:
 			final_output = await tpg.generate_minimal_policy(tool_name)

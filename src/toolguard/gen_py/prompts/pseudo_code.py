@@ -1,14 +1,14 @@
-from ...data_types import Domain, ToolPolicyItem
+from ...data_types import Domain, ToolGuardSpecItem
 from mellea import generative
 
 
 @generative
-def tool_policy_pseudo_code(policy_item: ToolPolicyItem, fn_to_analyze: str, domain: Domain) -> str:
+def tool_policy_pseudo_code(policy_item: ToolGuardSpecItem, fn_to_analyze: str, domain: Domain) -> str:
     """
     Returns a pseudo code to check business constraints on a tool cool using an API
 
     Args:
-        policy_item (ToolPolicyItem): Business policy, in natural language, specifying a constraint on a process involving the tool under analysis.
+        policy_item (ToolGuardSpecItem): Business policy, in natural language, specifying a constraint on a process involving the tool under analysis.
         fn_to_analyze (str): The function signature of the tool under analysis.
         domain (Domain): Python code defining available data types and APIs for invoking other tools.
 

@@ -3,6 +3,7 @@ from enum import StrEnum
 import json
 import os
 from os.path import join
+from pathlib import Path
 import subprocess
 import sys
 from typing import Any, List, Dict, Optional
@@ -113,16 +114,17 @@ def run(folder:str, test_file:str, report_file:str)->TestReport:
     return report
 
 @contextmanager
-def temp_sys_path(path):
-    """Temporarily insert a path into sys.path."""
-    sys.path.insert(0, path)
-    try:
-        yield
-    finally:
+def temp_python_path(path: str):
+    path = str(Path(path).resolve())
+    if path not in sys.path:
+        sys.path.insert(0, path)
         try:
+            yield
+        finally:
             sys.path.remove(path)
-        except ValueError:
-            pass
+    else:
+        # Already in sys.path, no need to remove
+        yield
 
 def _run_safe_python(folder:str, test_file:str, report_file:str):
     from smolagents.local_python_executor import LocalPythonExecutor

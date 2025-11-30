@@ -11,7 +11,7 @@ from ..common import py
 from ..common.llm_py import get_code_content
 from ..common.py_doc_str import extract_docstr_args
 from ..common.str import to_snake_case
-from ..data_types import DEBUG_DIR, TESTS_DIR, FileTwin, RuntimeDomain, ToolPolicy, ToolPolicyItem
+from ..data_types import DEBUG_DIR, TESTS_DIR, FileTwin, RuntimeDomain, ToolGuardSpec, ToolGuardSpecItem
 from .consts import guard_fn_module_name, guard_fn_name, guard_item_fn_module_name, guard_item_fn_name, test_fn_module_name
 from .tool_dependencies import tool_dependencies
 from ..runtime import ToolGuardCodeResult, find_class_in_module
@@ -28,11 +28,11 @@ MAX_TEST_GEN_TRIALS = 3
 class ToolGuardGenerator:
     app_name: str
     py_path: str
-    tool_policy: ToolPolicy
+    tool_policy: ToolGuardSpec
     domain: RuntimeDomain
     common: FileTwin
 
-    def __init__(self, app_name: str, tool_policy: ToolPolicy, py_path: str, domain: RuntimeDomain, py_env:str) -> None:
+    def __init__(self, app_name: str, tool_policy: ToolGuardSpec, py_path: str, domain: RuntimeDomain, py_env:str) -> None:
         self.py_path = py_path
         self.app_name = app_name
         self.tool_policy = tool_policy
@@ -70,7 +70,7 @@ class ToolGuardGenerator:
             test_files= item_tests
         )
 
-    async def _generate_item_tests_and_guard(self, item: ToolPolicyItem, init_guard: FileTwin)->Tuple[FileTwin|None, FileTwin]:
+    async def _generate_item_tests_and_guard(self, item: ToolGuardSpecItem, init_guard: FileTwin)->Tuple[FileTwin|None, FileTwin]:
         # Dependencies of this tool
         tool_fn_name = to_snake_case(self.tool_policy.tool_name)
         tool_fn = self._find_api_function(tool_fn_name)        
@@ -102,14 +102,8 @@ class ToolGuardGenerator:
         except Exception as ex:
             logger.warning("guard generation failed. returning initial guard: %s", str(ex))
             return None, init_guard
-        
-    # async def tool_dependencies(self, policy_item: ToolPolicyItem, tool_signature: str) -> Set[str]:
-    #     domain = self.domain.get_definitions_only() #remove runtime fields
-    #     pseudo_code = await tool_policy_pseudo_code(policy_item, tool_signature, domain)
-    #     dep_tools = await extract_api_dependencies_from_pseudo_code(pseudo_code, domain)
-    #     return set(dep_tools)
 
-    async def _generate_tests(self, item: ToolPolicyItem, guard: FileTwin, dep_tools: List[str])-> FileTwin:
+    async def _generate_tests(self, item: ToolGuardSpecItem, guard: FileTwin, dep_tools: List[str])-> FileTwin:
         fn_name = guard_item_fn_name(item)
 
         test_file_name = join(TESTS_DIR, self.tool_policy.tool_name, f"{test_fn_module_name(item)}.py")
@@ -121,16 +115,10 @@ class ToolGuardGenerator:
             domain = self.domain.get_definitions_only() #remove runtime fields
             first_time = (trial_no == "a")
             if first_time:
-                #FIXME when melea will support aysnc
-                res = await asyncio.to_thread(
-                    lambda: generate_init_tests(fn_src=guard, policy_item=item, domain=domain, dependent_tool_names=dep_tools)
-                )
+                res = generate_init_tests(fn_src=guard, policy_item=item, domain=domain, dependent_tool_names=dep_tools)
             else:
                 assert test_file
-                #FIXME when melea will support aysnc
-                res = await asyncio.to_thread(
-                    lambda: improve_tests(prev_impl=test_file.content, domain=domain, policy_item=item, review_comments=errors, dependent_tool_names=dep_tools)
-                )
+                res = improve_tests(prev_impl=test_file.content, domain=domain, policy_item=item, review_comments=errors, dependent_tool_names=dep_tools)
 
             test_file = FileTwin(
                     file_name= test_file_name,
@@ -163,7 +151,7 @@ class ToolGuardGenerator:
         
         raise Exception("Generated tests contain syntax errors")
     
-    async def _improve_guard_green_loop(self, item: ToolPolicyItem, guard: FileTwin, tests: FileTwin, dep_tools: List[str])->FileTwin:
+    async def _improve_guard_green_loop(self, item: ToolGuardSpecItem, guard: FileTwin, tests: FileTwin, dep_tools: List[str])->FileTwin:
         trial_no = 0
         while trial_no < MAX_TOOL_IMPROVEMENTS:
             pytest_report_file = self.debug_dir(item, f"guard_{trial_no}_pytest.json")
@@ -186,7 +174,7 @@ class ToolGuardGenerator:
                 
         raise Exception(f"Failed {MAX_TOOL_IMPROVEMENTS} times to generate guard function for tool {to_snake_case(self.tool_policy.tool_name)} policy: {item.name}")
 
-    async def _improve_guard(self, item: ToolPolicyItem, prev_guard: FileTwin, review_comments: List[str], dep_tools: List[str], round: int = 0)->FileTwin:
+    async def _improve_guard(self, item: ToolGuardSpecItem, prev_guard: FileTwin, review_comments: List[str], dep_tools: List[str], round: int = 0)->FileTwin:
         module_name = guard_item_fn_module_name(item)
         errors = []
         trials = "a b c".split()
@@ -194,10 +182,7 @@ class ToolGuardGenerator:
             logger.debug(f"Improving guard function '{module_name}'... (trial = {round}.{trial})")
             domain = self.domain.get_definitions_only() #omit runtime fields
             prev_python = get_code_content(prev_guard.content)
-            #FIXME when melea will support aysnc
-            res = await asyncio.to_thread(
-                lambda: improve_tool_guard(prev_impl=prev_python, domain=domain, policy_item=item, dependent_tool_names=dep_tools, review_comments=review_comments + errors)
-            )
+            res = improve_tool_guard(prev_impl=prev_python, domain=domain, policy_item=item, dependent_tool_names=dep_tools, review_comments=review_comments + errors)
 
             guard = FileTwin(
                     file_name=prev_guard.file_name,
@@ -292,7 +277,7 @@ class ToolGuardGenerator:
         clean_sig_str = re.sub(r'\b(?:\w+\.)+(\w+)', r'\1', sig_str)
         return clean_sig_str
     
-    def _create_item_module(self, tool_item: ToolPolicyItem, tool_fn: Callable)->FileTwin:
+    def _create_item_module(self, tool_item: ToolGuardSpecItem, tool_fn: Callable)->FileTwin:
         file_name = join(
             to_snake_case(self.app_name), 
             to_snake_case(self.tool_policy.tool_name), 
@@ -320,5 +305,5 @@ class ToolGuardGenerator:
         ).save(self.py_path)
     
     
-    def debug_dir(self, policy_item: ToolPolicyItem, dir:str):
+    def debug_dir(self, policy_item: ToolGuardSpecItem, dir:str):
         return join(DEBUG_DIR, to_snake_case(self.tool_policy.tool_name), to_snake_case(policy_item.name), dir)

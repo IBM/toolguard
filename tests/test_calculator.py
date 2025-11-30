@@ -1,5 +1,4 @@
 import inspect
-import json
 import os
 from os.path import join
 import shutil
@@ -8,11 +7,10 @@ from typing import Any, Callable, Dict, List, Type, TypeVar
 import markdown
 
 import pytest
-from toolguard import generate_guards_from_tool_policies_oas, generate_guards_from_tool_policies, extract_policies
 from toolguard import IToolInvoker, ToolFunctionsInvoker, ToolGuardsCodeGenerationResult, ToolMethodsInvoker, load_toolguard_code_result, load_toolguards
-from toolguard import LitellmModel, ToolInfo
+from toolguard import LitellmModel
 from toolguard.buildtime import build_toolguards
-from toolguard.gen_spec.oas_summary import OASSummarizer
+from toolguard.data_types import MeleaSessionData
 from toolguard.runtime import LangchainToolInvoker
 
 wiki_path = "examples/calculator/inputs/policy_doc.md"
@@ -22,6 +20,9 @@ app_name = "calc" # dont use "calculator", as it conflicts with example name
 STEP1 = "step1"
 STEP2 = "step2"
 
+step1_llm = LitellmModel(model, llm_provider)
+step2_llm = MeleaSessionData()#initialized from env vars
+
 async def _build_toolguards(
     model:str,
     work_dir: str,
@@ -29,7 +30,6 @@ async def _build_toolguards(
     app_sufix: str = ""
 ):
     policy_text = markdown.markdown(open(wiki_path, 'r', encoding='utf-8').read())
-    llm = LitellmModel(model, llm_provider)
     
     run_dir = os.path.join(work_dir, model) #todo: add timestemp
     shutil.rmtree(run_dir, ignore_errors=True);
@@ -42,7 +42,8 @@ async def _build_toolguards(
 		tools = tools, 
 		step1_out_dir = step1_out_dir, 
 		step2_out_dir = step2_out_dir, 
-		step1_llm = llm, 
+		step1_llm = step1_llm,
+        step2_llm=step2_llm,
 		app_name= app_name+app_sufix, 
 		# tools2run = [], 
 		short1=True

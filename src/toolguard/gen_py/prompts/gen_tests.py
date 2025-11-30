@@ -1,6 +1,6 @@
 
 from typing import List, Set
-from ...data_types import Domain, FileTwin, ToolPolicyItem
+from ...data_types import Domain, FileTwin, ToolGuardSpecItem
 from mellea import generative
 
 # from toolguard.gen_py.prompts.python_code import PythonCodeModel
@@ -8,7 +8,7 @@ from mellea import generative
 @generative
 def generate_init_tests(
     fn_src: FileTwin, 
-    policy_item: ToolPolicyItem, 
+    policy_item: ToolGuardSpecItem, 
     domain: Domain, 
     dependent_tool_names: List[str])-> str:
     """
@@ -16,7 +16,7 @@ def generate_init_tests(
 
     Args:
         fn_src (FileTwin): Source code containing the function-under-test signature.
-        policy_item (ToolPolicyItem): Specification of the function-under-test, including positive and negative examples.
+        policy_item (ToolGuardSpecItem): Specification of the function-under-test, including positive and negative examples.
         domain (Domain): available data types and interfaces the test can use.
         dependent_tool_names (List[str]): other tool names that this tool depends on.
 
@@ -110,7 +110,7 @@ def test_violation_book_room_in_the_past():
 def improve_tests(
     prev_impl: str, 
     domain: Domain, 
-    policy_item: ToolPolicyItem, 
+    policy_item: ToolGuardSpecItem, 
     review_comments: List[str],
     dependent_tool_names: List[str])-> str:
     """
@@ -119,7 +119,7 @@ def improve_tests(
     Args:
         prev_impl (str): previous implementation of a Python function.
         domain (Domain): Python source code defining available data types and APIs that the test can use.
-        tool (ToolPolicyItem): Requirements for this tool.
+        tool (ToolGuardSpecItem): Requirements for this tool.
         review_comments (List[str]): Review comments on the current implementation. For example, pylint errors or Failed unit-tests.
         dependent_tool_names (List[str]): other tool names that this tool depends on.
 
