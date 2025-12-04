@@ -13,5 +13,6 @@ env = Environment(
 env.globals["path_to_module"] = path_to_module
 env.globals["to_snake_case"] = to_snake_case
 
-def load_template(template_name:str):
+
+def load_template(template_name: str):
     return env.get_template(template_name)

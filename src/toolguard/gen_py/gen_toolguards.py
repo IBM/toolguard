@@ -1,12 +1,11 @@
 import asyncio
 import logging
-from os.path import join
 from typing import Callable, List, Optional
+
 import mellea
 
-from . import consts
 from .domain_from_funcs import generate_domain_from_functions
-from ..data_types import MeleaSessionData, RuntimeDomain, ToolGuardSpec
+from ..data_types import RuntimeDomain, ToolGuardSpec, MeleaSessionData
 from .domain_from_openapi import generate_domain_from_openapi
 from ..runtime import ToolGuardsCodeGenerationResult
 from .tool_guard_generator import ToolGuardGenerator
@@ -87,5 +86,7 @@ async def generate_toolguards_from_domain(
         tool.tool_name: res for tool, res in zip(tools_w_poilicies, tool_results)
     }
     return ToolGuardsCodeGenerationResult(
-        root_dir=py_root, domain=domain, tools=tools_result
+        out_dir=py_root, 
+        domain=domain, 
+        tools=tools_result
     ).save(py_root)

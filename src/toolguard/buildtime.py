@@ -101,6 +101,7 @@ async def generate_guards_from_specs(
 		tool_names: Optional[List[str]] = None) -> ToolGuardsCodeGenerationResult:
 	
 	tool_specs = [policy for policy in tool_specs if (not tool_names) or (policy.tool_name in tool_names)]
+	os.makedirs(work_dir, exist_ok=True)
 
 	# case1: path to OpenAPI spec
 	oas_path = tools if isinstance(tools, str) else None

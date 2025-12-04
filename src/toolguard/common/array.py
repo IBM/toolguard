@@ -6,7 +6,7 @@ def flatten(arr_arr):
     return [b for bs in arr_arr for b in bs]
 
 
-def break_array_into_chunks(arr:List, chunk_size:int)->List[List[Any]]:
+def break_array_into_chunks(arr: List, chunk_size: int) -> List[List[Any]]:
     res = []
     for i, v in enumerate(arr):
         if i % chunk_size == 0:
@@ -15,18 +15,25 @@ def break_array_into_chunks(arr:List, chunk_size:int)->List[List[Any]]:
         cur.append(v)
     return res
 
+
 def sum(array):
-    return functools.reduce(lambda a, b: a+b, array) if len(array)>0 else 0
+    return functools.reduce(lambda a, b: a + b, array) if len(array) > 0 else 0
+
 
 T = TypeVar("T")
-def find(array:List[T], pred: Callable[[T], bool]):
+
+
+def find(array: List[T], pred: Callable[[T], bool]):
     for item in array:
         if pred(item):
             return item
 
-#remove duplicates and preserve ordering
+
+# remove duplicates and preserve ordering
 T = TypeVar("T")
-def remove_duplicates(array:List[T])->List[T]: 
+
+
+def remove_duplicates(array: List[T]) -> List[T]:
     res = []
     visited = set()
     for item in array:
@@ -35,10 +42,12 @@ def remove_duplicates(array:List[T])->List[T]:
             visited.add(item)
     return res
 
-def not_none(array:List[T])->List[T]: 
+
+def not_none(array: List[T]) -> List[T]:
     return [item for item in array if item is not None]
 
-def split_array(arr:List[T], delimiter:T) -> List[List[T]]:
+
+def split_array(arr: List[T], delimiter: T) -> List[List[T]]:
     result = []
     temp = []
     for item in arr:

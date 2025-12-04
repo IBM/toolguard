@@ -12,19 +12,23 @@ from ...data_types import FileTwin
 
 
 
+
 class TestOutcome(StrEnum):
     passed = "passed"
     failed = "failed"
+
 
 class TracebackEntry(BaseModel):
     path: str
     lineno: int
     message: str
 
+
 class CrashInfo(BaseModel):
     path: str
     lineno: int
     message: str
+
 
 class CallInfo(BaseModel):
     duration: float
@@ -33,9 +37,11 @@ class CallInfo(BaseModel):
     traceback: Optional[List[TracebackEntry]] = None
     longrepr: Optional[str] = None
 
+
 class TestPhase(BaseModel):
     duration: float
     outcome: TestOutcome
+
 
 class TestResult(BaseModel):
     nodeid: str
@@ -47,10 +53,12 @@ class TestResult(BaseModel):
     user_properties: Optional[List[Any]] = None
     teardown: TestPhase
 
+
 class ResultEntry(BaseModel):
     nodeid: str
     type: str
     lineno: Optional[int] = None
+
 
 class Collector(BaseModel):
     nodeid: str
@@ -58,10 +66,12 @@ class Collector(BaseModel):
     result: List[ResultEntry]
     longrepr: Optional[str] = None
 
+
 class Summary(BaseModel):
     failed: Optional[int] = 0
     total: int
     collected: int
+
 
 class TestReport(BaseModel):
     created: float
@@ -73,24 +83,24 @@ class TestReport(BaseModel):
     collectors: List[Collector] = Field(default=[])
     tests: List[TestResult]
 
-    def all_tests_passed(self)->bool:
+    def all_tests_passed(self) -> bool:
         return all([test.outcome == TestOutcome.passed for test in self.tests])
-    
-    def all_tests_collected_successfully(self)->bool:
+
+    def all_tests_collected_successfully(self) -> bool:
         return all([col.outcome == TestOutcome.passed for col in self.collectors])
 
-    def non_empty_tests(self)->bool:
+    def non_empty_tests(self) -> bool:
         return self.summary.total > 0
 
-    def list_errors(self)->List[str]:
+    def list_errors(self) -> List[str]:
         errors = set()
 
-        #Python errors in the function under test
+        # Python errors in the function under test
         for col in self.collectors:
             if col.outcome == TestOutcome.failed and col.longrepr:
                 errors.add(col.longrepr)
 
-        #applicative test failure
+        # applicative test failure
         for test in self.tests:
             if test.outcome == TestOutcome.failed:
                 error = test.call.longrepr
@@ -104,16 +114,20 @@ class TestReport(BaseModel):
         return list(errors)
 
 def run(folder:str, test_file:str, report_file:str)->TestReport:
-    run_tests_in_separate_safe_process(folder, test_file, report_file)
+    run_tests_in_safe_python_separate_process(folder, test_file, report_file)
     
     report = read_test_report(os.path.join(folder, report_file))
+
     #overwrite it with indented version
     with open(os.path.join(folder, report_file), "w", encoding="utf-8") as f:
         json.dump(report.model_dump(), f, indent=2)
 
     return report
 
-def run_tests_in_separate_safe_process(folder:str, test_file:str, report_file:str):
+# Run the tests in this environment.
+# run the tests in safe mode, so network and os operations are blocked. only specified libraries can be used.
+# run the tests in a separate process. so python modules are isolated. as the code is evolving in the filesystem, we need a way to avoid python module caching. otherwise, it will not see that the code in the file has changed.
+def run_tests_in_safe_python_separate_process(folder:str, test_file:str, report_file:str):
     code = f"""
 import pytest
 pytest.main(["{join(folder, test_file)}", "--quiet", "--json-report", "--json-report-file={join(folder, report_file)}"])
@@ -136,7 +150,7 @@ pytest.main(["{join(folder, test_file)}", "--quiet", "--json-report", "--json-re
 #         cwd=folder)
 
 
-def configure(folder:str):
+def configure(folder: str):
     """adds the test function docstring to the output report"""
 
     hook = """
@@ -150,10 +164,7 @@ def pytest_runtest_protocol(item, nextitem):
     FileTwin(file_name="conftest.py", content=hook).save(folder)
 
 
-def read_test_report(file_path:str)->TestReport:
+def read_test_report(file_path: str) -> TestReport:
     with open(file_path, "r") as file:
         data = json.load(file)
     return TestReport.model_validate(data, strict=False)
-
-# report = read_test_report("/Users/davidboaz/Documents/GitHub/gen_policy_validator/tau_airline/output/2025-03-12 08:54:16/pytest_report.json")
-# print(report.summary.failed)

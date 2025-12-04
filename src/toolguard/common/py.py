@@ -8,20 +8,23 @@ from contextlib import contextmanager
 
 from .str import to_snake_case
 
-def py_extension(filename:str)->str:
-    return filename if filename.endswith(".py") else filename+".py" 
+def py_extension(filename: str) -> str:
+    return filename if filename.endswith(".py") else filename + ".py"
 
-def un_py_extension(filename:str)->str:
+
+def un_py_extension(filename: str) -> str:
     return filename.removesuffix(".py") if filename.endswith(".py") else filename
-    
-def path_to_module(file_path:str)->str:
+
+
+def path_to_module(file_path: str) -> str:
     assert file_path
-    parts = file_path.split('/')
+    parts = file_path.split("/")
     if parts[-1].endswith(".py"):
         parts[-1] = un_py_extension(parts[-1])
-    return '.'.join([to_snake_case(part) for part in parts])
+    return ".".join([to_snake_case(part) for part in parts])
 
-def module_to_path(module:str)->str:
+
+def module_to_path(module: str) -> str:
     parts = module.split(".")
     return os.path.join(*parts[:-1], py_extension(parts[-1]))
 
@@ -53,18 +56,24 @@ def extract_docstr_args(func:Callable) -> str:
     if args_start is None:
         return ""
 
-
     # List of known docstring section headers
-    next_sections = {"returns:", "raises:", "examples:", "notes:", "attributes:", "yields:"}
+    next_sections = {
+        "returns:",
+        "raises:",
+        "examples:",
+        "notes:",
+        "attributes:",
+        "yields:",
+    }
 
     # Capture lines after "Args:" that are indented
     args_lines = []
-    for line in lines[args_start + 1:]:
+    for line in lines[args_start + 1 :]:
         # Stop if we hit a new section (like "Returns:", "Raises:", etc.)
         stripped = line.strip().lower()
         if stripped in next_sections:
             break
-        args_lines.append(" "*8 + line.strip())
+        args_lines.append(" " * 8 + line.strip())
 
     # Join all lines into a single string
     if not args_lines:
