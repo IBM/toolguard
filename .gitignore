@@ -1,12 +1,10 @@
 .DS_Store
 *.pyc
-/tau_airline
-src/.env
 **/__pycache__
-converted_model.dmn
-dmn_item_definitions.xml
 .env
 **/*.egg-info/**
-clinic/clinic.db
 output
 .idea/
+build
+docs/*.drawio.dtmp
+docs/*.bkp
