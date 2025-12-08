@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "toolguard"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Policy adherence code generation for guarding AI agent tools"
 readme = "README.md"
 
@@ -42,6 +42,9 @@ classifiers = [
 # src/ layout
 [tool.hatch.build.targets.wheel]
 packages = ["src/toolguard"]
+
+[tool.setuptools_scm]
+write_to = "_version.py"
 
 # Include non-Python data files inside the published wheel
 [tool.hatch.build.targets.wheel.sources]
