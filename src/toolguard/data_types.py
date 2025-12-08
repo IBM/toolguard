@@ -53,7 +53,7 @@ class ToolInfo(BaseModel):
 
 	@classmethod
 	def from_function(cls, fn: Callable) -> "ToolInfo":
-		# Assumes @tool decorator from langchain https://python.langchain.com/docs/how_to/custom_tools/
+		# Assumes @tool decorator from langchain_core https://python.langchain.com/docs/how_to/custom_tools/
 		# or a plain function with doc string
 		def doc_summary(doc:str): 
 			paragraphs = [p.strip() for p in doc.split("\n\n") if p.strip()]

@@ -4,7 +4,7 @@ from typing import Callable, List, Optional, cast
 import json
 import logging
 
-from langchain.tools import BaseTool
+from langchain_core.tools import BaseTool
 
 
 from .llm.i_tg_llm import I_TG_LLM
