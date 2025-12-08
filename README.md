@@ -1,14 +1,21 @@
 # 📦 AI Agents Policy Adherence
 
 This tool analyzes policy documents and generates deterministic Python code to enforce operational policies when invoking AI agent tools.
+This work is described in [EMNLP 2025 Towards Enforcing Company Policy Adherence in Agentic Workflows](https://arxiv.org/pdf/2507.16459).
 
-## 🚀 Features
+Business policies (or guidelines) are normally detailed in company documents, and have traditionally been hard-coded into automatic assistant platforms. Contemporary agentic approaches take the "best-effort" strategy, where the policies are appended to the agent's system prompt, an inherently non-deterministic approach, that does not scale effectively. Here we propose a deterministic, predictable and interpretable two-phase solution for agentic policy adherence at the tool-level: guards are executed prior to function invocation and raise alerts in case a tool-related policy deem violated.
 
-The workflow consists of two main steps:
+This component enforces **pre‑tool activation policy constraints**, ensuring that agent decisions comply with business rules **before** modifying system state. This prevents policy violations such as unauthorized tool calls or unsafe parameter values.
+
 
 **Step 1**:  
-Takes a policy document in Markdown format and an OpenAPI specification describing the available tools. For each tool, it generates a JSON file containing associated policies and examples of both compliance and violations.  
-These files can be reviewed and edited manually before proceeding to Step 2.  
+
+This component gets a set of tools and a policy document and generated multiple ToolGuard specifications, known as `ToolGuardSpec`s. Each specification is attached to a tool, and it declares a precondition that must apply before invoking the tool. The specification has a `name`, `description`, list of `refernces` to the original policy document, a set of declerative `compliance_examples`, describing test cases that the toolGuard should allow the tool invocation, and `violation_examples`, where the toolGuard should raise an exception.
+
+The specifications are aimed to be used as input into our next component - described below. 
+
+The two components are not concatenated by design. As the geneartion involves a non-deterministic language model, the results need to be reviewed by a human. Hence, the output specification files should be reviewed and optionaly edited. For example, removing a wrong compliance example.
+
 The OpenAPI document should describe agent tools and optionally include *read-only* tools that might be used to enforce policies. It’s important that each tool has:
 - A proper `operation_id` matching the tool name
 - A detailed description
@@ -23,7 +30,6 @@ Uses the output from Step 1 and the OpenAPI spec to generate Python code that en
 ## 🐍 Requirements
 
 - Python 3.12+
-- `pip`
 
 ---
 
@@ -32,23 +38,9 @@ Uses the output from Step 1 and the OpenAPI spec to generate Python code that en
 1. **Clone the repository:**
 
    ```bash
-   git clone https://github.ibm.com/MLT/gen_policy_validator.git
-   cd gen_policy_validator
+   uv install toolguard
    ```
 
-2. **(Optional) Create and activate a virtual environment:**
-
-   ```bash
-   python3.12 -m venv venv
-   source venv/bin/activate  # On Windows use: venv\Scripts\activate
-   ```
-
-3. **Install dependencies:**
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-[.env.example](.env.example)
 4. **Create a `.env` file:**
 
    Copy the `.env.example` to `src/.env` and fill in your environment variables. 
