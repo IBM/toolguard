@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
@@ -39,14 +39,12 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
-# src/ layout
+[tool.hatch.version]
+source = "vcs"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/toolguard"]
 
-[tool.setuptools_scm]
-write_to = "_version.py"
-
-# Include non-Python data files inside the published wheel
 [tool.hatch.build.targets.wheel.sources]
 "src/toolguard/gen_spec/prompts" = "toolguard/gen_spec/prompts"
 "src/toolguard/gen_py/templates" = "toolguard/gen_py/templates"
