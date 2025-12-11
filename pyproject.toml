@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "toolguard"
-dynamic = ["version"]
+version = "0.1.4"
 description = "Policy adherence code generation for guarding AI agent tools"
 readme = "README.md"
 
@@ -38,9 +38,6 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
 ]
-
-[tool.hatch.version]
-source = "vcs"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/toolguard"]
