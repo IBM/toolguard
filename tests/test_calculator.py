@@ -21,7 +21,15 @@ STEP1 = "step1"
 STEP2 = "step2"
 
 step1_llm = LitellmModel(model, llm_provider)
-step2_llm = MelleaSessionData()#initialized from env vars
+step2_llm = MelleaSessionData(
+    # backend_name = "litellm",
+    # model_id = "mistralai/mistral-medium-2505",
+    # kw_args = {
+    #     "WATSONX_API_KEY": os.getenv("TOOLGUARD_GENPY_APIKEY"),
+    #     "WATSONX_URL": os.getenv("WATSONX_URL", "https://us-south.ml.cloud.ibm.com"),
+    #     "WATSONX_PROJECT_ID": os.getenv("WATSONX_PROJECT_ID"),
+    # }
+)#initialized from env vars
 
 async def _build_toolguards(
     model:str,
