@@ -137,13 +137,13 @@ def load_tool_policy(file_path: str, tool_name: str) -> ToolGuardSpec:
 
     items = [
         ToolGuardSpecItem(
-            name=item.get("policy_name"),
+            name=item.get("name"),
             description=item.get("description"),
             references=item.get("references"),
             compliance_examples=item.get("compliance_examples"),
-            violation_examples=item.get("violating_examples"),
+            violation_examples=item.get("violation_examples"),
         )
-        for item in d.get("policies", [])
+        for item in d.get("policy_items", [])
         if not item.get("skip")
     ]
     return ToolGuardSpec(tool_name=tool_name, policy_items=items)

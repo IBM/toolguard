@@ -21,14 +21,14 @@ Instructions:
 
 Output JSON Format:
 {
-  "violating_examples": [ ... ],
+  "violation_examples": [ ... ],
   "compliance_examples": [ ... ]
 }
 
 Example:
 Input (Before Merging):
 {
-  "violating_examples": [
+  "violation_examples": [
     "ToolX is used without an authentication token.",
     "A request is sent to ToolX without the required authentication token.",
     "Input exceeds the character limit for ToolX.",
@@ -45,7 +45,7 @@ Input (Before Merging):
 
 Output (After Merging):
 {
-  "violating_examples": [
+  "violation_examples": [
     "A request is sent to ToolX without the required authentication token, violating the policy that mandates authentication.",
     "The input parameters for ToolX exceed the allowed 500-character limit, which violates input size constraints.",
     "A restricted keyword is used in the ToolX request, which the policy explicitly disallows."

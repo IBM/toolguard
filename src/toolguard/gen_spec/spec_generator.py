@@ -59,15 +59,15 @@ class ToolGuardSpecGenerator:
         )
 
         policies = (
-            response["additionalProperties"]["policies"]
-            if "additionalProperties" in response and "policies" not in response
-            else response["policies"]
+            response["additionalProperties"]["policy_items"]
+            if "additionalProperties" in response and "policy_items" not in response
+            else response["policy_items"]
         )
 
         for policy in policies:
-            # for policy in response["policies"]:
+            # for policy in response["policy_items"]:
             policy["iteration"] = iteration
-            tptd["policies"].append(policy)
+            tptd["policy_items"].append(policy)
 
         save_output(self.out_dir, f"{tool_name}_ADD_{iteration}.json", tptd)
         return tptd
@@ -138,12 +138,12 @@ class ToolGuardSpecGenerator:
     async def review_policy(self, tool_name, tptd) -> dict:
         print("review_policy")
         system_prompt = read_prompt_file("policy_reviewer")
-        newTPTD = {"policies": []}
+        newTPTD = {"policy_items": []}
 
-        if "policies" not in tptd:
-            tptd["policies"] = []
+        if "policy_items" not in tptd:
+            tptd["policy_items"] = []
 
-        for policy in tptd["policies"]:
+        for policy in tptd["policy_items"]:
             reviews = []
             for _iteration in range(5):
                 user_content = f"Policy Document:{self.policy_document}\nTools Descriptions:{json.dumps(self.tools_descriptions)}\nTarget Tool:{json.dumps(self.tools_descriptions[tool_name])}\npolicy: {json.dumps(policy)}"
@@ -170,7 +170,7 @@ class ToolGuardSpecGenerator:
                 policy["comments"] = comments
                 newTPTD["archive"].append(policy)
             else:
-                newTPTD["policies"].append(policy)
+                newTPTD["policy_items"].append(policy)
         save_output(self.out_dir, f"{tool_name}_rev.json", newTPTD)
         return newTPTD
 
@@ -178,7 +178,7 @@ class ToolGuardSpecGenerator:
         print("add_ref")
         system_prompt = read_prompt_file("add_references")
         # remove old refs (used to help avoid duplications)
-        for policy in tptd["policies"]:
+        for policy in tptd["policy_items"]:
             policy["references"] = []
             user_content = f"Policy Document:{self.policy_document}\nTools Descriptions:{json.dumps(self.tools_descriptions)}\nTarget Tool:{self.tools_details[tool_name].model_dump_json()}\npolicy: {json.dumps(policy)}"
             response = await self.llm.chat_json(
@@ -207,15 +207,15 @@ class ToolGuardSpecGenerator:
         system_prompt = read_prompt_file("create_examples")
         system_prompt = system_prompt.replace("ToolX", tool_name)
 
-        for policy in tptd["policies"]:
+        for policy in tptd["policy_items"]:
             # user_content = f"Policy Document:{state['policy_text']}\nTools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nPolicy:{policy}"
             user_content = f"Tools Descriptions:{json.dumps(self.tools_descriptions)}\nTarget Tool:{self.tools_details[tool_name].model_dump_json()}\nPolicy:{policy}"
 
             response = await self.llm.chat_json(
                 generate_messages(system_prompt, user_content)
             )
-            if "violating_examples" in response:
-                policy["violating_examples"] = response["violating_examples"]
+            if "violation_examples" in response:
+                policy["violation_examples"] = response["violation_examples"]
 
             if "compliance_examples" in response:
                 policy["compliance_examples"] = response["compliance_examples"]
@@ -227,18 +227,18 @@ class ToolGuardSpecGenerator:
         print("add_examples")
         system_prompt = read_prompt_file("add_examples")
         system_prompt = system_prompt.replace("ToolX", tool_name)
-        for policy in tptd["policies"]:
+        for policy in tptd["policy_items"]:
             # user_content = f"Policy Document:{state['policy_text']}\nTools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nPolicy:{policy}"
             user_content = f"Tools Descriptions:{json.dumps(self.tools_descriptions)}\nTarget Tool:{self.tools_details[tool_name].model_dump_json()}\nPolicy:{policy}"
             response = await self.llm.chat_json(
                 generate_messages(system_prompt, user_content)
             )
-            if "violating_examples" in response:
-                for vexample in response["violating_examples"]:
+            if "violation_examples" in response:
+                for vexample in response["violation_examples"]:
                     # vexample["iteration"] = state["iteration"]
-                    if "violating_examples" not in policy:
-                        policy["violating_examples"] = []
-                    policy["violating_examples"].append(vexample)
+                    if "violation_examples" not in policy:
+                        policy["violation_examples"] = []
+                    policy["violation_examples"].append(vexample)
             if "compliance_examples" in response:
                 for cexample in response["compliance_examples"]:
                     if "compliance_examples" not in policy:
@@ -253,7 +253,7 @@ class ToolGuardSpecGenerator:
         print("merge_examples")
         system_prompt = read_prompt_file("merge_examples")
         system_prompt = system_prompt.replace("ToolX", tool_name)
-        for policy in tptd["policies"]:
+        for policy in tptd["policy_items"]:
             # user_content = f"Policy Document:{state['policy_text']}\nTools Descriptions:{json.dumps(state['tools'])}\nTarget Tool:{json.dumps(state['target_tool_description'])}\nPolicy Name:{policy['policy_name']}\nPolicy Description:{policy['description']}"
             user_content = f"Tools Descriptions:{json.dumps(self.tools_descriptions)}\nTarget Tool:{self.tools_details[tool_name].model_dump_json()}\nPolicy Name:{policy['policy_name']}\nPolicy Description:{policy['description']}"
             user_content += f"\n\nViolating Examples: {policy['violating_examples']}"
@@ -261,7 +261,7 @@ class ToolGuardSpecGenerator:
             response = await self.llm.chat_json(
                 generate_messages(system_prompt, user_content)
             )
-            policy["violating_examples"] = response["violating_examples"]
+            policy["violation_examples"] = response["violation_examples"]
             policy["compliance_examples"] = response["compliance_examples"]
 
         save_output(self.out_dir, f"{tool_name}_merge_examples.json", tptd)
@@ -270,7 +270,7 @@ class ToolGuardSpecGenerator:
     async def fix_examples(self, tool_name: str, tptd: dict) -> dict:
         print("fix_examples")
         orig_prompt = read_prompt_file("fix_example")
-        for policy in tptd["policies"]:
+        for policy in tptd["policy_items"]:
             for etype in ["violating", "compliance"]:
                 fixed_examples = []
                 for example in policy[etype + "_examples"]:
@@ -293,8 +293,8 @@ class ToolGuardSpecGenerator:
     async def review_examples(self, tool_name: str, tptd: dict) -> dict:
         print("review_examples")
         system_prompt = read_prompt_file("examples_reviewer")
-        for policy in tptd["policies"]:
-            print(policy["policy_name"])
+        for policy in tptd["policy_items"]:
+            print(policy["name"])
             for etype in ["violating", "compliance"]:
                 print(etype)
                 passed_examples = []
@@ -346,24 +346,19 @@ async def extract_toolguard_specs(
     process_dir = os.path.join(step1_output_dir, "process")
     if not os.path.isdir(process_dir):
         os.makedirs(process_dir)
-    output_tool_policies = []
     tpg = ToolGuardSpecGenerator(llm, policy_text, tools, process_dir)
 
-    async def do_one_tool(tool_name):
-        if short:
-            final_output = await tpg.generate_minimal_policy(tool_name)
-        else:
-            final_output = await tpg.generate_policy(tool_name)
+    async def do_one_tool(tool_name)->ToolGuardSpec:
+        spec_dict = await tpg.generate_minimal_policy(tool_name) if short \
+            else await tpg.generate_policy(tool_name)
 
         with open(os.path.join(step1_output_dir, tool_name + ".json"), "w") as outfile1:
-            outfile1.write(json.dumps(final_output, indent=2))
-        output_tool_policies.append(
-            load_tool_policy(
-                os.path.join(step1_output_dir, tool_name + ".json"), tool_name
-            )
-        )
+            outfile1.write(json.dumps(spec_dict, indent=2))
+            
+        spec = ToolGuardSpec(tool_name=tool_name, **spec_dict)
+        return spec
 
-    await asyncio.gather(
+    specs = await asyncio.gather(
         *[
             do_one_tool(tool.name)
             for tool in tools
@@ -371,4 +366,4 @@ async def extract_toolguard_specs(
         ]
     )
     print("All tools done")
-    return output_tool_policies
+    return specs

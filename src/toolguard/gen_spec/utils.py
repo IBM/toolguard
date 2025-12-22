@@ -55,12 +55,12 @@ def split_reference_if_both_parts_exist(reference, policy_text):
 def find_mismatched_references(policy_text, policy_json):
     corrections = json.loads(json.dumps(policy_json))
     unmatched_policies = []
-    if isinstance(corrections["policies"], str):
+    if isinstance(corrections["policy_items"], str):
         return corrections, unmatched_policies
 
     normalized_policy_text = normalize_text(policy_text)
 
-    for policy in corrections["policies"]:
+    for policy in corrections["policy_items"]:
         corrected_references = []
         has_unmatched = False
 
@@ -91,6 +91,6 @@ def find_mismatched_references(policy_text, policy_json):
 
         policy["references"] = corrected_references
         if has_unmatched:
-            unmatched_policies.append(policy["policy_name"])
+            unmatched_policies.append(policy["name"])
 
     return corrections, unmatched_policies

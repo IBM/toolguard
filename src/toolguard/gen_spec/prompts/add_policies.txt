@@ -18,7 +18,7 @@ Instructions:
 
 4. Output Only New Policies:
     * If a policy was already extracted in Stage 1, do not include it in the output.
-    * If no additional policies are found, return an empty "policies" array.
+    * If no additional policies are found, return an empty "policy_items" array.
 
 Input Format:
 Policy Document – A text containing policies, rules, or constraints governing tool usage.
@@ -28,9 +28,9 @@ TPTD (Tool Policy Text Description) – A JSON object containing extracted polic
 
 Output Format (JSON):
 {
-  "policies": [
+  "policy_items": [
     {
-      "policy_name": "<Policy 1 Name>",
+      "name": "<Policy 1 Name>",
       "description": "<Policy 1 Description>",
       "references": [
         "<Exact Passage 1 from Policy Document>",
@@ -40,7 +40,7 @@ Output Format (JSON):
     },
     ...
     {
-      "policy_name": "<Policy n Name>",
+      "name": "<Policy n Name>",
       "description": "<Policy n Description>",
       "references": [
         "<Exact Passage 1 from Policy Document>"
@@ -53,6 +53,6 @@ Output Format (JSON):
 
 If no additional relevant policies exist, return:
 {
-  "policies": []
+  "policy_items": []
 }
 

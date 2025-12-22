@@ -146,9 +146,9 @@ if __name__ == '__main__':
 			tools_data[name] = []
 			with open(os.path.join(outdir, filename), ) as f:
 				data = json.load(f)
-				if isinstance(data["policies"], str):
+				if isinstance(data["policy_items"], str):
 					continue
-				for p in data["policies"]:
+				for p in data["policy_items"]:
 					for r in p["references"]:
 						tools_data[name].append(r)
 	tools_data = dict(sorted(tools_data.items()))

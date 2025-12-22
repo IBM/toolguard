@@ -30,7 +30,7 @@ Ensure all rules within each policy are covered. If a policy contains multiple c
 
 Output Format (JSON):
 {
-    "violating_examples": [
+    "violation_examples": [
         "Violating example 1",
         "Violating example 2,
         "Violating example 3"
@@ -49,7 +49,7 @@ Policy: The user can rent only medium cars in red or small cars in blue or any y
 
 Output:
 {
-    "violating_examples": [
+    "violation_examples": [
         "A user asks to rent a green car",
         "The user requests to rent medium blue car",
         "Renting a small red car",

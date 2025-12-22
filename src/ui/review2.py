@@ -73,10 +73,10 @@ def add_item():
 	policy_name = simpledialog.askstring("New Policy", "Enter policy name:")
 	if policy_name:
 		new_policy = {
-			"policy_name": policy_name,
+			"name": policy_name,
 			"description": "",
 			"references": [],
-			"violating_examples": [],
+			"violation_examples": [],
 			"compliance_examples": []
 		}
 		json_data['policies'].append(new_policy)

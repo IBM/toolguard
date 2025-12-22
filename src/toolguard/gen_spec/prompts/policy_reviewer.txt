@@ -23,7 +23,7 @@ Comments: Justify the assigned score and explain any deficiencies. If the policy
 
 Output JSON Format:
 {
-  "policy_name": "<Policy Name>",
+  "name": "<Policy Name>",
   "description": "<Policy Description>",
   "references": [
     "<Exact Passage from Policy Document>"

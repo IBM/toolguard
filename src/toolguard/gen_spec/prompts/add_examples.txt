@@ -32,7 +32,7 @@ Maintain the correct structure:
 
 Output Format (JSON):
 {
-    "violating_examples": [
+    "violation_examples": [
         "Violating example 1",
         "Violating example 2,
         "Violating example 3"

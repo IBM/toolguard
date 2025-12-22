@@ -23,9 +23,9 @@ TPTD (Tool Policy Text Description) – A JSON object containing extracted polic
 
 Output Format (JSON):
 {
-  "policies": [
+  "policy_items": [
     {
-      "policy_name": "<Policy 1 Name>",
+      "name": "<Policy 1 Name>",
       "description": "<Policy 1 Description>",
       "references": [
         "<Exact Passage 1 from Policy Document>",
@@ -35,7 +35,7 @@ Output Format (JSON):
     },
     ...
     {
-      "policy_name": "<Policy n Name>",
+      "name": "<Policy n Name>",
       "description": "<Policy n Description>",
       "references": [
         "<Exact Passage 1 from Policy Document>"
@@ -48,6 +48,6 @@ Output Format (JSON):
 
 If no additional relevant policies exist, return:
 {
-  "policies": []
+  "policy_items": []
 }
 
