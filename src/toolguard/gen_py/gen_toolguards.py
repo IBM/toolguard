@@ -50,23 +50,23 @@ async def generate_toolguards_from_openapi(
     )
 
 async def generate_toolguards_from_domain(
-    app_name: str, tool_policies: List[ToolGuardSpec], py_root: str, domain: RuntimeDomain,
+    app_name: str, specs: List[ToolGuardSpec], py_root: str, domain: RuntimeDomain,
     llm_data: MelleaSessionData
 ) -> ToolGuardsCodeGenerationResult:
     # Setup env
-    # venv.run(join(py_root, consts.PY_ENV), consts.PY_PACKAGES)
     pyright.config(py_root)
     pytest.configure(py_root)
 
-    for tool_policy in tool_policies:
+    for tool_policy in specs:
         for policy in tool_policy.policy_items:
             policy.name = policy.name.replace(".","_")
 
-    tools_w_poilicies = [
-        tool_policy
-        for tool_policy in tool_policies
-        if len(tool_policy.policy_items) > 0
-    ]
+    not_empty_specs = [spec for spec in [
+        ToolGuardSpec( #a copy
+            tool_name=spec.tool_name, 
+            policy_items=[i for i in spec.policy_items if not i.skip])
+        for spec in specs
+    ] if len(spec.policy_items) > 0]
 
     m = mellea.start_session(
         backend_name = llm_data.backend_name,
@@ -78,12 +78,12 @@ async def generate_toolguards_from_domain(
             ToolGuardGenerator(
                 app_name, tool_policy, py_root, domain, m
             ).generate()
-            for tool_policy in tools_w_poilicies
+            for tool_policy in not_empty_specs
         ]
     )
 
     tools_result = {
-        tool.tool_name: res for tool, res in zip(tools_w_poilicies, tool_results)
+        tool.tool_name: res for tool, res in zip(not_empty_specs, tool_results)
     }
     return ToolGuardsCodeGenerationResult(
         out_dir=py_root, 

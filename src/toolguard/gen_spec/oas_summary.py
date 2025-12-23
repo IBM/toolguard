@@ -22,7 +22,6 @@ class OASSummarizer:
                     full_description=json.dumps(summary, indent=4),
                 )
                 operations.append(tool_info)
-                operations.append(tool_info)
         return operations
 
     def _format_operation(

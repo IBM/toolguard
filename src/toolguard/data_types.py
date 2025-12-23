@@ -106,6 +106,7 @@ class ToolGuardSpecItem(BaseModel):
     violation_examples: Optional[List[str]] = Field(
         ..., description="Example of cases that violate the policy"
     )
+    skip: bool = False
 
     def to_md_bulltets(self, items: List[str]) -> str:
         s = ""
@@ -134,19 +135,20 @@ class ToolGuardSpec(BaseModel):
 def load_tool_policy(file_path: str, tool_name: str) -> ToolGuardSpec:
     with open(file_path, "r") as file:
         d = json.load(file)
-
-    items = [
-        ToolGuardSpecItem(
-            name=item.get("name"),
-            description=item.get("description"),
-            references=item.get("references"),
-            compliance_examples=item.get("compliance_examples"),
-            violation_examples=item.get("violation_examples"),
-        )
-        for item in d.get("policy_items", [])
-        if not item.get("skip")
-    ]
-    return ToolGuardSpec(tool_name=tool_name, policy_items=items)
+    spec = ToolGuardSpec.model_construct(tool_name=tool_name, **d)
+    return spec
+    # items = [
+    #     ToolGuardSpecItem(
+    #         name=item.get("name"),
+    #         description=item.get("description"),
+    #         references=item.get("references"),
+    #         compliance_examples=item.get("compliance_examples"),
+    #         violation_examples=item.get("violation_examples"),
+    #     )
+    #     for item in d.get("policy_items", [])
+    #     if not item.get("skip")
+    # ]
+    # return ToolGuardSpec(tool_name=tool_name, policy_items=items)
 
 
 class Domain(BaseModel):

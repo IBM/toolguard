@@ -2,6 +2,7 @@
 import asyncio
 import json
 import os
+from pathlib import Path
 from typing import List, Optional
 
 from ..data_types import ToolInfo, ToolGuardSpec, load_tool_policy
@@ -351,11 +352,13 @@ async def extract_toolguard_specs(
     async def do_one_tool(tool_name)->ToolGuardSpec:
         spec_dict = await tpg.generate_minimal_policy(tool_name) if short \
             else await tpg.generate_policy(tool_name)
-
-        with open(os.path.join(step1_output_dir, tool_name + ".json"), "w") as outfile1:
-            outfile1.write(json.dumps(spec_dict, indent=2))
-            
         spec = ToolGuardSpec(tool_name=tool_name, **spec_dict)
+
+        path = Path(step1_output_dir, tool_name + ".json")
+        path.write_text(
+            spec.model_dump_json(indent=2),
+            encoding="utf-8"
+        )
         return spec
 
     specs = await asyncio.gather(
